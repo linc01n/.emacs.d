@@ -18,8 +18,9 @@
 (require 'use-package)
 (use-package magit
   :bind ("M-`" . magit-status)
+  :ensure t
   )
 
 (use-package ibuffer
-  :bind ("<f2>" . ibuffer)
+  :bind ("<f14>" . ibuffer)
   )
