@@ -20,9 +20,12 @@
 ;; TODO: Break each package init into a separate file
 (use-package magit
   :bind ("M-`" . magit-status)
-  :ensure t
-  )
+  :ensure t)
 
 (use-package ibuffer
-  :bind ("<f14>" . ibuffer)
-  )
+  :bind ("<f14>" . ibuffer))
+
+(use-package switch-window
+  :bind (("S-'" . switch-window)
+         ("C-x o" . switch-window))
+  :ensure t)
