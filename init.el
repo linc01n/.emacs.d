@@ -16,6 +16,8 @@
 (setq-default indent-tabs-mode nil)
 
 (require 'use-package)
+
+;; TODO: Break each package init into a separate file
 (use-package magit
   :bind ("M-`" . magit-status)
   :ensure t
