@@ -20,6 +20,9 @@
 ;; TODO: Break each package init into a separate file
 (use-package magit
   :bind ("M-`" . magit-status)
+  :config
+  (setq magit-push-always-verify nil)
+  (setq magit-commit-ask-to-stage f)
   :ensure t)
 
 (use-package ibuffer
