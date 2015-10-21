@@ -38,13 +38,17 @@
   :load-path "~/.emacs.d/lisp")
 
 (use-package mac-key-mode
-  :defer t
+  :defer 1
   :config
-  (mac-key-mode 1))
+  (mac-key-mode 1)
+  :ensure t)
 
 (use-package ace-jump-mode
-  :defer t
   :bind ("C-c SPC" . ace-jump-mode)
+  :ensure t)
+
+(use-package ag
+  :bind ("C-x g" . ag)
   :ensure t)
 
 (use-package hc-zenburn-theme
@@ -59,7 +63,7 @@
 
 (use-package whitespace-cleanup-mode
   :defer t
-  :init
+  :config
   (global-whitespace-cleanup-mode 1)
   (add-hook 'before-save-hook 'whitespace-cleanup)
   :ensure t)
