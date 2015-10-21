@@ -52,3 +52,10 @@
   :config
   (load-theme 'darktooth t)
   :ensure t)
+
+(use-package whitespace-cleanup-mode
+  :defer t
+  :init
+  (global-whitespace-cleanup-mode 1)
+  (add-hook 'before-save-hook 'whitespace-cleanup)
+  :ensure t)
