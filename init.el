@@ -49,6 +49,7 @@
 
 (use-package hc-zenburn-theme
   :defer t
+  :disabled t
   :ensure t)
 
 (use-package darktooth-theme
