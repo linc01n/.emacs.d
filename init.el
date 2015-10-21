@@ -40,13 +40,15 @@
   (mac-key-mode 1))
 
 (use-package ace-jump-mode
+  :defer t
   :bind ("C-c SPC" . ace-jump-mode)
+  :ensure t)
+
+(use-package hc-zenburn-theme
+  :defer t
   :ensure t)
 
 (use-package darktooth-theme
   :config
   (load-theme 'darktooth t)
   :ensure t)
-
-
-
