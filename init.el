@@ -33,16 +33,6 @@
          ("C-x o" . switch-window))
   :ensure t)
 
-(use-package redo+
-  :defer t
-  :load-path "~/.emacs.d/lisp")
-
-(use-package mac-key-mode
-  :defer 1
-  :config
-  (mac-key-mode 1)
-  :ensure t)
-
 (use-package ace-jump-mode
   :bind ("C-c SPC" . ace-jump-mode)
   :ensure t)
