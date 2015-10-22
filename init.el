@@ -15,6 +15,11 @@
 (load "~/.emacs.d/my-gui.el")
 (setq-default indent-tabs-mode nil)
 
+
+(setf inhibit-splash-screen t)
+(setq initial-scratch-message nil)
+(delete-other-windows)
+
 (require 'use-package)
 
 (use-package req-package
