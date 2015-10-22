@@ -61,9 +61,6 @@
   (add-hook 'before-save-hook 'whitespace-cleanup)
   :ensure t)
 
-(use-package occur
-  :bind ("C-;" . occur))
-
 (use-package smex
   :bind ("M-x" . smex)
   :config
