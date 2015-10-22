@@ -57,3 +57,44 @@
   (global-whitespace-cleanup-mode 1)
   (add-hook 'before-save-hook 'whitespace-cleanup)
   :ensure t)
+
+(use-package occur
+  :bind ("C-;" . occur))
+
+(use-package smex
+  :bind ("M-x" . smex)
+  :config
+  (smex-initialize)
+  :ensure t)
+
+(use-package flx-ido
+  :defer t
+  :ensure t)
+
+(use-package ido-ubiquitous
+  :defer t
+  :config
+    (ido-ubiquitous-mode 1)
+
+  :ensure t)
+
+(use-package ido
+  :defer t
+  :config
+  (setq ido-create-new-buffer 'always)
+  (setq ido-enable-flex-matching t)
+  (setq ido-everywhere t)
+  (ido-mode 1)
+  (ido-vertical-mode 1)
+  (flx-ido-mode 1)
+  :ensure t)
+
+(use-package occur-x
+  :defer t
+  :config
+  (add-hook 'occur-mode-hook 'turn-on-occur-x-mode)
+  :ensure t)
+
+(use-package iedit
+  :bind ("C-c ;" . iedit-mode)
+  :ensure t)
