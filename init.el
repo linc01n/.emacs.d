@@ -85,8 +85,14 @@
   (setq ido-enable-flex-matching t)
   (setq ido-everywhere t)
   (ido-mode 1)
-  (ido-vertical-mode 1)
   (flx-ido-mode 1)
+  :ensure t)
+
+(use-package ido-vertical-mode
+  :defer t
+  :config
+  (ido-vertical-mode 1)
+  (setq ido-vertical-define-keys 'C-n-C-p-up-down-left-right)
   :ensure t)
 
 (use-package occur-x
