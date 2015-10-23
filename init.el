@@ -29,8 +29,7 @@
   :bind ("M-`" . magit-status)
   :config
   (setq magit-push-always-verify nil)
-  (setq magit-commit-ask-to-stage f)
-  )
+  (setq magit-commit-ask-to-stage f))
 
 (req-package ibuffer
   :bind ("<f14>" . ibuffer)
@@ -39,75 +38,59 @@
 
 (req-package switch-window
   :bind (("S-'" . switch-window)
-         ("C-x o" . switch-window))
-  )
+         ("C-x o" . switch-window)))
 
 (req-package ace-jump-mode
-  :bind ("C-c SPC" . ace-jump-mode)
-  )
+  :bind ("C-c SPC" . ace-jump-mode))
 
 (req-package ag
-  :bind ("C-x g" . ag)
-  )
+  :bind ("C-x g" . ag))
 
 (req-package hc-zenburn-theme
   :defer t
-  :disabled t
-  )
+  :disabled t)
 
 (req-package darktooth-theme
   :config
-  (load-theme 'darktooth t)
-  )
+  (load-theme 'darktooth t))
 
 (req-package whitespace-cleanup-mode
-  :defer t
   :config
   (global-whitespace-cleanup-mode 1)
-  (add-hook 'before-save-hook 'whitespace-cleanup)
-  )
+  (add-hook 'before-save-hook 'whitespace-cleanup))
 
 (req-package smex
   :bind ("M-x" . smex)
   :config
-  (smex-initialize)
-  )
+  (smex-initialize))
 
-(req-package flx-ido
-  :require ido
-  )
+(req-package flx-ido)
 
 (req-package ido-ubiquitous
   :require ido
   :config
-    (ido-ubiquitous-mode 1)
-  )
+    (ido-ubiquitous-mode 1))
 
 (req-package ido
-  :require ido-vertical-mode
+  :require ido-vertical-mode flx-ido
   :config
   (setq ido-create-new-buffer 'always)
   (setq ido-enable-flex-matching t)
   (setq ido-everywhere t)
   (ido-mode 1)
-  (flx-ido-mode 1)
-  )
-
-(req-package ido-vertical-mode
-  :config
   (ido-vertical-mode 1)
   (setq ido-vertical-define-keys 'C-n-C-p-up-down-left-right)
-  )
+  (flx-ido-mode 1))
+
+(req-package ido-vertical-mode)
 
 (req-package occur-x
   :defer t
   :config
-  (add-hook 'occur-mode-hook 'turn-on-occur-x-mode)
-  )
+  (add-hook 'occur-mode-hook 'turn-on-occur-x-mode))
 
 (req-package iedit
-  :bind ("C-;" . iedit-mode)
-  )
+  :bind ("C-;" . iedit-mode))
 
 
 (req-package-finish)
