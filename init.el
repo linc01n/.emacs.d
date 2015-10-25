@@ -92,5 +92,6 @@
 (req-package iedit
   :bind ("C-;" . iedit-mode))
 
+(req-package avy)
 
 (req-package-finish)
