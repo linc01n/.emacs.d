@@ -96,4 +96,11 @@
 
 (req-package avy)
 
+(req-package remember-theme
+  :load-path "vendor"
+  :config
+  (remember-theme-load)
+  (add-hook 'kill-emacs-hook 'remember-theme-save))
+
+
 (req-package-finish)
