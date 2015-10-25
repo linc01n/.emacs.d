@@ -19,6 +19,8 @@
 (setq initial-scratch-message nil)
 (delete-other-windows)
 
+(setq visible-bell 1)
+
 (require 'use-package)
 
 (use-package req-package
