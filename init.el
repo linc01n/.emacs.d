@@ -103,5 +103,10 @@
   (remember-theme-load)
   (add-hook 'kill-emacs-hook 'remember-theme-save))
 
+(req-package projectile-rails)
+
+(req-package js2-mode)
+
+(req-package coffee-mode)
 
 (req-package-finish)
