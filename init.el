@@ -21,6 +21,11 @@
 
 (setq visible-bell 1)
 
+(when (eq system-type 'darwin) ;; mac specific settings
+  (setq mac-control-modifier 'control)
+  (setq mac-option-modifier 'meta)
+  (setq mac-command-modifier 'super))
+
 (require 'use-package)
 
 (use-package req-package
