@@ -119,7 +119,7 @@ If no `remember-theme-emacs-dot-file' file exists the operation is skipped."
              (theme-symbol (intern theme-name)))
         (unless (member theme-symbol custom-enabled-themes)
           (require (intern (format "%s-theme" theme-name))))
-        (load-theme theme-symbol))
+        (load-theme theme-symbol t))
     (run-hooks 'remember-theme-after-load-hook)))
 
 (provide 'remember-theme)

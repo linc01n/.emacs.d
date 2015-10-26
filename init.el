@@ -45,6 +45,12 @@
 (req-package ag
   :bind ("C-x g" . ag))
 
+(req-package remember-theme
+  :load-path "vendor"
+  :config
+  (remember-theme-load)
+  (add-hook 'kill-emacs-hook 'remember-theme-save))
+
 (req-package hc-zenburn-theme
   :defer t
   :disabled t)
@@ -96,12 +102,6 @@
          ("C-'" . avy-goto-char-2)
          ("M-g g" . avy-goto-line))
   :config (avy-setup-default))
-
-(req-package remember-theme
-  :load-path "vendor"
-  :config
-  (remember-theme-load)
-  (add-hook 'kill-emacs-hook 'remember-theme-save))
 
 (req-package projectile-rails)
 
