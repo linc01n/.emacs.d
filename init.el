@@ -94,7 +94,8 @@
 (req-package avy
   :bind (("C-:" . avy-goto-char)
          ("C-'" . avy-goto-char-2)
-         ("M-g g" . avy-goto-line)))
+         ("M-g g" . avy-goto-line))
+  :config (avy-setup-default))
 
 (req-package remember-theme
   :load-path "vendor"
