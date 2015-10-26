@@ -44,7 +44,7 @@
   (add-hook 'ibuffer-hook (lambda () (hl-line-mode 1))))
 
 (req-package switch-window
-  :bind (("S-'" . switch-window)
+  :bind (("s-'" . switch-window)
          ("C-x o" . switch-window)))
 
 (req-package ag
