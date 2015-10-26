@@ -42,9 +42,6 @@
   :bind (("S-'" . switch-window)
          ("C-x o" . switch-window)))
 
-(req-package ace-jump-mode
-  :bind ("C-c SPC" . ace-jump-mode))
-
 (req-package ag
   :bind ("C-x g" . ag))
 
@@ -94,7 +91,10 @@
 (req-package iedit
   :bind ("C-;" . iedit-mode))
 
-(req-package avy)
+(req-package avy
+  :bind (("C-:" . avy-goto-char)
+         ("C-'" . avy-goto-char-2)
+         ("M-g g" . avy-goto-line)))
 
 (req-package remember-theme
   :load-path "vendor"
