@@ -113,8 +113,10 @@
 
 (req-package projectile-rails)
 
-(req-package js2-mode)
+(req-package js2-mode
+  :mode "\\.js\\'")
 
-(req-package coffee-mode)
+(req-package coffee-mode
+  :mode "\\.coffee\\'")
 
 (req-package-finish)
