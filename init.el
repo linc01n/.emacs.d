@@ -123,4 +123,8 @@
 (req-package coffee-mode
   :mode "\\.coffee\\'")
 
+(req-package move-text
+  :bind (([M-up] . move-text-up)
+         ([M-down] . move-text-down)))
+
 (req-package-finish)
