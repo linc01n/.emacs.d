@@ -24,7 +24,11 @@
 (when (eq system-type 'darwin) ;; mac specific settings
   (setq mac-control-modifier 'control)
   (setq mac-option-modifier 'meta)
-  (setq mac-command-modifier 'super))
+  (setq mac-command-modifier 'super)
+
+  (global-set-key (kbd "s-s") 'save-buffer)
+
+  )
 
 (require 'use-package)
 
