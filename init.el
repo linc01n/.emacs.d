@@ -129,6 +129,6 @@
   :require srefactor-lisp)
 
 (req-package which-key
-  :defer t
+  :defer t)
 
 (req-package-finish)
