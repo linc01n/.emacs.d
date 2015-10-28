@@ -126,5 +126,7 @@
 (req-package move-text
   :bind (([M-up] . move-text-up)
          ([M-down] . move-text-down)))
+(req-package srefactor :defer t
+  :require srefactor-lisp)
 
 (req-package-finish)
