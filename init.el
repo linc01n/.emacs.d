@@ -32,6 +32,7 @@
 
 (use-package req-package :ensure t)
 
+(req-package load-dir)
 ;; TODO: Break each package init into a separate file
 (req-package magit
   :bind ("M-`" . magit-status)
