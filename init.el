@@ -132,4 +132,6 @@
 (req-package which-key
   :defer t)
 
+(req-package expand-region)
+
 (req-package-finish)
