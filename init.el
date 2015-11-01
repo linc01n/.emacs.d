@@ -32,16 +32,12 @@
 
 (use-package req-package :ensure t)
 
-(req-package load-dir)
-;; TODO: Break each package init into a separate file
-(req-package magit
-  :bind ("M-`" . magit-status)
-  :init
-  (when (eq system-type 'darwin) ;; mac specific settings
-    (setq magit-git-executable "/usr/local/bin/git"))
+(req-package load-dir
   :config
-  (setq magit-push-always-verify nil)
-  (setq magit-commit-ask-to-stage f))
+  (setq load-dirs t)
+  (load-dirs-reload))
+;; TODO: Break each package init into a separate file
+
 
 (req-package ibuffer
   :bind ("<f14>" . ibuffer):config
