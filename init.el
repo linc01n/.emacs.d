@@ -38,9 +38,6 @@
   (load-dirs-reload))
 ;; TODO: Break each package init into a separate file
 
-(req-package ag
-  :bind ("C-x g" . ag))
-
 (req-package remember-theme
   :load-path "vendor"
   :config
