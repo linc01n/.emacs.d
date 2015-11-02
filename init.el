@@ -38,10 +38,6 @@
   (load-dirs-reload))
 ;; TODO: Break each package init into a separate file
 
-(req-package switch-window
-  :bind (("s-'" . switch-window)
-         ("C-x o" . switch-window)))
-
 (req-package ag
   :bind ("C-x g" . ag))
 
