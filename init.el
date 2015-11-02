@@ -45,12 +45,6 @@
 (req-package darktooth-theme
   :config (load-theme 'darktooth t))
 
-
-(req-package smex
-  :bind ("M-x" . smex)
-  :config
-  (smex-initialize))
-
 (req-package flx-ido)
 
 (req-package ido-ubiquitous
