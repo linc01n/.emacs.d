@@ -38,12 +38,6 @@
   (load-dirs-reload))
 ;; TODO: Break each package init into a separate file
 
-(req-package remember-theme
-  :load-path "vendor"
-  :config
-  (remember-theme-load)
-  (add-hook 'kill-emacs-hook 'remember-theme-save))
-
 (req-package hc-zenburn-theme
   :defer t
   :disabled t)
@@ -51,10 +45,6 @@
 (req-package darktooth-theme
   :config (load-theme 'darktooth t))
 
-(req-package whitespace-cleanup-mode
-  :config
-  (global-whitespace-cleanup-mode 1)
-  (add-hook 'before-save-hook 'whitespace-cleanup))
 
 (req-package smex
   :bind ("M-x" . smex)
