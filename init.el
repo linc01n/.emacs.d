@@ -32,7 +32,8 @@
 
 (use-package req-package :ensure t)
 
-(req-package load-dir
+(use-package load-dir
+  :demand t
   :config
   (setq load-dirs t)
   (load-dirs-reload))
