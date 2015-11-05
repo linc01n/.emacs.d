@@ -32,11 +32,10 @@
 
 (use-package req-package :ensure t)
 
-(use-package load-dir
-  :demand t
-  :config
-  (setq load-dirs t)
-  (load-dirs-reload))
+(use-package load-dir :ensure t)
+(setq load-dirs t)
+(load-dirs-reload)
+
 ;; TODO: Break each package init into a separate file
 
 (req-package hc-zenburn-theme
