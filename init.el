@@ -81,4 +81,8 @@
 (req-package expand-region
   :bind ("C-=" . er/expand-region))
 
+(req-package which-key
+  :config
+  (which-key-mode t))
+
 (req-package-finish)
