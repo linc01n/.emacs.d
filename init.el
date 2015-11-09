@@ -19,7 +19,7 @@
 (setq initial-scratch-message nil)
 (delete-other-windows)
 
-(setq visible-bell 1)
+(setq ring-bell-function 'ignore)
 
 (when (eq system-type 'darwin) ;; mac specific settings
   (setq mac-control-modifier 'control)
