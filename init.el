@@ -37,6 +37,9 @@
 
 (use-package req-package :ensure t)
 
+(req-package darktooth-theme
+  :init (load-theme 'darktooth t))
+
 (use-package load-dir :ensure t)
 (setq load-dirs t)
 (load-dirs-reload)
@@ -47,8 +50,6 @@
   :defer t
   :disabled t)
 
-(req-package darktooth-theme
-  :config (load-theme 'darktooth t))
 
 (req-package occur-x
   :defer t
