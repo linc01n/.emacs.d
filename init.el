@@ -29,7 +29,9 @@
   (setq mac-option-modifier 'meta)
   (setq mac-command-modifier 'super)
   (global-set-key (kbd "s-s")
-                  'save-buffer))
+                  'save-buffer)
+  (global-set-key (kbd "s-k")
+                  'kill-this-buffer))
 
 (require 'use-package)
 
