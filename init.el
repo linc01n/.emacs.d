@@ -21,6 +21,9 @@
 
 (setq ring-bell-function 'ignore)
 
+(load "server")
+(unless (server-running-p) (server-start))
+
 (when (eq system-type 'darwin) ;; mac specific settings
   (setq mac-control-modifier 'control)
   (setq mac-option-modifier 'meta)
