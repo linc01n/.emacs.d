@@ -7,7 +7,7 @@
 ;; Created: 17 Jun 2012
 ;; Modified: 26 Sep 2015
 ;; Version: 2.1
-;; Package-Version: 20151105.503
+;; Package-Version: 20151109.1733
 ;; Package-Requires: ((bind-key "1.0") (diminish "0.44"))
 ;; Keywords: dotemacs startup speed config package
 ;; URL: https://github.com/jwiegley/use-package
@@ -465,13 +465,11 @@ manually updated package."
 
 (defun use-package-handler/:ensure (name keyword ensure rest state)
   (let ((body (use-package-process-keywords name rest state)))
-    ;; This happens at macro expansion time, not when the expanded code is
-    ;; compiled or evaluated.
-    (let ((package-name (or (and (eq ensure t) (use-package-as-symbol name)) ensure)))
-      (when package-name
-        (require 'package)
-        (use-package-ensure-elpa package-name)))
-    body))
+    `((let ((package-name (or (and (eq ',ensure t) (use-package-as-symbol ',name)) ',ensure)))
+          (when package-name
+            (require 'package)
+            (use-package-ensure-elpa package-name)))
+        ,@body))) 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
