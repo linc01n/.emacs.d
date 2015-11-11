@@ -122,11 +122,11 @@ The following %-sequences are supported:
      is an empty string.
 
 `%t' The top-level directory of the working tree of the
-     repository, or if `magit-uniquify-buffer-name' is non-nil
+     repository, or if `magit-uniquify-buffer-names' is non-nil
      an abbreviation of that.
 
 The value should always contain either \"%m\" or \"%M\" as well as
-\"%t\".  If `magit-uniquify-buffer-name' is non-nil, then the
+\"%t\".  If `magit-uniquify-buffer-names' is non-nil, then the
 value must end with \"%t\".
 
 This is used by `magit-generate-buffer-name-default-function'.
@@ -833,6 +833,8 @@ When called interactively then the revert is forced."
                   (--filter
                    (let ((file (buffer-file-name it)))
                      (and file
+                          (equal (file-remote-p file)
+                                 (file-remote-p topdir))
                           (file-in-directory-p file topdir)
                           (member (file-relative-name file topdir) tracked)))
                    (buffer-list))
