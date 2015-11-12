@@ -4,7 +4,7 @@
 
 ;; Author:            Adam Sokolnicki <adam.sokolnicki@gmail.com>
 ;; URL:               https://github.com/asok/projectile-rails
-;; Package-Version: 20151110.747
+;; Package-Version: 20151112.55
 ;; Version:           0.5.0
 ;; Keywords:          rails, projectile
 ;; Package-Requires:  ((emacs "24.3") (projectile "0.12.0") (inflections "1.1") (inf-ruby "2.2.6") (f "0.13.0") (rake "0.3.2"))
@@ -629,8 +629,7 @@ The bound variable is \"filename\"."
       (s-join "" (--map (s-lex-format "module ${it}\n") (butlast parts)))
       last-part
       (s-join "" (make-list (1- (length parts)) "\nend")))
-     (-last-item parts)))
-  )
+     (-last-item parts))))
 
 (defun projectile-rails--expand-snippet (snippet)
   (yas-minor-mode-on)
@@ -1290,8 +1289,7 @@ Killing the buffer will terminate to server's process."
                      ("d" "destroy"        projectile-rails-destroy))
                     ("Interact"
                      ("x" "extract region" projectile-rails-extract-region))))
-   :bind "") ;;accessible only from the main context menu
-  )
+   :bind "")) ;;accessible only from the main context menu
 
 (condition-case nil
     (progn
