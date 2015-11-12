@@ -16,7 +16,7 @@
 ;;	Rémi Vanicat      <vanicat@debian.org>
 ;;	Yann Hodique      <yann.hodique@gmail.com>
 
-;; Package-Requires: ((emacs "24.4") (async "20150909.2257") (dash "20151021.113") (with-editor "20151028") (git-commit "20151028") (magit-popup "20151028"))
+;; Package-Requires: ((emacs "24.4") (async "20150909.2257") (dash "20151021.113") (with-editor "20151111") (git-commit "20151111") (magit-popup "20151111"))
 ;; Keywords: git tools vc
 ;; Homepage: https://github.com/magit/magit
 
@@ -85,8 +85,9 @@
 
 (defcustom magit-status-headers-hook
   '(magit-insert-diff-filter-header
-    magit-insert-head-header
-    magit-insert-upstream-header
+    magit-insert-head-branch-header
+    magit-insert-pull-branch-header
+    magit-insert-push-branch-header
     magit-insert-tags-header)
   "Hook run to insert headers into the status buffer.
 
@@ -99,8 +100,9 @@ at all."
   :options '(magit-insert-diff-filter-header
              magit-insert-repo-header
              magit-insert-remote-header
-             magit-insert-head-header
-             magit-insert-upstream-header
+             magit-insert-head-branch-header
+             magit-insert-pull-branch-header
+             magit-insert-push-branch-header
              magit-insert-tags-header))
 
 (defcustom magit-status-sections-hook
@@ -317,6 +319,7 @@ deep."
 
 ;;; Inspect
 ;;;; Status Mode
+;;;;; Status Core
 
 (defvar magit-status-mode-map
   (let ((map (make-sparse-keymap)))
@@ -395,26 +398,7 @@ then offer to initialize it as a new repository."
   (let ((default-directory directory))
     (magit-mode-setup #'magit-status-mode)))
 
-(defun ido-enter-magit-status ()
-  "Drop into `magit-status' from file switching.
-
-To make this command available use something like:
-
-  (add-hook 'ido-setup-hook
-            (lambda ()
-              (define-key ido-completion-map
-                (kbd \"C-x g\") 'ido-enter-magit-status)))
-
-Starting with Emacs 25.1 the Ido keymaps are defined just once
-instead of every time Ido is invoked, so now you can modify it
-like pretty much every other keymap:
-
-  (define-key ido-common-completion-map
-    (kbd \"C-x g\") 'ido-enter-magit-status)"
-  (interactive)
-  (with-no-warnings ; FIXME these are internal variables
-    (setq ido-exit 'fallback fallback 'magit-status))
-  (exit-minibuffer))
+;;;;; Standard Status Sections
 
 (defun magit-status-refresh-buffer ()
   (magit-git-exit-code "update-index" "--refresh")
@@ -430,64 +414,56 @@ The sections are inserted by running the functions on the hook
       (magit-insert-headers magit-status-headers-hook)
     (insert "In the beginning there was darkness\n\n")))
 
-(defun magit-insert-repo-header ()
-  "Insert a header line showing the path to the repository top-level."
-  (magit-with-toplevel
-    (magit-insert-section (repo default-directory)
-      (magit-insert (format "%-10s%s\n" "Repo: "
-                            (abbreviate-file-name default-directory))))))
-
-(defun magit-insert-remote-header ()
-  "Insert a header line about the remote of the current branch.
-
-If no remote is configured for the current branch, then fall back
-showing the \"origin\" remote, or if that does not exist the first
-remote in alphabetic order."
-  (-when-let (remote (or (magit-get-remote)
-                         (let ((remotes (magit-list-remotes)))
-                           (or (car (member "origin" remotes))
-                               (car remotes)))))
-    (magit-insert-section (remote remote)
-      (magit-insert
-       (concat (format "%-10s" "Remote: ")
-               (propertize remote 'face 'magit-branch-remote) " "
-               (magit-get "remote" remote "url") "\n")))))
-
-(cl-defun magit-insert-head-header
+(cl-defun magit-insert-head-branch-header
     (&optional (branch (magit-get-current-branch)))
-  "Insert a header line about the `HEAD' commit."
-  (let ((output (magit-rev-format "%h %s" (or branch "HEAD"))))
+  "Insert a header line about the current branch or detached `HEAD'."
+  (let ((output (magit-rev-format "%h %s" "HEAD")))
     (string-match "^\\([^ ]+\\) \\(.*\\)" output)
-    (magit-bind-match-strings (hash msg) output
-      (magit-insert-section it (branch (or branch hash))
-        (unless branch
-          (setf (magit-section-type it) 'commit))
-        (magit-insert
-         (concat
-          (format "%-10s" "Head: ")
-          (propertize hash 'face 'magit-hash) " "
-          (and branch
-               (concat (propertize branch 'face 'magit-branch-local) " "))
-          msg "\n"))))))
+    (magit-bind-match-strings (commit summary) output
+      (if branch
+          (magit-insert-section (branch branch)
+            (insert (format "%-10s" "Head: "))
+            (insert (propertize branch 'face 'magit-branch-local))
+            (insert ?\s summary ?\n))
+        (magit-insert-section (commit commit)
+          (insert (format "%-10s" "Head: "))
+          (insert (propertize commit 'face 'magit-hash))
+          (insert ?\s summary ?\n))))))
 
-(cl-defun magit-insert-upstream-header
-    (&optional (branch   (magit-get-current-branch))
-               (upstream (magit-get-tracked-branch branch)))
-  "Insert a header line about the upstream branch and its tip."
-  (-when-let (string (and upstream (magit-rev-format "%h %s" upstream)))
-    (string-match "^\\([^ ]+\\) \\(.*\\)" string)
-    (magit-bind-match-strings (hash msg) string
-      (magit-insert-section (branch upstream)
-        (magit-insert
-         (concat
-          (format "%-10s" "Upstream: ")
-          (if hash (propertize hash 'face 'magit-hash) "missing") " "
-          (and (magit-get-boolean "branch" branch "rebase") "onto ")
-          (propertize upstream 'face
-                      (if (string= (magit-get "branch" branch "remote") ".")
-                          'magit-branch-local
-                        'magit-branch-remote))
-          " " msg "\n"))))))
+(cl-defun magit-insert-pull-branch-header
+    (&optional (branch (magit-get-current-branch))
+               (pull   (magit-get-tracked-branch branch))
+               keyword)
+  "Insert a header line about branch normally pulled into the current branch."
+  (when pull
+    (magit-insert-section (branch pull)
+      (insert (format "%-10s"
+                      (or keyword
+                          (if (magit-get-boolean "branch" branch "rebase")
+                              "Rebase: "
+                            "Merge: "))))
+      (insert (propertize pull 'face
+                          (if (string= (magit-get "branch" branch "remote") ".")
+                              'magit-branch-local
+                            'magit-branch-remote)))
+      (insert ?\s)
+      (if (magit-rev-verify pull)
+          (insert (magit-rev-format "%s" pull))
+        (insert (propertize "is missing" 'face 'font-lock-warning-face)))
+      (insert ?\n))))
+
+(cl-defun magit-insert-push-branch-header
+    (&optional (branch (magit-get-current-branch))
+               (push   (magit-get-push-branch branch)))
+  "Insert a header line about the branch the current branch is pushed to"
+  (when push
+    (magit-insert-section (branch push)
+      (insert (format "%-10s" "Push: "))
+      (insert (propertize push 'face 'magit-branch-remote) ?\s)
+      (if (magit-rev-verify push)
+          (insert (magit-rev-format "%s" push))
+        (insert (propertize "is missing" 'face 'font-lock-warning-face)))
+      (insert ?\n))))
 
 (defun magit-insert-tags-header ()
   "Insert a header line about the current and/or next tag."
@@ -500,13 +476,14 @@ remote in alphabetic order."
          (both-tags (and this-tag next-tag t)))
     (when (or this-tag next-tag)
       (magit-insert-section (tag (or this-tag next-tag))
-        (magit-insert
-         (concat
-          (format "%-10s" (if both-tags "Tags: " "Tag: "))
-          (and this-tag (magit-format-status-tag-sentence this-tag this-cnt nil))
-          (and both-tags ", ")
-          (and next-tag (magit-format-status-tag-sentence next-tag next-cnt t))
-          "\n"))))))
+        (insert (format "%-10s" (if both-tags "Tags: " "Tag: ")))
+        (when this-tag
+          (insert (magit-format-status-tag-sentence this-tag this-cnt nil)))
+        (when both-tags
+          (insert ", "))
+        (when next-tag
+          (insert (magit-format-status-tag-sentence next-tag next-cnt t)))
+        (insert ?\n)))))
 
 (defun magit-format-status-tag-sentence (tag count next)
   (concat (propertize tag 'face 'magit-tag)
@@ -515,35 +492,13 @@ remote in alphabetic order."
                        (propertize (format "%s" count) 'face
                                    (if next 'magit-tag 'magit-branch-local))))))
 
-(defun magit-insert-user-header ()
-  "Insert a header line about the current user."
-  (let ((name  (magit-get "user.name"))
-        (email (magit-get "user.email")))
-    (when (and name email)
-      (magit-insert-section (user name)
-        (magit-insert
-         (concat (format "%-10s" "User: ")
-                 (propertize name 'face 'magit-log-author)
-                 " <" email ">" "\n"))))))
-
 (defun magit-insert-diff-filter-header ()
   "Insert a header line showing the effective diff filters."
   (when magit-diff-section-file-args
     (magit-insert-section (filter 'diff)
-      (magit-insert
-       (concat (propertize (format "%-10s" "Filter! ")
-                           'face 'magit-section-heading)
-               (mapconcat #'identity magit-diff-section-file-args " ")
-               "\n")))))
-
-(magit-define-section-jumper tracked "Tracked files")
-
-(defun magit-insert-tracked-files ()
-  "Insert a tree of tracked files."
-  (-when-let (files (magit-list-files))
-    (magit-insert-section (tracked nil t)
-      (magit-insert-heading "Tracked files:")
-      (magit-insert-un/tracked-files-1 files nil)
+      (insert (propertize (format "%-10s" "Filter! ")
+                          'face 'magit-section-heading))
+      (insert (mapconcat #'identity magit-diff-section-file-args " "))
       (insert ?\n))))
 
 (magit-define-section-jumper untracked "Untracked files")
@@ -589,6 +544,72 @@ Do so depending on the value of `status.showUntrackedFiles'."
           (magit-insert-heading)
           (setq files (magit-insert-un/tracked-files-1 files dir))))))
   files)
+
+;;;;; Auxiliary Status Sections
+
+(magit-define-section-jumper tracked "Tracked files")
+
+(defun magit-insert-tracked-files ()
+  "Insert a tree of tracked files."
+  (-when-let (files (magit-list-files))
+    (magit-insert-section (tracked nil t)
+      (magit-insert-heading "Tracked files:")
+      (magit-insert-un/tracked-files-1 files nil)
+      (insert ?\n))))
+
+(defun magit-insert-user-header ()
+  "Insert a header line about the current user."
+  (let ((name  (magit-get "user.name"))
+        (email (magit-get "user.email")))
+    (when (and name email)
+      (magit-insert-section (user name)
+        (insert (format "%-10s" "User: "))
+        (insert (propertize name 'face 'magit-log-author))
+        (insert " <" email ">\n")))))
+
+(defun magit-insert-repo-header ()
+  "Insert a header line showing the path to the repository top-level."
+  (let ((topdir (magit-toplevel)))
+    (magit-insert-section (repo topdir)
+      (insert (format "%-10s%s\n" "Repo: " (abbreviate-file-name topdir))))))
+
+(defun magit-insert-remote-header ()
+  "Insert a header line about the remote of the current branch.
+
+If no remote is configured for the current branch, then fall back
+showing the \"origin\" remote, or if that does not exist the first
+remote in alphabetic order."
+  (--when-let (or (magit-get-remote)
+                  (let ((remotes (magit-list-remotes)))
+                    (or (car (member "origin" remotes))
+                        (car remotes))))
+    (magit-insert-section (remote it)
+      (insert (format "%-10s" "Remote: "))
+      (insert (propertize it 'face 'magit-branch-remote) ?\s)
+      (insert (magit-get "remote" it "url") ?\n))))
+
+;;;;; Status Miscellaneous
+
+(defun ido-enter-magit-status ()
+  "Drop into `magit-status' from file switching.
+
+To make this command available use something like:
+
+  (add-hook 'ido-setup-hook
+            (lambda ()
+              (define-key ido-completion-map
+                (kbd \"C-x g\") 'ido-enter-magit-status)))
+
+Starting with Emacs 25.1 the Ido keymaps are defined just once
+instead of every time Ido is invoked, so now you can modify it
+like pretty much every other keymap:
+
+  (define-key ido-common-completion-map
+    (kbd \"C-x g\") 'ido-enter-magit-status)"
+  (interactive)
+  (with-no-warnings ; FIXME these are internal variables
+    (setq ido-exit 'fallback fallback 'magit-status))
+  (exit-minibuffer))
 
 (defun magit-status-maybe-update-revision-buffer (&optional _)
   "When moving in the status buffer, update the revision buffer.
@@ -1389,7 +1410,7 @@ line is inserted at all."
 ;;;###autoload (autoload 'magit-merge-popup "magit" nil t)
 (magit-define-popup magit-merge-popup
   "Popup console for merge commands."
-  'magit-commands 'magit-popup-sequence-mode
+  'magit-commands
   :man-page "git-merge"
   :switches '((?f "Fast-forward only" "--ff-only")
               (?n "No fast-forward"   "--no-ff")
@@ -1746,7 +1767,7 @@ defaulting to the tag at point.
 ;;;###autoload (autoload 'magit-notes-popup "magit" nil t)
 (magit-define-popup magit-notes-popup
   "Popup console for notes commands."
-  'magit-commands 'magit-popup-sequence-mode
+  'magit-commands
   :man-page "git-tag"
   :switches '((?n "Dry run"          "--dry-run"))
   :options  '((?r "Manipulate ref"   "--ref="      magit-notes-popup-read-ref)
@@ -2056,7 +2077,7 @@ Currently this only adds the following key bindings.
 (defun magit-blob-visit (blob-or-file line)
   (if (stringp blob-or-file)
       (find-file blob-or-file)
-    (cl-destructuring-bind (rev file) blob-or-file
+    (-let [(rev file) blob-or-file]
       (magit-find-file rev file)
       (let ((str (magit-rev-format "%ct%s" rev)))
         (message "%s (%s ago)" (substring str 10)
@@ -2361,8 +2382,7 @@ the minibuffer too."
      (push (caar magit-revision-stack) magit-revision-history)
      (pop magit-revision-stack)))
   (if rev
-      (cl-destructuring-bind (pnt-format eob-format idx-format)
-          magit-pop-revision-stack-format
+      (-let [(pnt-format eob-format idx-format) magit-pop-revision-stack-format]
         (let ((default-directory toplevel)
               (idx (and idx-format
                         (save-excursion
@@ -2660,6 +2680,12 @@ where an absolute path is used for performance reasons.
 If the value already is just \"git\" but TRAMP never-the-less
 doesn't find the executable, then consult the info node
 `(tramp)Remote programs'.\n" remote) :error)))))
+
+(define-obsolete-function-alias 'magit-insert-head-header
+  'magit-insert-head-branch-header "Magit 2.4.0")
+
+(define-obsolete-function-alias 'magit-insert-upstream-header
+  'magit-insert-pull-branch-header "Magit 2.4.0")
 
 (provide 'magit)
 

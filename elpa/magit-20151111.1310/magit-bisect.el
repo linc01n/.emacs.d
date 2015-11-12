@@ -47,7 +47,7 @@
 ;;;###autoload (autoload 'magit-bisect-popup "magit-bisect" nil t)
 (magit-define-popup magit-bisect-popup
   "Popup console for bisect commands."
-  'magit-commands 'magit-popup-sequence-mode
+  'magit-commands
   :man-page "git-bisect"
   :actions            '((?B "Start"        magit-bisect-start)
                         (?s "Start script" magit-bisect-run))
@@ -182,8 +182,7 @@ bisect run'."
           (narrow-to-region beg (point))
           (goto-char (point-min))
           (magit-insert-section (bisect-log heading t)
-            (magit-insert (propertize heading 'face
-                                      'magit-section-secondary-heading))
+            (insert (propertize heading 'face 'magit-section-secondary-heading))
             (magit-insert-heading)
             (magit-wash-sequence
              (apply-partially 'magit-log-wash-rev 'bisect-log
@@ -194,7 +193,7 @@ bisect run'."
       (magit-bind-match-strings (hash) nil
         (magit-delete-match)
         (magit-insert-section (bisect-log)
-          (magit-insert (concat hash " is the first bad commit\n")))))))
+          (insert hash " is the first bad commit\n"))))))
 
 ;;; magit-bisect.el ends soon
 (provide 'magit-bisect)
