@@ -4,8 +4,8 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20151103.1726
-;; Version: 0.7
+;; Package-Version: 20151112.1029
+;; Version: 0.7.1
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
 
@@ -66,6 +66,12 @@ which-key popup."
 (defcustom which-key-max-description-length 27
   "Truncate the description of keys to this length.
 Also adds \"..\". If nil, disable any truncation."
+  :group 'which-key
+  :type 'integer)
+
+(defcustom which-key-add-column-padding 0
+  "Additional padding (number of spaces) to add to the left of
+each key column."
   :group 'which-key
   :type 'integer)
 
@@ -1259,7 +1265,8 @@ element in each list element of KEYS."
   "Take a column of (key separator description) COL-KEYS,
 calculate the max width in the column and pad all cells out to
 that width."
-  (let* ((col-key-width  (which-key--max-len col-keys 0))
+  (let* ((col-key-width  (+ which-key-add-column-padding
+                            (which-key--max-len col-keys 0)))
          (col-sep-width  (which-key--max-len col-keys 1))
          (col-desc-width (which-key--max-len col-keys 2))
          (col-width      (+ 1 col-key-width col-sep-width col-desc-width)))
