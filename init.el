@@ -21,6 +21,8 @@
 
 (setq ring-bell-function 'ignore)
 
+(show-paren-mode 1)
+
 (load "server")
 (unless (server-running-p) (server-start))
 
