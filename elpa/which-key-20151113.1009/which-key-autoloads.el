@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "which-key" "which-key.el" (22085 61839 0 0))
+;;;### (autoloads nil "which-key" "which-key.el" (22086 37251 0 0))
 ;;; Generated autoloads from which-key.el
 
 (defvar which-key-mode nil "\
@@ -98,6 +98,11 @@ be active for KEY-SEQUENCE and NAME (MORE contains
 addition KEY-SEQUENCE NAME pairs) to apply.
 
 \(fn MODE KEY-SEQUENCE NAME &rest MORE)" nil nil)
+
+(autoload 'which-key-show-top-level "which-key" "\
+Show top-level bindings.
+
+\(fn)" t nil)
 
 ;;;***
 
