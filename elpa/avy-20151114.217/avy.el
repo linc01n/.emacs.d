@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20151111.450
+;; Package-Version: 20151114.217
 ;; Version: 0.3.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -568,16 +568,19 @@ Use OVERLAY-FN to visualize the decision overlay."
 
 (defun avy--find-visible-regions (rbeg rend)
   "Return a list of all visible regions between RBEG and REND."
-  (let (visibles beg)
-    (save-excursion
-      (save-restriction
-        (narrow-to-region rbeg rend)
-        (setq beg (goto-char (point-min)))
-        (while (not (= (point) (point-max)))
-          (goto-char (avy--next-invisible-point))
-          (push (cons beg (point)) visibles)
-          (setq beg (goto-char (avy--next-visible-point))))
-        (nreverse visibles)))))
+  (setq rbeg (max rbeg (point-min)))
+  (setq rend (min rend (point-max)))
+  (when (< rbeg rend)
+    (let (visibles beg)
+      (save-excursion
+        (save-restriction
+          (narrow-to-region rbeg rend)
+          (setq beg (goto-char (point-min)))
+          (while (not (= (point) (point-max)))
+            (goto-char (avy--next-invisible-point))
+            (push (cons beg (point)) visibles)
+            (setq beg (goto-char (avy--next-visible-point))))
+          (nreverse visibles))))))
 
 (defun avy--regex-candidates (regex &optional beg end pred group)
   "Return all elements that match REGEX.
