@@ -89,17 +89,3 @@
   (which-key-mode t))
 
 (req-package-finish)
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   (quote
-    (find-file-in-project whitespace-cleanup-mode which-key wgrep-ag switch-window srefactor smex req-package projectile-rails occur-x move-text markdown-mode magit load-dir js2-mode iedit ido-vertical-mode ido-ubiquitous hc-zenburn-theme flx-ido expand-region darktooth-theme coffee-mode avy ag))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
