@@ -1,0 +1,1 @@
+../available-init/exec-path-from-shell.el
