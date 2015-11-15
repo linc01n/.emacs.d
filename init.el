@@ -13,6 +13,7 @@
 
 (load "~/.emacs.d/my-gui.el")
 (setq-default indent-tabs-mode nil)
+(set-face-attribute 'default nil :family "Source Code Pro" :height 250)
 
 
 (setf inhibit-splash-screen t)
