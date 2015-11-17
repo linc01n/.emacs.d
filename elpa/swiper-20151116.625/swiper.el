@@ -244,15 +244,20 @@
 (defvar swiper-use-visual-line nil
   "When non-nil, use `line-move' instead of `forward-line'.")
 
-(defun swiper--candidates ()
-  "Return a list of this buffer lines."
+(defun swiper--candidates (&optional numbers-width)
+  "Return a list of this buffer lines.
+
+NUMBERS-WIDTH, when specified, is used for line numbers width
+spec, instead of calculating it as the log of the buffer line
+count."
   (setq swiper-use-visual-line
         (and (not (eq major-mode 'org-mode))
              visual-line-mode
              (< (buffer-size) 20000)))
   (let ((n-lines (count-lines (point-min) (point-max))))
     (unless (zerop n-lines)
-      (setq swiper--width (1+ (floor (log n-lines 10))))
+      (setq swiper--width (or numbers-width
+                              (1+ (floor (log n-lines 10)))))
       (setq swiper--format-spec
             (format "%%-%dd " swiper--width))
       (let ((line-number 0)
@@ -264,13 +269,17 @@
           (goto-char (point-min))
           (swiper-font-lock-ensure)
           (while (< (point) (point-max))
-            (let ((str (concat " " (buffer-substring
-                                    (point)
-                                    (if swiper-use-visual-line
-                                        (save-excursion
-                                          (end-of-visual-line)
-                                          (point))
-                                      (line-end-position))))))
+            (let ((str (concat
+                        " "
+                        (replace-regexp-in-string
+                         "\t" "    "
+                         (buffer-substring
+                          (point)
+                          (if swiper-use-visual-line
+                              (save-excursion
+                                (end-of-visual-line)
+                                (point))
+                            (line-end-position)))))))
               (put-text-property 0 1 'display
                                  (format swiper--format-spec
                                          (cl-incf line-number))
@@ -289,19 +298,11 @@ When non-nil, INITIAL-INPUT is the initial search pattern."
   (interactive)
   (swiper--ivy initial-input))
 
-(defvar swiper--anchor nil
-  "A line number to which the search should be anchored.")
-
-(defvar swiper--len 0
-  "The last length of input for which an anchoring was made.")
-
 (declare-function evil-jumper--set-jump "ext:evil-jumper")
 
 (defun swiper--init ()
   "Perform initialization common to both completion methods."
   (setq swiper--opoint (point))
-  (setq swiper--len 0)
-  (setq swiper--anchor (line-number-at-pos))
   (when (bound-and-true-p evil-jumper-mode)
     (evil-jumper--set-jump)))
 
@@ -339,24 +340,27 @@ When non-nil, INITIAL-INPUT is the initial search pattern."
   (setq swiper-invocation-face
         (plist-get (text-properties-at (point)) 'face))
   (let ((candidates (swiper--candidates))
-        (preselect (buffer-substring-no-properties
-                    (line-beginning-position)
-                    (line-end-position)))
+        (preselect
+         (if (bound-and-true-p visual-line-mode)
+             (count-screen-lines
+              (point-min)
+              (save-excursion (beginning-of-visual-line) (point)))
+           (1- (line-number-at-pos))))
         (minibuffer-allow-text-properties t))
     (unwind-protect
-        (ivy-read
-         "Swiper: "
-         candidates
-         :initial-input initial-input
-         :keymap swiper-map
-         :preselect preselect
-         :require-match t
-         :update-fn #'swiper--update-input-ivy
-         :unwind #'swiper--cleanup
-         :action #'swiper--action
-         :re-builder #'swiper--re-builder
-         :history 'swiper-history
-         :caller 'swiper)
+         (ivy-read
+          "Swiper: "
+          candidates
+          :initial-input initial-input
+          :keymap swiper-map
+          :preselect preselect
+          :require-match t
+          :update-fn #'swiper--update-input-ivy
+          :unwind #'swiper--cleanup
+          :action #'swiper--action
+          :re-builder #'swiper--re-builder
+          :history 'swiper-history
+          :caller 'swiper)
       (when (null ivy-exit)
         (goto-char swiper--opoint)))))
 
@@ -533,7 +537,6 @@ WND, when specified is the window."
 Run `swiper' for those buffers."
   (interactive)
   (setq swiper-multi-buffers nil)
-  (setq swiper-multi-candidates nil)
   (ivy-read (swiper-multi-prompt)
             'internal-complete-buffer
             :action 'swiper-multi-action-1)
@@ -541,6 +544,48 @@ Run `swiper' for those buffers."
             :action 'swiper-multi-action-2
             :unwind #'swiper--cleanup
             :caller 'swiper-multi))
+
+(defun swiper-all ()
+  "Run `swiper' for all opened buffers."
+  (interactive)
+  (ivy-read "Swiper: " (swiper--multi-candidates
+                        (cl-remove-if-not
+                         #'buffer-file-name
+                         (buffer-list)))
+            :action 'swiper-multi-action-2
+            :unwind #'swiper--cleanup
+            :caller 'swiper-multi))
+
+(defun swiper--multi-candidates (buffers)
+  (let* ((ww (window-width))
+         (res nil)
+         (column-2 (apply #'max
+                          (mapcar
+                           (lambda (b)
+                             (length (buffer-name b)))
+                           buffers)))
+         (column-1 (- ww 4 column-2 1)))
+    (dolist (buf buffers)
+      (with-current-buffer buf
+        (setq res
+              (append
+               (mapcar
+                (lambda (s)
+                  (setq s (concat (ivy--truncate-string s column-1) " "))
+                  (let ((len (length s)))
+                    (put-text-property
+                     (1- len) len 'display
+                     (concat
+                      (make-string
+                       (- ww (string-width s) (length (buffer-name)) 3)
+                       ?\ )
+                      (buffer-name))
+                     s)
+                    s))
+                (swiper--candidates 4))
+               res))
+        nil))
+    res))
 
 (defun swiper-multi-action-1 (x)
   (if (member x swiper-multi-buffers)
@@ -554,31 +599,9 @@ Run `swiper' for those buffers."
   (cond ((memq this-command '(ivy-done
                               ivy-alt-done
                               ivy-immediate-done))
-         (let ((ww (window-width)))
-           (dolist (buf swiper-multi-buffers)
-             (with-current-buffer buf
-               (setq swiper-multi-candidates
-                     (append
-                      (mapcar
-                       (lambda (s)
-                         (setq s (concat s " "))
-                         (let ((len (length s)))
-                           (put-text-property
-                            (1- len) len 'display
-                            (concat
-                             (make-string
-                              (max
-                               (- ww
-                                  (string-width s)
-                                  (length (buffer-name))
-                                  1)
-                               0)
-                              ?\ )
-                             (buffer-name))
-                            s)
-                           s))
-                       (swiper--candidates))
-                      swiper-multi-candidates))))))
+         (setq swiper-multi-candidates
+               (swiper--multi-candidates
+                (mapcar #'get-buffer swiper-multi-buffers))))
         ((eq this-command 'ivy-call)
          (delete-minibuffer-contents))))
 
@@ -588,7 +611,7 @@ Run `swiper' for those buffers."
       (when (string-match "\\` *\\([^ ]+\\)\\'" buf-space)
         (switch-to-buffer (match-string 1 buf-space))
         (goto-char (point-min))
-        (forward-line (1- (read x)))
+        (forward-line (1- (read (get-text-property 0 'display x))))
         (re-search-forward
          (ivy--regex ivy-text)
          (line-end-position) t)

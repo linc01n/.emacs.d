@@ -1293,13 +1293,15 @@ When MATCHER is non-nil it's used instead of `cl-remove-if-not'."
                  candidates))))
     (when matcher
       (setq candidates (funcall matcher "" candidates))))
-  (or (cl-position preselect candidates :test #'equal)
-      (and (stringp preselect)
-           (let ((re (regexp-quote preselect)))
-             (cl-position-if
-              (lambda (x)
-                (string-match re x))
-              candidates)))))
+  (cond ((integerp preselect)
+         preselect)
+        ((cl-position preselect candidates :test #'equal))
+        ((stringp preselect)
+         (let ((re (regexp-quote preselect)))
+           (cl-position-if
+            (lambda (x)
+              (string-match re x))
+            candidates)))))
 
 ;;* Implementation
 ;;** Regex
@@ -1847,6 +1849,13 @@ Prefix matches to NAME are put ahead of the list."
   "Function to transform the list of candidates into a string.
 This string will be inserted into the minibuffer.")
 
+(defun ivy--truncate-string (str width)
+  "Truncate STR to WIDTH."
+  (if (> (string-width str) width)
+      (concat (substring str 0 (min (- width 3)
+                                    (- (length str) 3))) "...")
+    str))
+
 (defun ivy-format-function-default (cands)
   "Transform CANDS into a string for minibuffer."
   (if (bound-and-true-p truncate-lines)
@@ -1856,9 +1865,7 @@ This string will be inserted into the minibuffer.")
       (mapconcat
        (if truncate-lines
            (lambda (s)
-             (if (> (length s) ww)
-                 (concat (substring s 0 (- ww 3)) "...")
-               s))
+             (ivy--truncate-string s ww))
          #'identity)
        cands "\n"))))
 
