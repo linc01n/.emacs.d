@@ -285,7 +285,7 @@ When non-nil, it should contain one %d.")
   "Quit the minibuffer and call ACTION afterwards."
   (ivy-set-action
    `(lambda (x)
-      (funcall ,action x)
+      (funcall ',action x)
       (ivy-set-action ',(ivy-state-action ivy-last))))
   (setq ivy-exit 'done)
   (exit-minibuffer))
@@ -736,12 +736,9 @@ If so, move to that directory, while keeping only the file name."
     (let ((input (ivy--input))
           url)
       (if (setq url (ffap-url-p input))
-          (progn
-            (ivy-set-action
-             (lambda (_)
-               (funcall ffap-url-fetcher url)))
-            (setq ivy-exit 'done)
-            (exit-minibuffer))
+          (ivy-exit-with-action
+           (lambda (_)
+             (funcall ffap-url-fetcher url)))
         (setq input (expand-file-name input))
         (let ((file (file-name-nondirectory input))
               (dir (expand-file-name (file-name-directory input))))
@@ -1238,6 +1235,12 @@ DEF is the default value.
 _INHERIT-INPUT-METHOD is ignored for now.
 
 The history, defaults and input-method arguments are ignored for now."
+  ;; See the doc of `completing-read'.
+  (when (consp history)
+    (when (numberp (cdr history))
+      (setq initial-input (nth (cdr history)
+                               (symbol-value (car history)))))
+    (setq history (car history)))
   (ivy-read (replace-regexp-in-string "%" "%%" prompt)
             collection
             :predicate predicate
