@@ -4,7 +4,7 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20151116.1931
+;; Package-Version: 20151118.226
 ;; Version: 0.7.1
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
@@ -975,36 +975,40 @@ width) in lines and characters respectively."
 (defun which-key--key-description< (a b &optional alpha)
   "Sorting function used for `which-key-key-order' and
 `which-key-key-order-alpha'."
-  (let* ((aem? (string-equal a ""))
-         (bem? (string-equal b ""))
-         (a1? (= 1 (length a)))
-         (b1? (= 1 (length b)))
-         (srgxp "^\\(RET\\|SPC\\|TAB\\|DEL\\|LFD\\|ESC\\|NUL\\)")
-         (asp? (string-match-p srgxp a))
-         (bsp? (string-match-p srgxp b))
-         (prrgxp "^\\(M\\|C\\|S\\|A\\|H\\|s\\)-")
-         (apr? (string-match-p prrgxp a))
-         (bpr? (string-match-p prrgxp b))
-         (afn? (string-match-p "<f[0-9]+>" a))
-         (bfn? (string-match-p "<f[0-9]+>" b)))
-    (cond ((or aem? bem?) (and aem? (not bem?)))
-          ((and asp? bsp?)
-           (if (string-equal (substring a 0 3) (substring b 0 3))
-               (which-key--key-description< (substring a 3) (substring b 3) alpha)
-             (string-lessp a b)))
-          ((or asp? bsp?) asp?)
-          ((and a1? b1?) (which-key--string< a b alpha))
-          ((or a1? b1?) a1?)
-          ((and afn? bfn?)
-           (< (string-to-number (replace-regexp-in-string "<f\\([0-9]+\\)>" "\\1" a))
-              (string-to-number (replace-regexp-in-string "<f\\([0-9]+\\)>" "\\1" b))))
-          ((or afn? bfn?) afn?)
-          ((and apr? bpr?)
-           (if (string-equal (substring a 0 2) (substring b 0 2))
-               (which-key--key-description< (substring a 2) (substring b 2) alpha)
-             (string-lessp a b)))
-          ((or apr? bpr?) apr?)
-          (t (string-lessp a b)))))
+  (save-match-data
+    (let* ((rngrgxp "^\\([^ ]+\\) \\.\\. [^ ]+")
+           (a (if (string-match rngrgxp a) (match-string 1 a) a))
+           (b (if (string-match rngrgxp b) (match-string 1 b) b))
+           (aem? (string-equal a ""))
+           (bem? (string-equal b ""))
+           (a1? (= 1 (length a)))
+           (b1? (= 1 (length b)))
+           (srgxp "^\\(RET\\|SPC\\|TAB\\|DEL\\|LFD\\|ESC\\|NUL\\)")
+           (asp? (string-match-p srgxp a))
+           (bsp? (string-match-p srgxp b))
+           (prrgxp "^\\(M\\|C\\|S\\|A\\|H\\|s\\)-")
+           (apr? (string-match-p prrgxp a))
+           (bpr? (string-match-p prrgxp b))
+           (afn? (string-match-p "<f[0-9]+>" a))
+           (bfn? (string-match-p "<f[0-9]+>" b)))
+      (cond ((or aem? bem?) (and aem? (not bem?)))
+            ((and asp? bsp?)
+             (if (string-equal (substring a 0 3) (substring b 0 3))
+                 (which-key--key-description< (substring a 3) (substring b 3) alpha)
+               (string-lessp a b)))
+            ((or asp? bsp?) asp?)
+            ((and a1? b1?) (which-key--string< a b alpha))
+            ((or a1? b1?) a1?)
+            ((and afn? bfn?)
+             (< (string-to-number (replace-regexp-in-string "<f\\([0-9]+\\)>" "\\1" a))
+                (string-to-number (replace-regexp-in-string "<f\\([0-9]+\\)>" "\\1" b))))
+            ((or afn? bfn?) afn?)
+            ((and apr? bpr?)
+             (if (string-equal (substring a 0 2) (substring b 0 2))
+                 (which-key--key-description< (substring a 2) (substring b 2) alpha)
+               (string-lessp a b)))
+            ((or apr? bpr?) apr?)
+            (t (string-lessp a b))))))
 
 (defsubst which-key-key-order-alpha (acons bcons)
   "Order key descriptions A and B.
@@ -1028,6 +1032,10 @@ special (SPC,TAB,...) < single char < mod (C-,M-,...) < other."
   "Order descriptions of A and B.
 Uses `string-lessp' after applying lowercase."
   (string-lessp (downcase (cdr acons)) (downcase (cdr bcons))))
+
+(defsubst which-key--group-p (description)
+  (or (string-match-p "^\\(group:\\|Prefix\\)" description)
+      (keymapp (intern description))))
 
 (defun which-key-prefix-then-key-order (acons bcons)
   "Order first by whether A and/or B is a prefix with no prefix
@@ -1136,10 +1144,6 @@ If KEY contains any \"special keys\" defined in
            (> (length desc) which-key-max-description-length))
       (concat (substring desc 0 which-key-max-description-length) "..")
     desc))
-
-(defsubst which-key--group-p (description)
-  (or (string-match-p "^\\(group:\\|Prefix\\)" description)
-      (keymapp (intern description))))
 
 (defun which-key--highlight-face (description)
   "Return the highlight face for DESCRIPTION if it has one."
@@ -1423,8 +1427,7 @@ area."
                    (and (< 1 n-pages) paging-key-bound)
                    use-descbind)
                (not (and which-key-allow-evil-operators
-                         (boundp 'evil-this-operator)
-                         evil-this-operator)))
+                         (bound-and-true-p evil-this-operator))))
       (propertize (format "[%s %s]" key
                           (if use-descbind "help" next-page-n))
                   'face 'which-key-note-face))))
@@ -1627,7 +1630,7 @@ Finally, show the buffer."
                (not which-key-inhibit)
                ;; Do not display the popup if a command is currently being
                ;; executed
-               (or (and which-key-allow-evil-operators evil-this-operator)
+               (or (and which-key-allow-evil-operators (bound-and-true-p evil-this-operator))
                    (null this-command)))
       (which-key--create-buffer-and-show prefix-keys))))
 
