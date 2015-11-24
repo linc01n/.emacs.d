@@ -34,7 +34,9 @@
   (global-set-key (kbd "s-s")
                   'save-buffer)
   (global-set-key (kbd "s-k")
-                  'kill-this-buffer))
+                  'kill-this-buffer)
+  (global-set-key (kbd "s-1")
+                  'delete-other-windows))
 
 (require 'use-package)
 
