@@ -6,7 +6,7 @@
 ;; Author: Ryan Thompson
 ;; Created: Sat Apr  4 13:41:20 2015 (-0700)
 ;; Version: 3.8
-;; Package-Version: 20151121.1415
+;; Package-Version: 20151122.1844
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; URL: https://github.com/DarwinAwardWinner/ido-ubiquitous
 ;; Keywords: ido, completion, convenience
@@ -53,7 +53,7 @@ not be updated until you restart Emacs.")
 
 ;;; Debug messages
 
-(defvar ido-cr+-debug-mode)
+(defvar ido-cr+-debug-mode nil)
 
 ;; Defined as a macro for efficiency (args are not evaluated unless
 ;; debug mode is on)
@@ -286,11 +286,11 @@ sets up C-j to be equivalent to TAB in the same situation."
        ;; Only if using ico-cr+
        ido-cr+-enable-this-call
        ;; Only if require-match is non-nil
-       ido-require-match
+       (bound-and-true-p ido-require-match)
        ;; Only if current text is non-empty
        (not (string= ido-text ""))
        ;; Only if current text is not a complete choice
-       (not (member ido-text ido-cur-list)))
+       (not (member ido-text (bound-and-true-p ido-cur-list))))
       (progn
         (ido-cr+--debug-message
          "Overriding C-j behavior for require-match: performing completion instead of exiting.")
