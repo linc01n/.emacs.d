@@ -539,6 +539,8 @@ If the text hasn't changed as a result, forward to `ivy-alt-done'."
 (defun ivy-resume ()
   "Resume the last completion session."
   (interactive)
+  (when (eq (ivy-state-caller ivy-last) 'swiper)
+    (switch-to-buffer (ivy-state-buffer ivy-last)))
   (with-current-buffer (ivy-state-buffer ivy-last)
     (ivy-read
      (ivy-state-prompt ivy-last)
@@ -1194,19 +1196,23 @@ This is useful for recursive `ivy-read'."
                       (cl-find-if (lambda (x) (string-match re x))
                                   coll)))
           (setq coll (cons preselect coll))))
-      (setq ivy--index (or
-                        (and dynamic-collection
-                             ivy--index)
-                        (and preselect
-                             (ivy--preselect-index preselect coll))
-                        0))
       (setq ivy--old-re nil)
       (setq ivy--old-cands nil)
       (when initial-input
         ;; Needed for anchor to work
         (setq ivy--old-cands coll)
         (setq ivy--old-cands (ivy--filter initial-input coll)))
-      (setq ivy--all-candidates coll))
+      (setq ivy--all-candidates coll)
+      (setq ivy--index (or
+                        (and dynamic-collection
+                             ivy--index)
+                        (and preselect
+                             (ivy--preselect-index
+                              preselect
+                              (if initial-input
+                                  ivy--old-cands
+                                coll)))
+                        0)))
     (setq ivy-exit nil)
     (setq ivy--default (or
                         (thing-at-point 'url)
@@ -1382,7 +1388,16 @@ When GREEDY is non-nil, join words in a greedy way."
 
 (defun ivy--regex-ignore-order (str)
   "Re-build regex from STR by splitting it on spaces.
-Ignore the order of each group."
+Ignore the order of each group.
+
+ATTENTION: This is a proof of concept and may not work as you
+expect. It will match as many groups as there are in the STR, but
+won't make sure that the matches are distinct. For instance, if
+you type 'foo bar', anything that contains 'foo' and 'bar', 'bar'
+and 'foo' will be matched, but also anything that contains 'foo'
+twice or 'bar' twice. If you want to find all candidates containing 'foo' and
+'bar' in any order, consider using `ivy-restrict-to-matches' instead.
+"
   (let* ((subs (split-string str " +" t))
          (len (length subs)))
     (cl-case len
