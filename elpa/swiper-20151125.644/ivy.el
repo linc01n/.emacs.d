@@ -947,6 +947,7 @@ See also `ivy-sort-max-size'."
   '((swiper . ivy-recompute-index-swiper)
     (swiper-multi . ivy-recompute-index-swiper)
     (counsel-git-grep . ivy-recompute-index-swiper)
+    (counsel-grep . ivy-recompute-index-swiper-async)
     (t . ivy-recompute-index-zero))
   "An alist of index recomputing functions for each collection function.
 When the input changes, calling the appropriate function will
@@ -1192,6 +1193,7 @@ This is useful for recursive `ivy-read'."
       (when preselect
         (unless (or (and require-match
                          (not (eq collection 'internal-complete-buffer)))
+                    dynamic-collection
                     (let ((re (regexp-quote preselect)))
                       (cl-find-if (lambda (x) (string-match re x))
                                   coll)))
@@ -1851,6 +1853,18 @@ Prefix matches to NAME are put ahead of the list."
             (cl-incf i))
           res)))))
 
+(defun ivy-recompute-index-swiper-async (_re-str cands)
+  (let ((tail (nthcdr ivy--index ivy--old-cands))
+        idx)
+    (if (and tail ivy--old-cands (not (equal "^" ivy--old-re)))
+        (progn
+          (while (and tail (null idx))
+            ;; Compare with `equal', since the collection is re-created
+            ;; each time with `split-string'
+            (setq idx (cl-position (pop tail) cands :test #'equal)))
+          (or idx 0))
+      ivy--index)))
+
 (defun ivy-recompute-index-zero (_re-str _cands)
   0)
 
@@ -1880,9 +1894,13 @@ Prefix matches to NAME are put ahead of the list."
     (error
      cands)))
 
-(defvar ivy-format-function 'ivy-format-function-default
+(defcustom ivy-format-function 'ivy-format-function-default
   "Function to transform the list of candidates into a string.
-This string will be inserted into the minibuffer.")
+This string will be inserted into the minibuffer."
+  :type '(choice
+          (const :tag "Default" ivy-format-function-default)
+          (const :tag "Arrow prefix" ivy-format-function-arrow)
+          (const :tag "Full line" ivy-format-function-line)))
 
 (defun ivy--truncate-string (str width)
   "Truncate STR to WIDTH."
@@ -1893,27 +1911,35 @@ This string will be inserted into the minibuffer.")
 
 (defun ivy-format-function-default (cands)
   "Transform CANDS into a string for minibuffer."
-  (if (bound-and-true-p truncate-lines)
-      (mapconcat #'identity cands "\n")
-    (let ((ww (- (window-width)
-                 (if (and (boundp 'fringe-mode) (eq fringe-mode 0)) 1 0))))
-      (mapconcat
-       (if truncate-lines
-           (lambda (s)
-             (ivy--truncate-string s ww))
-         #'identity)
-       cands "\n"))))
+  (let ((i -1))
+    (mapconcat
+     (lambda (s)
+       (when (eq (cl-incf i) ivy--index)
+         (ivy--add-face s 'ivy-current-match))
+       s)
+     cands "\n")))
 
 (defun ivy-format-function-arrow (cands)
   "Transform CANDS into a string for minibuffer."
   (let ((i -1))
     (mapconcat
      (lambda (s)
-       (concat (if (eq (cl-incf i) ivy--index)
-                   "> "
-                 "  ")
-               s))
+       (let ((curr (eq (cl-incf i) ivy--index)))
+         (when curr
+           (ivy--add-face s 'ivy-current-match))
+         (concat (if curr "> " "  ") s)))
      cands "\n")))
+
+(defun ivy-format-function-line (cands)
+  "Transform CANDS into a string for minibuffer."
+  (let ((i -1))
+    (mapconcat
+     (lambda (s)
+       (let ((line (concat s "\n")))
+         (when (eq (cl-incf i) ivy--index)
+           (ivy--add-face line 'ivy-current-match))
+         line))
+     cands "")))
 
 (defface ivy-minibuffer-match-face-1
   '((((class color) (background light))
@@ -2018,8 +2044,6 @@ CANDS is a list of strings."
       (setq cands (mapcar
                    #'ivy--format-minibuffer-line
                    cands))
-      (setf (nth index cands)
-            (ivy--add-face (nth index cands) 'ivy-current-match))
       (let* ((ivy--index index)
              (res (concat "\n" (funcall ivy-format-function cands))))
         (put-text-property 0 (length res) 'read-only nil res)
