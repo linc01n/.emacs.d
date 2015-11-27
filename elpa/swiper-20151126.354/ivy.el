@@ -1895,7 +1895,7 @@ Prefix matches to NAME are put ahead of the list."
      cands)))
 
 (defcustom ivy-format-function 'ivy-format-function-default
-  "Function to transform the list of candidates into a string.
+  "Function to transform the list of candidate pairs into a string.
 This string will be inserted into the minibuffer."
   :type '(choice
           (const :tag "Default" ivy-format-function-default)
@@ -1909,37 +1909,50 @@ This string will be inserted into the minibuffer."
                                     (- (length str) 3))) "...")
     str))
 
-(defun ivy-format-function-default (cands)
-  "Transform CANDS into a string for minibuffer."
+(defun ivy--format-function-generic (selected-fn other-fn cand-pairs separator)
+  "Transform CAND-PAIRS into a string for minibuffer.
+SELECTED-FN and OTHER-FN each take two string arguments.
+SEPARATOR is used to join the candidates."
   (let ((i -1))
     (mapconcat
-     (lambda (s)
-       (when (eq (cl-incf i) ivy--index)
-         (ivy--add-face s 'ivy-current-match))
-       s)
-     cands "\n")))
+     (lambda (pair)
+       (let ((str (car pair))
+             (extra (cdr pair))
+             (curr (eq (cl-incf i) ivy--index)))
+         (if curr
+             (funcall selected-fn str extra)
+           (funcall other-fn str extra))))
+     cand-pairs
+     separator)))
 
-(defun ivy-format-function-arrow (cands)
-  "Transform CANDS into a string for minibuffer."
-  (let ((i -1))
-    (mapconcat
-     (lambda (s)
-       (let ((curr (eq (cl-incf i) ivy--index)))
-         (when curr
-           (ivy--add-face s 'ivy-current-match))
-         (concat (if curr "> " "  ") s)))
-     cands "\n")))
+(defun ivy-format-function-default (cand-pairs)
+  "Transform CAND-PAIRS into a string for minibuffer."
+  (ivy--format-function-generic
+   (lambda (str extra)
+     (concat (ivy--add-face str 'ivy-current-match) extra))
+   #'concat
+   cand-pairs
+   "\n"))
 
-(defun ivy-format-function-line (cands)
-  "Transform CANDS into a string for minibuffer."
-  (let ((i -1))
-    (mapconcat
-     (lambda (s)
-       (let ((line (concat s "\n")))
-         (when (eq (cl-incf i) ivy--index)
-           (ivy--add-face line 'ivy-current-match))
-         line))
-     cands "")))
+(defun ivy-format-function-arrow (cand-pairs)
+  "Transform CAND-PAIRS into a string for minibuffer."
+  (ivy--format-function-generic
+   (lambda (str extra)
+     (concat "> " (ivy--add-face str 'ivy-current-match) extra))
+   (lambda (str extra)
+     (concat "  " str extra))
+   cand-pairs
+   "\n"))
+
+(defun ivy-format-function-line (cand-pairs)
+  "Transform CAND-PAIRS into a string for minibuffer."
+  (ivy--format-function-generic
+   (lambda (str extra)
+     (ivy--add-face (concat str extra "\n") 'ivy-current-match))
+   (lambda (str extra)
+     (concat str extra "\n"))
+   cand-pairs
+   ""))
 
 (defface ivy-minibuffer-match-face-1
   '((((class color) (background light))
@@ -2041,11 +2054,11 @@ CANDS is a list of strings."
                                        x)))
                                  cands))))
       (setq ivy--current (copy-sequence (nth index cands)))
-      (setq cands (mapcar
-                   #'ivy--format-minibuffer-line
-                   cands))
       (let* ((ivy--index index)
-             (res (concat "\n" (funcall ivy-format-function cands))))
+             (cand-pairs (mapcar
+                          (lambda (cand)
+                            (cons (ivy--format-minibuffer-line cand) nil)) cands))
+             (res (concat "\n" (funcall ivy-format-function cand-pairs))))
         (put-text-property 0 (length res) 'read-only nil res)
         res))))
 
