@@ -80,13 +80,13 @@ Getting started
 Key bindings
 
 * Global key bindings::
-* minibuffer key bindings::
+* Minibuffer key bindings::
 
-minibuffer key bindings
+Minibuffer key bindings
 
 * Key bindings for navigation::
-* Key bindings for single selection, action, then exit minibuffer: Key bindings for single selection action then exit minibuffer. 
-* Key bindings for multiple selections and actions, keep minibuffer open: Key bindings for multiple selections and actions keep minibuffer open. 
+* Key bindings for single selection, action, then exit minibuffer: Key bindings for single selection action then exit minibuffer.
+* Key bindings for multiple selections and actions, keep minibuffer open: Key bindings for multiple selections and actions keep minibuffer open.
 * Key bindings that alter minibuffer input::
 * Other key bindings::
 * Hydra in the minibuffer::
@@ -116,10 +116,10 @@ discoverability.
 Minimalism
 ..........
 
-Uncluttered minibuffer is minimalism.  Ivy shows completion defaults,
-number of matches, and 10 candidate matches below the input line.
-Customize ivy-length to adjust the number of candidate matches displayed
-in the minibuffer.
+Uncluttered minibuffer is minimalism.  Ivy shows the completion
+defaults, the number of matches, and 10 candidate matches below the
+input line.  Customize ivy-length to adjust the number of candidate
+matches displayed in the minibuffer.
 
 Simplicity
 ..........
@@ -264,10 +264,10 @@ File: ivy.info,  Node: Key bindings,  Next: Completion styles,  Prev: Getting st
 * Menu:
 
 * Global key bindings::
-* minibuffer key bindings::
+* Minibuffer key bindings::
 
 
-File: ivy.info,  Node: Global key bindings,  Next: minibuffer key bindings,  Up: Key bindings
+File: ivy.info,  Node: Global key bindings,  Next: Minibuffer key bindings,  Up: Key bindings
 
 4.1 Global key bindings
 =======================
@@ -303,9 +303,9 @@ ivy-resume resumes the last Ivy-based completion.
      (global-set-key (kbd "C-c C-r") 'ivy-resume)
 
 
-File: ivy.info,  Node: minibuffer key bindings,  Prev: Global key bindings,  Up: Key bindings
+File: ivy.info,  Node: Minibuffer key bindings,  Prev: Global key bindings,  Up: Key bindings
 
-4.2 minibuffer key bindings
+4.2 Minibuffer key bindings
 ===========================
 
 Ivy includes several minibuffer bindings, which are defined in the
@@ -318,15 +318,15 @@ under their respective commands.
 * Menu:
 
 * Key bindings for navigation::
-* Key bindings for single selection, action, then exit minibuffer: Key bindings for single selection action then exit minibuffer. 
-* Key bindings for multiple selections and actions, keep minibuffer open: Key bindings for multiple selections and actions keep minibuffer open. 
+* Key bindings for single selection, action, then exit minibuffer: Key bindings for single selection action then exit minibuffer.
+* Key bindings for multiple selections and actions, keep minibuffer open: Key bindings for multiple selections and actions keep minibuffer open.
 * Key bindings that alter minibuffer input::
 * Other key bindings::
 * Hydra in the minibuffer::
 * Saving the current completion session to a buffer::
 
 
-File: ivy.info,  Node: Key bindings for navigation,  Next: Key bindings for single selection action then exit minibuffer,  Up: minibuffer key bindings
+File: ivy.info,  Node: Key bindings for navigation,  Next: Key bindings for single selection action then exit minibuffer,  Up: Minibuffer key bindings
 
 4.2.1 Key bindings for navigation
 ---------------------------------
@@ -351,7 +351,7 @@ last and first candidates, change the default (ivy-wrap nil) to
 is set to 10.
 
 
-File: ivy.info,  Node: Key bindings for single selection action then exit minibuffer,  Next: Key bindings for multiple selections and actions keep minibuffer open,  Prev: Key bindings for navigation,  Up: minibuffer key bindings
+File: ivy.info,  Node: Key bindings for single selection action then exit minibuffer,  Next: Key bindings for multiple selections and actions keep minibuffer open,  Prev: Key bindings for navigation,  Up: Minibuffer key bindings
 
 4.2.2 Key bindings for single selection, action, then exit minibuffer
 ---------------------------------------------------------------------
@@ -401,7 +401,7 @@ visible jump mechanism, which can further reduce Ivy’s line-by-line
 scrolling that requires multiple ‘C-n’ or ‘C-p’ keystrokes.
 
 
-File: ivy.info,  Node: Key bindings for multiple selections and actions keep minibuffer open,  Next: Key bindings that alter minibuffer input,  Prev: Key bindings for single selection action then exit minibuffer,  Up: minibuffer key bindings
+File: ivy.info,  Node: Key bindings for multiple selections and actions keep minibuffer open,  Next: Key bindings that alter minibuffer input,  Prev: Key bindings for single selection action then exit minibuffer,  Up: Minibuffer key bindings
 
 4.2.3 Key bindings for multiple selections and actions, keep minibuffer open
 ----------------------------------------------------------------------------
@@ -440,7 +440,7 @@ the same as above except that it moves through the list in the other
 direction.
 
 
-File: ivy.info,  Node: Key bindings that alter minibuffer input,  Next: Other key bindings,  Prev: Key bindings for multiple selections and actions keep minibuffer open,  Up: minibuffer key bindings
+File: ivy.info,  Node: Key bindings that alter minibuffer input,  Next: Other key bindings,  Prev: Key bindings for multiple selections and actions keep minibuffer open,  Up: Minibuffer key bindings
 
 4.2.4 Key bindings that alter minibuffer input
 ----------------------------------------------
@@ -470,7 +470,7 @@ completion, the selected candidate string is inserted into the
 minibuffer.
 
 
-File: ivy.info,  Node: Other key bindings,  Next: Hydra in the minibuffer,  Prev: Key bindings that alter minibuffer input,  Up: minibuffer key bindings
+File: ivy.info,  Node: Other key bindings,  Next: Hydra in the minibuffer,  Prev: Key bindings that alter minibuffer input,  Up: Minibuffer key bindings
 
 4.2.5 Other key bindings
 ------------------------
@@ -479,7 +479,7 @@ File: ivy.info,  Node: Other key bindings,  Next: Hydra in the minibuffer,  Prev
 when the region is active, copies active region.
 
 
-File: ivy.info,  Node: Hydra in the minibuffer,  Next: Saving the current completion session to a buffer,  Prev: Other key bindings,  Up: minibuffer key bindings
+File: ivy.info,  Node: Hydra in the minibuffer,  Next: Saving the current completion session to a buffer,  Prev: Other key bindings,  Up: Minibuffer key bindings
 
 4.2.6 Hydra in the minibuffer
 -----------------------------
@@ -499,7 +499,7 @@ bindings:
    Minibuffer editing is disabled when Hydra is active.
 
 
-File: ivy.info,  Node: Saving the current completion session to a buffer,  Prev: Hydra in the minibuffer,  Up: minibuffer key bindings
+File: ivy.info,  Node: Saving the current completion session to a buffer,  Prev: Hydra in the minibuffer,  Up: Minibuffer key bindings
 
 4.2.7 Saving the current completion session to a buffer
 -------------------------------------------------------
@@ -531,7 +531,7 @@ builder.
            '((t . ivy--regex-plus)))
 
    The default ivy--regex-plus narrowing is always invoked unless
-specified otherwise.  For example, file name completion can have its own
+specified otherwise.  For example, file name completion may have a
 custom completion function:
 
      (setq ivy-re-builders-alist
@@ -613,26 +613,26 @@ lists using flx package’s scoring mechanism, if it’s installed.
 
 Tag Table:
 Node: Top1354
-Node: Introduction3542
-Node: Installation5833
-Node: Installing from Emacs Package Manager6159
-Node: Installing from the Git repository7075
-Node: Getting started7777
-Node: Basic customization8071
-Node: Key bindings8480
-Node: Global key bindings8672
-Node: minibuffer key bindings9905
-Node: Key bindings for navigation10849
-Node: Key bindings for single selection action then exit minibuffer11710
-Node: Key bindings for multiple selections and actions keep minibuffer open14222
-Node: Key bindings that alter minibuffer input16287
-Node: Other key bindings17682
-Node: Hydra in the minibuffer18015
-Node: Saving the current completion session to a buffer18723
-Node: Completion styles19405
-Node: ivy--regex-plus20322
-Node: ivy--regex-ignore-order21754
-Node: ivy--regex-fuzzy22187
+Node: Introduction3540
+Node: Installation5840
+Node: Installing from Emacs Package Manager6166
+Node: Installing from the Git repository7082
+Node: Getting started7784
+Node: Basic customization8078
+Node: Key bindings8487
+Node: Global key bindings8679
+Node: Minibuffer key bindings9912
+Node: Key bindings for navigation10854
+Node: Key bindings for single selection action then exit minibuffer11715
+Node: Key bindings for multiple selections and actions keep minibuffer open14227
+Node: Key bindings that alter minibuffer input16292
+Node: Other key bindings17687
+Node: Hydra in the minibuffer18020
+Node: Saving the current completion session to a buffer18728
+Node: Completion styles19410
+Node: ivy--regex-plus20321
+Node: ivy--regex-ignore-order21753
+Node: ivy--regex-fuzzy22186
 
 End Tag Table
 

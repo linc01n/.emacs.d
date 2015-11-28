@@ -226,6 +226,7 @@
                                  occur-edit-mode
                                  bongo-mode
                                  eww-mode
+                                 twittering-mode
                                  w3m-mode)))
     (unless (> (buffer-size) 100000)
       (if (fboundp 'font-lock-ensure)
@@ -284,6 +285,8 @@ count."
                                 (end-of-visual-line)
                                 (point))
                             (line-end-position)))))))
+              (when (eq major-mode 'twittering-mode)
+                (remove-text-properties 0 (length str) '(field) str))
               (put-text-property 0 1 'display
                                  (format swiper--format-spec
                                          (cl-incf line-number))
@@ -350,22 +353,24 @@ When non-nil, INITIAL-INPUT is the initial search pattern."
               (point-min)
               (save-excursion (beginning-of-visual-line) (point)))
            (1- (line-number-at-pos))))
-        (minibuffer-allow-text-properties t))
+        (minibuffer-allow-text-properties t)
+        res)
     (unwind-protect
-         (ivy-read
-          "Swiper: "
-          candidates
-          :initial-input initial-input
-          :keymap swiper-map
-          :preselect preselect
-          :require-match t
-          :update-fn #'swiper--update-input-ivy
-          :unwind #'swiper--cleanup
-          :action #'swiper--action
-          :re-builder #'swiper--re-builder
-          :history 'swiper-history
-          :caller 'swiper)
-      (when (null ivy-exit)
+         (setq res
+               (ivy-read
+                "Swiper: "
+                candidates
+                :initial-input initial-input
+                :keymap swiper-map
+                :preselect preselect
+                :require-match t
+                :update-fn #'swiper--update-input-ivy
+                :unwind #'swiper--cleanup
+                :action #'swiper--action
+                :re-builder #'swiper--re-builder
+                :history 'swiper-history
+                :caller 'swiper))
+      (unless res
         (goto-char swiper--opoint)))))
 
 (defun swiper-toggle-face-matching ()
