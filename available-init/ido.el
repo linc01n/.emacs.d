@@ -1,5 +1,5 @@
 (req-package ido-ubiquitous
-  :require ido
+  :require ido ido-completing-read+
   :config
   (ido-ubiquitous-mode 1))
 
