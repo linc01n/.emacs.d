@@ -4,7 +4,7 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20151120.1228
+;; Package-Version: 20151130.1758
 ;; Version: 0.7.1
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
@@ -401,15 +401,15 @@ variable.")
 
 (defvar which-key-prefix-name-alist '()
   "An alist with elements of the form (key-sequence . prefix-name).
-key-sequence is a sequence of the sort produced by applying `kbd'
-then `listify-key-sequence' to create a canonical version of the
-key sequence. prefix-name is a string.")
+key-sequence is a sequence of the sort produced by applying
+`key-description' to create a canonical version of the key
+sequence. prefix-name is a string.")
 
 (defvar which-key-prefix-title-alist '()
   "An alist with elements of the form (key-sequence . prefix-title).
-key-sequence is a sequence of the sort produced by applying `kbd'
-then `listify-key-sequence' to create a canonical version of the
-key sequence. prefix-title is a string. The title is displayed
+key-sequence is a sequence of the sort produced by applying
+`key-description' to create a canonical version of the key
+sequence. prefix-title is a string. The title is displayed
 alongside the actual current key sequence when
 `which-key-show-prefix' is set to either top or echo.")
 
@@ -471,7 +471,7 @@ set too high) and setup which-key buffer."
   (when (or (eq which-key-show-prefix 'echo)
             (eq which-key-popup-type 'minibuffer))
     (which-key--setup-echo-keystrokes))
-  (which-key--check-key-based-alist)
+  ;; (which-key--check-key-based-alist)
   ;; (which-key--setup-undo-key)
   (which-key--init-buffer)
   (setq which-key--is-setup t))
@@ -510,35 +510,35 @@ starter kit for example."
 ;;       (which-key-define-key-recursively
 ;;        map (kbd which-key-undo-key) 'which-key-undo))))
 
-(defun which-key--check-key-based-alist ()
-  "Check (and fix if necessary) `which-key-key-based-description-replacement-alist'"
-  (let ((alist which-key-key-based-description-replacement-alist)
-        old-style res)
-    (dolist (cns alist)
-      (cond ((listp (car cns))
-             (push cns res))
-            ((stringp (car cns))
-             (setq old-style t)
-             (push (cons (listify-key-sequence (kbd (car cns))) (cdr cns)) res))
-            ((symbolp (car cns))
-             (let (new-mode-alist)
-               (dolist (cns2 (cdr cns))
-                 (cond ((listp (car cns2))
-                        (push cns2 new-mode-alist))
-                       ((stringp (car cns2))
-                        (setq old-style t)
-                        (push (cons (listify-key-sequence (kbd (car cns2))) (cdr cns2))
-                              new-mode-alist))))
-               (push (cons (car cns) new-mode-alist) res)))
-            (t (message "which-key: there's a problem with the \
-entry %s in which-key-key-based-replacement-alist" cns))))
-    (setq which-key-key-based-description-replacement-alist res)
-    (when old-style
-      (message "which-key: \
- `which-key-key-based-description-replacement-alist' has changed format and you\
- seem to be using the old format. Please use the functions \
-`which-key-add-key-based-replacements' and \
-`which-key-add-major-mode-key-based-replacements' instead."))))
+;; (defun which-key--check-key-based-alist ()
+;;   "Check (and fix if necessary) `which-key-key-based-description-replacement-alist'"
+;;   (let ((alist which-key-key-based-description-replacement-alist)
+;;         old-style res)
+;;     (dolist (cns alist)
+;;       (cond ((listp (car cns))
+;;              (push cns res))
+;;             ((stringp (car cns))
+;;              (setq old-style t)
+;;              (push (cons (listify-key-sequence (kbd (car cns))) (cdr cns)) res))
+;;             ((symbolp (car cns))
+;;              (let (new-mode-alist)
+;;                (dolist (cns2 (cdr cns))
+;;                  (cond ((listp (car cns2))
+;;                         (push cns2 new-mode-alist))
+;;                        ((stringp (car cns2))
+;;                         (setq old-style t)
+;;                         (push (cons (listify-key-sequence (kbd (car cns2))) (cdr cns2))
+;;                               new-mode-alist))))
+;;                (push (cons (car cns) new-mode-alist) res)))
+;;             (t (message "which-key: there's a problem with the \
+;; entry %s in which-key-key-based-replacement-alist" cns))))
+;;     (setq which-key-key-based-description-replacement-alist res)
+;;     (when old-style
+;;       (message "which-key: \
+;;  `which-key-key-based-description-replacement-alist' has changed format and you\
+;;  seem to be using the old format. Please use the functions \
+;; `which-key-add-key-based-replacements' and \
+;; `which-key-add-major-mode-key-based-replacements' instead."))))
 
 ;; Default configuration functions for use by users. Should be the "best"
 ;; configurations
@@ -585,15 +585,15 @@ bottom."
   (when (or (not (stringp key)) (not (stringp value)))
     (error "which-key: Error %s (key) and %s (value) should be strings"
            key value))
-  (let ((key-lst (listify-key-sequence (kbd key))))
-    (cond ((null alist) (list (cons key-lst value)))
-          ((assoc key-lst alist)
-           (when (not (string-equal (cdr (assoc key-lst alist)) value))
+  (let ((keys (key-description (kbd key))))
+    (cond ((null alist) (list (cons keys value)))
+          ((assoc-string keys alist)
+           (when (not (string-equal (cdr (assoc-string keys alist)) value))
              (message "which-key: changing %s name from %s to %s in the %s alist"
-                      key (cdr (assoc key-lst alist)) value alist-name)
-             (setcdr (assoc key-lst alist) value))
+                      key (cdr (assoc-string keys alist)) value alist-name)
+             (setcdr (assoc-string keys alist) value))
            alist)
-          (t (cons (cons key-lst value) alist)))))
+          (t (cons (cons keys value) alist)))))
 
 ;;;###autoload
 (defun which-key-add-key-based-replacements (key-sequence replacement &rest more)
@@ -642,11 +642,11 @@ Add title for KEY-SEQ-STR given by TITLE. FORCE, if non-nil, will
 add the new title even if one already exists. KEY-SEQ-STR should
 be a key sequence string suitable for `kbd' and TITLE should be a
 string."
-  (let ((key-seq-lst (listify-key-sequence (kbd key-seq-str))))
+  (let ((keys (key-description (kbd key-seq-str))))
     (if (and (null force)
-             (assoc key-seq-lst which-key-prefix-title-alist))
+             (assoc-string keys which-key-prefix-title-alist))
         (message "which-key: Prefix title not added. A title exists for this prefix.")
-      (push (cons key-seq-lst title) which-key-prefix-title-alist))))
+      (push (cons keys title) which-key-prefix-title-alist))))
 
 ;;;###autoload
 (defun which-key-declare-prefixes (key-sequence name &rest more)
@@ -1074,6 +1074,10 @@ coming before a prefix. Within these categories order using
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions for retrieving and formatting keys
 
+(defsubst which-key--string-width (maybe-string)
+  "If MAYBE-STRING is a string use `which-key--string-width' o/w return 0."
+  (if (stringp maybe-string) (string-width maybe-string) 0))
+
 (defsubst which-key--safe-lookup-key (keymap key)
   "Version of `lookup-key' that allows KEYMAP to be nil. KEY is not checked."
   (when (keymapp keymap) (lookup-key keymap key)))
@@ -1104,29 +1108,31 @@ replacement occurs return the new STRING."
            (when key-str
              (listify-key-sequence (kbd key-str))))))
 
-(defun which-key--maybe-replace-prefix-name (key-lst desc)
-  "KEY-LST is a list of keys produced by `listify-key-sequences'
-and DESC is the description that is possibly replaced using the
-`which-key-prefix-name-alist'. Whether or not a replacement
-occurs return the new STRING."
+(defun which-key--maybe-replace-prefix-name (keys desc)
+  "KEYS is a list of keys produced by `listify-key-sequences' and
+`key-description'. DESC is the description that is possibly
+replaced using the `which-key-prefix-name-alist'. Whether or not
+a replacement occurs return the new STRING."
   (let* ((alist which-key-prefix-name-alist)
-         (res (assoc key-lst alist))
+         (res (assoc-string keys alist))
          (mode-alist (assq major-mode alist))
-         (mode-res (when mode-alist (assoc key-lst mode-alist))))
+         (mode-res (when mode-alist
+                     (assoc-string keys mode-alist))))
     (cond (mode-res (cdr mode-res))
           (res (cdr res))
           (t desc))))
 
-(defun which-key--maybe-get-prefix-title (key-lst)
-  "KEY-LST is a list of keys produced by `listify-key-sequences'.
+(defun which-key--maybe-get-prefix-title (keys)
+  "KEYS is a string produced by `key-description'.
 A title is possibly returned using `which-key-prefix-title-alist'.
 An empty stiring is returned if no title exists."
-  (if key-lst
+  (if keys
       (let* ((alist which-key-prefix-title-alist)
-             (res (assoc key-lst alist))
+             (res (assoc-string keys alist))
              (mode-alist (assq major-mode alist))
-             (mode-res (when mode-alist (assoc key-lst mode-alist)))
-             (binding (key-binding (apply #'vector key-lst)))
+             (mode-res (when mode-alist
+                         (assoc-string keys mode-alist)))
+             (binding (key-binding keys))
              (alternate (when (and binding (symbolp binding))
                           (symbol-name binding))))
         (cond (mode-res (cdr mode-res))
@@ -1137,19 +1143,19 @@ An empty stiring is returned if no title exists."
                     (eq which-key-side-window-location 'bottom)
                     echo-keystrokes)
                (if alternate alternate
-                 (concat "Following " (key-description key-lst))))
+                 (concat "Following " keys)))
               (t "")))
     "Top-level bindings"))
 
-(defun which-key--maybe-replace-key-based (string key-lst)
-  "KEY-LST is a list of keys produced by `listify-key-sequences'
+(defun which-key--maybe-replace-key-based (string keys)
+  "KEYS is a string produced by `key-description'
 and STRING is the description that is possibly replaced using the
 `which-key-key-based-description-replacement-alist'. Whether or
 not a replacement occurs return the new STRING."
   (let* ((alist which-key-key-based-description-replacement-alist)
-         (str-res (assoc key-lst alist))
+         (str-res (assoc-string keys alist))
          (mode-alist (assq major-mode alist))
-         (mode-res (when mode-alist (assoc key-lst mode-alist))))
+         (mode-res (when mode-alist (assoc-string keys mode-alist))))
     (cond (mode-res (cdr mode-res))
           (str-res (cdr str-res))
           (t string))))
@@ -1171,7 +1177,8 @@ If KEY contains any \"special keys\" defined in
             (concat (substring key-w-face 0 beg)
                     (propertize (substring key-w-face beg (1+ beg))
                                 'face 'which-key-special-key-face)
-                    (substring key-w-face end (string-width key-w-face))))
+                    (substring key-w-face end
+                               (which-key--string-width key-w-face))))
         key-w-face))))
 
 (defsubst which-key--truncate-description (desc)
@@ -1212,26 +1219,25 @@ ORIGINAL-DESCRIPTION is the description given by
                    (substring desc 6) desc))
          (desc (if group (concat "+" desc) desc))
          (desc (which-key--truncate-description desc)))
-    (eval
-     `(make-text-button
-       ,desc nil
-       'face ',(cond (hl-face hl-face)
-                     (group 'which-key-group-description-face)
-                     (local 'which-key-local-map-description-face)
-                     (t 'which-key-command-description-face))
-       'help-echo ,(cond
-                    ((and (fboundp (intern original-description))
-                          (documentation (intern original-description))
-                          tooltip-mode)
-                     (documentation (intern original-description)))
-                    ((and (fboundp (intern original-description))
-                          (documentation (intern original-description))
-                          (let* ((doc (documentation (intern original-description)))
-                                 (str (replace-regexp-in-string "\n" " " doc))
-                                 (max (floor (* (frame-width) 0.8))))
-                            (if (> (length str) max)
-                                (concat (substring str 0 max) "...")
-                              str)))))))))
+    (make-text-button desc nil
+      'face (cond (hl-face hl-face)
+                  (group 'which-key-group-description-face)
+                  (local 'which-key-local-map-description-face)
+                  (t 'which-key-command-description-face))
+      'help-echo (cond
+                  ((and (fboundp (intern original-description))
+                        (documentation (intern original-description))
+                        tooltip-mode)
+                   (documentation (intern original-description)))
+                  ((and (fboundp (intern original-description))
+                        (documentation (intern original-description))
+                        (let* ((doc (documentation (intern original-description)))
+                               (str (replace-regexp-in-string "\n" " " doc))
+                               (max (floor (* (frame-width) 0.8))))
+                          (if (> (length str) max)
+                              (concat (substring str 0 max) "...")
+                            str))))))
+    desc))
 
 (defun which-key--format-and-replace (unformatted)
   "Take a list of (key . desc) cons cells in UNFORMATTED, add
@@ -1246,7 +1252,6 @@ alists. Returns a list (key separator description)."
               (orig-desc (cdr key-desc-cons))
               (group (which-key--group-p orig-desc))
               (keys (which-key--current-key-string key))
-              (key-lst (which-key--current-key-list key))
               (local (eq (which-key--safe-lookup-key local-map (kbd keys))
                          (intern orig-desc)))
               (hl-face (which-key--highlight-face orig-desc))
@@ -1254,9 +1259,9 @@ alists. Returns a list (key separator description)."
                     key which-key-key-replacement-alist))
               (desc (which-key--maybe-replace
                      orig-desc which-key-description-replacement-alist))
-              (desc (which-key--maybe-replace-key-based desc key-lst))
+              (desc (which-key--maybe-replace-key-based desc keys))
               (desc (if group
-                        (which-key--maybe-replace-prefix-name key-lst desc)
+                        (which-key--maybe-replace-prefix-name keys desc)
                       desc))
               (key-w-face (which-key--propertize-key key))
               (desc-w-face (which-key--propertize-description
@@ -1353,7 +1358,8 @@ BUFFER that follow the key sequence KEY-SEQ."
   "Internal function for finding the max length of the INDEX
 element in each list element of KEYS."
   (cl-reduce
-   (lambda (x y) (max x (string-width (nth index y)))) keys :initial-value 0))
+   (lambda (x y) (max x (which-key--string-width (nth index y))))
+   keys :initial-value 0))
 
 (defun which-key--pad-column (col-keys)
   "Take a column of (key separator description) COL-KEYS,
@@ -1423,7 +1429,7 @@ is the width of the live window."
          (prefix-keys-desc (key-description which-key--current-prefix))
          (prefix-w-face (which-key--propertize-key prefix-keys-desc))
          (prefix-left (when (eq which-key-show-prefix 'left)
-                        (+ 2 (string-width prefix-w-face))))
+                        (+ 2 (which-key--string-width prefix-w-face))))
          (prefix-top-bottom (member which-key-show-prefix '(bottom top)))
          (avl-lines (if prefix-top-bottom (- max-lines 1) max-lines))
          (min-lines (min avl-lines which-key-min-display-lines))
@@ -1520,15 +1526,15 @@ enough space based on your settings and frame size." prefix-keys)
              (status-left (propertize (format "%s/%s" (1+ page-n) n-pages)
                                       'face 'which-key-separator-face))
              (status-top (propertize (which-key--maybe-get-prefix-title
-                                      (which-key--current-key-list))
+                                      (which-key--current-key-string))
                                      'face 'which-key-note-face))
              (status-top (concat status-top
                                  (when (< 1 n-pages)
                                    (propertize (format " (%s of %s)"
                                                        (1+ page-n) n-pages)
                                                'face 'which-key-note-face))))
-             (first-col-width (+ 2 (max (string-width prefix-w-face)
-                                        (string-width status-left))))
+             (first-col-width (+ 2 (max (which-key--string-width prefix-w-face)
+                                        (which-key--string-width status-left))))
              (prefix-left (format (concat "%-" (int-to-string first-col-width) "s")
                                   prefix-w-face))
              (status-left (format (concat "%-" (int-to-string first-col-width) "s")
