@@ -4,10 +4,10 @@
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
 ;;;### (autoloads nil "find-file-in-project" "find-file-in-project.el"
-;;;;;;  (22087 16554 0 0))
+;;;;;;  (22109 46944 0 0))
 ;;; Generated autoloads from find-file-in-project.el
 
-(defvar ffip-filename-rules '(ffip-filename-identity ffip-filename-dashes-to-camelcase ffip-filename-camelcase-to-dashes))
+(defvar ffip-filename-rules '(ffip-filename-identity (ffip-filename-dashes-to-camelcase ffip-filename-camelcase-to-dashes)))
 
 (defvar ffip-find-executable nil "\
 Path of GNU find.  If nil, we will find `find' path automatically.")
@@ -49,14 +49,16 @@ Return identical KEYWORD.
 \(fn KEYWORD)" nil nil)
 
 (autoload 'ffip-filename-camelcase-to-dashes "find-file-in-project" "\
-HelloWorld => hello-world.
+Convert KEYWORD from camel cased to dash seperated.
+If CHECK-ONLY is true, only do the check.
 
-\(fn KEYWORD)" nil nil)
+\(fn KEYWORD &optional CHECK-ONLY)" nil nil)
 
 (autoload 'ffip-filename-dashes-to-camelcase "find-file-in-project" "\
-hello-world => HelloWorld.
+Convert KEYWORD from dash seperated to camel cased.
+If CHECK-ONLY is true, only do the check.
 
-\(fn KEYWORD)" nil nil)
+\(fn KEYWORD &optional CHECK-ONLY)" nil nil)
 
 (autoload 'ffip-current-full-filename-match-pattern-p "find-file-in-project" "\
 Is current full file name (including directory) match the REGEX?
