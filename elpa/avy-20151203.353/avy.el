@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20151202.38
+;; Package-Version: 20151203.353
 ;; Version: 0.3.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -1067,7 +1067,9 @@ Otherwise, forward to `goto-line' with ARG."
 (defun avy-goto-line-above ()
   "Goto visible line above the cursor."
   (interactive)
-  (let ((r (avy--line nil (window-start) (point))))
+  (let* ((avy-all-windows nil)
+         (r (avy--line nil (window-start)
+                       (line-beginning-position))))
     (unless (eq r t)
       (avy-action-goto r))))
 
@@ -1075,9 +1077,10 @@ Otherwise, forward to `goto-line' with ARG."
 (defun avy-goto-line-below ()
   "Goto visible line below the cursor."
   (interactive)
-  (let ((r (avy--line
-            nil (point)
-            (window-end (selected-window) t))))
+  (let* ((avy-all-windows nil)
+         (r (avy--line
+             nil (line-beginning-position 2)
+             (window-end (selected-window) t))))
     (unless (eq r t)
       (avy-action-goto r))))
 
