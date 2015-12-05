@@ -74,13 +74,11 @@
   :bind (([M-up] . move-text-up)
          ([M-down] . move-text-down)))
 
-(req-package which-key
-  :defer t)
-
 (req-package expand-region
   :bind ("C-=" . er/expand-region))
 
 (req-package which-key
+  :defer t
   :config
   (which-key-mode t))
 
