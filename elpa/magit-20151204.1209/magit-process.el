@@ -792,6 +792,8 @@ as argument."
 
 (define-error 'magit-git-error "Git error")
 
+(defvar-local magit-this-error nil)
+
 (defun magit-process-finish (arg &optional process-buf command-buf
                                  default-dir section)
   (unless (integerp arg)
@@ -840,11 +842,13 @@ as argument."
                    "Git failed")))
       (if magit-process-raise-error
           (signal 'magit-git-error msg)
+        (--when-let (magit-mode-get-buffer 'magit-status-mode)
+          (setq magit-this-error msg))
         (message "%s ... [%s buffer %s for details]" msg
                  (-if-let (key (and (buffer-live-p command-buf)
                                     (with-current-buffer command-buf
                                       (car (where-is-internal
-                                            'magit-process-display-buffer)))))
+                                            'magit-process-buffer)))))
                      (format "Hit %s to see" (key-description key))
                    "See")
                  (buffer-name process-buf)))))

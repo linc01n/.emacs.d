@@ -84,9 +84,10 @@
   :type 'hook)
 
 (defcustom magit-status-headers-hook
-  '(magit-insert-diff-filter-header
+  '(magit-insert-error-header
+    magit-insert-diff-filter-header
     magit-insert-head-branch-header
-    magit-insert-pull-branch-header
+    magit-insert-upstream-branch-header
     magit-insert-push-branch-header
     magit-insert-tags-header)
   "Hook run to insert headers into the status buffer.
@@ -97,11 +98,12 @@ at all."
   :package-version '(magit . "2.1.0")
   :group 'magit-status
   :type 'hook
-  :options '(magit-insert-diff-filter-header
+  :options '(magit-insert-error-header
+             magit-insert-diff-filter-header
              magit-insert-repo-header
              magit-insert-remote-header
              magit-insert-head-branch-header
-             magit-insert-pull-branch-header
+             magit-insert-upstream-branch-header
              magit-insert-push-branch-header
              magit-insert-tags-header))
 
@@ -150,7 +152,8 @@ at all."
   :type 'hook)
 
 (defcustom magit-refs-sections-hook
-  '(magit-insert-branch-description
+  '(magit-insert-error-header
+    magit-insert-branch-description
     magit-insert-local-branches
     magit-insert-remote-branches
     magit-insert-tags)
@@ -414,6 +417,23 @@ The sections are inserted by running the functions on the hook
       (magit-insert-headers magit-status-headers-hook)
     (insert "In the beginning there was darkness\n\n")))
 
+(defun magit-insert-error-header ()
+  "Insert the message about the Git error that just occured.
+
+This function is only aware of the last error that occur when Git
+was run for side-effects.  If, for example, an error occurs while
+generating a diff, then that error won't be inserted.  Refreshing
+the status buffer causes this section to disappear again."
+  (when magit-this-error
+    (magit-insert-section (error 'git)
+      (insert (propertize (format "%-10s" "GitError! ")
+                          'face 'magit-section-heading))
+      (insert (propertize magit-this-error 'face 'font-lock-warning-face))
+      (-when-let (key (car (where-is-internal 'magit-process-buffer)))
+        (insert (format "  [Type `%s' for details]" (key-description key))))
+      (insert ?\n))
+    (setq magit-this-error nil)))
+
 (cl-defun magit-insert-head-branch-header
     (&optional (branch (magit-get-current-branch)))
   "Insert a header line about the current branch or detached `HEAD'."
@@ -430,11 +450,11 @@ The sections are inserted by running the functions on the hook
           (insert (propertize commit 'face 'magit-hash))
           (insert ?\s summary ?\n))))))
 
-(cl-defun magit-insert-pull-branch-header
+(cl-defun magit-insert-upstream-branch-header
     (&optional (branch (magit-get-current-branch))
                (pull   (magit-get-tracked-branch branch))
                keyword)
-  "Insert a header line about branch normally pulled into the current branch."
+  "Insert a header line about branch usually pulled into current branch."
   (when pull
     (magit-insert-section (branch pull)
       (insert (format "%-10s"
@@ -455,7 +475,7 @@ The sections are inserted by running the functions on the hook
 (cl-defun magit-insert-push-branch-header
     (&optional (branch (magit-get-current-branch))
                (push   (magit-get-push-branch branch)))
-  "Insert a header line about the branch the current branch is pushed to"
+  "Insert a header line about the branch the current branch is pushed to."
   (when push
     (magit-insert-section (branch push)
       (insert (format "%-10s" "Push: "))
@@ -2021,9 +2041,6 @@ Currently this only adds the following key bindings.
   :package-version '(magit . "2.2.0")
   :group 'magit-modes)
 
-(define-obsolete-function-alias 'global-magit-file-buffer-mode
-  'global-magit-file-mode "2.3.0")
-
 ;;;; Blob Mode
 
 (defvar magit-blob-mode-map
@@ -2670,11 +2687,17 @@ If the value already is just \"git\" but TRAMP never-the-less
 doesn't find the executable, then consult the info node
 `(tramp)Remote programs'.\n" remote) :error)))))
 
+(define-obsolete-function-alias 'global-magit-file-buffer-mode
+  'global-magit-file-mode "Magit 2.3.0")
+
 (define-obsolete-function-alias 'magit-insert-head-header
   'magit-insert-head-branch-header "Magit 2.4.0")
 
 (define-obsolete-function-alias 'magit-insert-upstream-header
-  'magit-insert-pull-branch-header "Magit 2.4.0")
+  'magit-insert-upstream-branch-header "Magit 2.4.0")
+
+(define-obsolete-function-alias 'magit-insert-pull-branch-header
+  'magit-insert-upstream-branch-header "Magit 2.4.0")
 
 (provide 'magit)
 

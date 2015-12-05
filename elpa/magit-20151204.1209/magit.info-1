@@ -1863,13 +1863,33 @@ variable.
 
    By default the following functions are members of the above hook:
 
- -- Function: magit-insert-head-header
+ -- Function: magit-insert-error-header
 
-     Insert a header line about the ‘HEAD’ commit.
+     Insert a header line showing the message about the Git error that
+     just occured.
 
- -- Function: magit-insert-upstream-header
+     This function is only aware of the last error that occur when Git
+     was run for side-effects.  If, for example, an error occurs while
+     generating a diff, then that error won’t be inserted.  Refreshing
+     the status buffer causes this section to disappear again.
 
-     Insert a header line about the upstream branch and its tip.
+ -- Function: magit-insert-diff-filter-header
+
+     Insert a header line showing the effective diff filters.
+
+ -- Function: magit-insert-head-branch-header
+
+     Insert a header line about the current branch or detached ‘HEAD’.
+
+ -- Function: magit-insert-upstream-branch-header
+
+     Insert a header line about the branch that is usually pulled into
+     the current branch.
+
+ -- Function: magit-insert-push-branch-header
+
+     Insert a header line about the branch that the current branch is
+     usually pushed to.
 
  -- Function: magit-insert-tags-header
 
@@ -7096,18 +7116,24 @@ Appendix D Function Index
 * magit-insert-bisect-log:               Status sections.     (line  46)
 * magit-insert-bisect-output:            Status sections.     (line  38)
 * magit-insert-bisect-rest:              Status sections.     (line  42)
-* magit-insert-head-header:              Status header sections.
+* magit-insert-diff-filter-header:       Status header sections.
+                                                              (line  37)
+* magit-insert-error-header:             Status header sections.
                                                               (line  27)
+* magit-insert-head-branch-header:       Status header sections.
+                                                              (line  41)
 * magit-insert-heading:                  Creating sections.   (line  41)
 * magit-insert-local-branches:           References sections. (line  17)
 * magit-insert-merge-log:                Status sections.     (line  18)
+* magit-insert-push-branch-header:       Status header sections.
+                                                              (line  50)
 * magit-insert-rebase-sequence:          Status sections.     (line  23)
 * magit-insert-recent-commits:           Status sections.     (line  91)
 * magit-insert-remote-branches:          References sections. (line  21)
 * magit-insert-remote-header:            Status header sections.
-                                                              (line  45)
+                                                              (line  65)
 * magit-insert-repo-header:              Status header sections.
-                                                              (line  41)
+                                                              (line  61)
 * magit-insert-section:                  Creating sections.   (line   6)
 * magit-insert-sequencer-sequence:       Status sections.     (line  33)
 * magit-insert-staged-changes:           Status sections.     (line  59)
@@ -7116,7 +7142,7 @@ Appendix D Function Index
                                                               (line  11)
 * magit-insert-tags:                     References sections. (line  25)
 * magit-insert-tags-header:              Status header sections.
-                                                              (line  35)
+                                                              (line  55)
 * magit-insert-tracked-files:            Status sections.     (line  80)
 * magit-insert-unpulled-cherries:        Status sections.     (line 102)
 * magit-insert-unpulled-commits:         Status sections.     (line  70)
@@ -7127,10 +7153,10 @@ Appendix D Function Index
 * magit-insert-unpushed-module-commits:  Status sections.     (line 122)
 * magit-insert-unstaged-changes:         Status sections.     (line  55)
 * magit-insert-untracked-files:          Status sections.     (line  50)
-* magit-insert-upstream-header:          Status header sections.
-                                                              (line  31)
+* magit-insert-upstream-branch-header:   Status header sections.
+                                                              (line  45)
 * magit-insert-user-header:              Status header sections.
-                                                              (line  53)
+                                                              (line  73)
 * magit-log-maybe-show-more-commits:     Section movement.    (line  57)
 * magit-log-maybe-update-blob-buffer:    Section movement.    (line  69)
 * magit-log-maybe-update-revision-buffer: Section movement.   (line  63)
