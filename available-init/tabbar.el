@@ -1,5 +1,4 @@
 (req-package tabbar
-             ;; Tabbar settings
              :config
              (set-face-attribute 'tabbar-default
                                  nil
@@ -58,4 +57,7 @@
                                            (length (tabbar-view (tabbar-current-tabset)))))))))
 
              (tabbar-mode 1)
-             (tabbar-local-mode 1))
+             (tabbar-local-mode 1)
+             :bind
+             (("s-<left>" . tabbar-backward-tab)
+              ("s-<right>" . tabbar-forward-tab)))
