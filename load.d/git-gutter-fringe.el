@@ -1,0 +1,1 @@
+../available-init/git-gutter-fringe.el
