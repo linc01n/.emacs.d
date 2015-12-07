@@ -384,7 +384,9 @@ repository are reverted if `magit-revert-buffers' is non-nil.
 
 See `magit-start-process' for more information."
   (message "Running %s %s" magit-git-executable
-           (mapconcat 'identity (-flatten args) " "))
+           (let ((m (mapconcat #'identity (-flatten args) " ")))
+             (remove-list-of-text-properties 0 (length m) '(face) m)
+             m))
   (magit-start-git nil args))
 
 (defun magit-run-git-async-no-revert (&rest args)
@@ -681,7 +683,8 @@ tracked in the current repository are reverted if
   "Use `auth-source-search' to get a password.
 If found, return the password.  Otherwise, return nil."
   (require 'auth-source)
-  (let ((secret (plist-get (car (auth-source-search :max 1 :host key))
+  (let ((secret (plist-get (car (auth-source-search :max 1 :host key
+                                                    :require '(:host)))
                            :secret)))
     (if (functionp secret)
         (funcall secret)

@@ -3,8 +3,8 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "git-rebase" "git-rebase.el" (22114 26794 0
-;;;;;;  0))
+;;;### (autoloads nil "git-rebase" "git-rebase.el" (22117 9327 190063
+;;;;;;  232000))
 ;;; Generated autoloads from git-rebase.el
 
 (autoload 'git-rebase-mode "git-rebase" "\
@@ -23,7 +23,7 @@ running 'man git-rebase' at the command line) for details.
 
 ;;;***
 
-;;;### (autoloads nil "magit" "magit.el" (22114 26794 0 0))
+;;;### (autoloads nil "magit" "magit.el" (22117 9327 348117 894000))
 ;;; Generated autoloads from magit.el
 
 (autoload 'magit-status "magit" "\
@@ -161,16 +161,6 @@ defaulting to the branch at point.
 
 \(fn BRANCHES &optional FORCE)" t nil)
 
-(autoload 'magit-branch-set-upstream "magit" "\
-Change the UPSTREAM branch of BRANCH.
-
-\(fn BRANCH UPSTREAM)" t nil)
-
-(autoload 'magit-branch-unset-upstream "magit" "\
-Unset the upstream branch of BRANCH.
-
-\(fn BRANCH)" t nil)
-
 (autoload 'magit-branch-rename "magit" "\
 Rename branch OLD to NEW.
 With prefix, forces the rename even if NEW already exists.
@@ -179,10 +169,138 @@ With prefix, forces the rename even if NEW already exists.
 
 \(fn OLD NEW &optional FORCE)" t nil)
 
-(autoload 'magit-branch-edit-description "magit" "\
-Edit the description of BRANCH.
+(autoload 'magit-edit-branch*description "magit" "\
+Edit the description of the current branch.
+With a prefix argument edit the description of another branch.
+
+The description for the branch named NAME is stored in the Git
+variable `branch.<name>.description'.
 
 \(fn BRANCH)" t nil)
+
+(autoload 'magit-set-branch*merge/remote "magit" "\
+Set or unset the upstream of the current branch.
+With a prefix argument do so for another branch.
+
+When the branch in question already has an upstream then simply
+unsets it.  Invoke this command again to set another upstream.
+
+Together the Git variables `branch.<name>.remote' and
+`branch.<name>.merge' define the upstream branch of the local
+branch named NAME.  The value of `branch.<name>.remote' is the
+name of the upstream remote.  The value of `branch.<name>.merge'
+is the full reference of the upstream branch, on the remote.
+
+\(fn BRANCH UPSTREAM)" t nil)
+
+(autoload 'magit-cycle-branch*rebase "magit" "\
+Cycle the value of `branch.<name>.rebase' for the current branch.
+With a prefix argument cycle the value for another branch.
+
+The Git variables `branch.<name>.rebase' controls whether pulling
+into the branch named NAME is done by rebasing that branch onto
+the fetched branch or by merging that branch.
+
+When `true' then pulling is done by rebasing.
+When `false' then pulling is done by merging.
+
+When that variable is undefined then the value of `pull.rebase'
+is used instead.  It defaults to `false'.
+
+\(fn BRANCH)" t nil)
+
+(autoload 'magit-cycle-branch*pushRemote "magit" "\
+Cycle the value of `branch.<name>.pushRemote' for the current branch.
+With a prefix argument cycle the value for another branch.
+
+The Git variable `branch.<name>.pushRemote' specifies the remote
+that the branch named NAME is usually pushed to.  The value has
+to be the name of an existing remote.  The value has to be the
+name of an existing remote.
+
+If that variable is undefined, then the value of the Git variable
+`remote.pushDefault' is used instead, provided that it is defined,
+which by default it is not.
+
+\(fn BRANCH)" t nil)
+
+(autoload 'magit-cycle-pull\.rebase "magit" "\
+Cycle the repository-local value of `pull.rebase'.
+
+The Git variable `pull.rebase' specifies whether pulling is done
+by rebasing or by merging.  It can be overwritten using the Git
+variable `branch.<name>.rebase'.
+
+When `true' then pulling is done by rebasing.
+When `false' (the default) then pulling is done by merging.
+
+\(fn)" t nil)
+
+(autoload 'magit-cycle-remote\.pushDefault "magit" "\
+Cycle the repository-local value of `remote.pushDefault'.
+
+The Git variable `remote.pushDefault' specifies the remote that
+local branches are usually pushed to.  It can be overwritten
+using the Git variable `branch.<name>.pushRemote'.
+
+\(fn)" t nil)
+
+(autoload 'magit-cycle-branch*autoSetupMerge "magit" "\
+Cycle the repository-local value of `branch.autoSetupMerge'.
+
+The Git variable `branch.autoSetupMerge' under what circumstances
+creating a branch (named NAME) should result in the variables
+`branch.<name>.merge' and `branch.<name>.remote' being set
+according to the starting point used to create the branch.  If
+the starting point isn't a branch, then these variables are never
+set.
+
+When `always' then the variables are set regardless of whether
+the starting point is a local or a remote branch.
+
+When `true' (the default) then the variable are set when the
+starting point is a remote branch, but not when it is a local
+branch.
+
+When `false' then the variables are never set.
+
+\(fn)" t nil)
+
+(autoload 'magit-cycle-branch*autoSetupRebase "magit" "\
+Cycle the repository-local value of `branch.autoSetupRebase'.
+
+The Git variable `branch.autoSetupRebase' specifies whether
+creating a branch (named NAME) should result in the variable
+`branch.<name>.rebase' being set to `true'.
+
+When `always' then the variable is set regardless of whether the
+starting point is a local or a remote branch.
+
+When `local' then the variable are set when the starting point
+is a local branch, but not when it is a remote branch.
+
+When `remote' then the variable are set when the starting point
+is a remote branch, but not when it is a local branch.
+
+When `never' (the default) then the variable is never set.
+
+\(fn)" t nil)
+
+(autoload 'magit-cycle-branch*autoSetupPush "magit" "\
+Cycle the repository-local value of `branch.autoSetupPush'.
+
+The Git variable `branch.autoSetupPush' specifies whether
+creating a branch (named NAME) should result in the variable
+`branch.<name>.pushRemote' being set to what value.
+
+It should either be undefined, or it should be the name of an
+existing branch, in which case `branch.<name>.pushRemote' is set
+to the same value.  Any other value, i.e. a non-existend remote,
+is ignored.
+
+This variable is only used by Magit, Git knows nothing about it.
+
+\(fn)" t nil)
  (autoload 'magit-merge-popup "magit" nil t)
 
 (autoload 'magit-merge "magit" "\
@@ -385,8 +503,8 @@ Git, and Emacs in the echo area.
 
 ;;;***
 
-;;;### (autoloads nil "magit-apply" "magit-apply.el" (22114 26794
-;;;;;;  0 0))
+;;;### (autoloads nil "magit-apply" "magit-apply.el" (22117 9327
+;;;;;;  226345 136000))
 ;;; Generated autoloads from magit-apply.el
 
 (autoload 'magit-stage-file "magit-apply" "\
@@ -422,8 +540,8 @@ Remove all changes from the staging area.
 
 ;;;***
 
-;;;### (autoloads nil "magit-bisect" "magit-bisect.el" (22114 26794
-;;;;;;  0 0))
+;;;### (autoloads nil "magit-bisect" "magit-bisect.el" (22117 9327
+;;;;;;  213328 398000))
 ;;; Generated autoloads from magit-bisect.el
  (autoload 'magit-bisect-popup "magit-bisect" nil t)
 
@@ -474,8 +592,8 @@ bisect run'.
 
 ;;;***
 
-;;;### (autoloads nil "magit-blame" "magit-blame.el" (22114 26794
-;;;;;;  0 0))
+;;;### (autoloads nil "magit-blame" "magit-blame.el" (22117 9327
+;;;;;;  323435 884000))
 ;;; Generated autoloads from magit-blame.el
  (autoload 'magit-blame-popup "magit-blame" nil t)
 
@@ -499,8 +617,8 @@ only arguments available from `magit-blame-popup' should be used.
 
 ;;;***
 
-;;;### (autoloads nil "magit-commit" "magit-commit.el" (22114 26794
-;;;;;;  0 0))
+;;;### (autoloads nil "magit-commit" "magit-commit.el" (22117 9327
+;;;;;;  116217 751000))
 ;;; Generated autoloads from magit-commit.el
 
 (autoload 'magit-commit "magit-commit" "\
@@ -582,8 +700,8 @@ Create a squash commit targeting COMMIT and instantly rebase.
 
 ;;;***
 
-;;;### (autoloads nil "magit-diff" "magit-diff.el" (22114 26794 0
-;;;;;;  0))
+;;;### (autoloads nil "magit-diff" "magit-diff.el" (22117 9327 311905
+;;;;;;  503000))
 ;;; Generated autoloads from magit-diff.el
 
 (autoload 'magit-diff-dwim "magit-diff" "\
@@ -626,16 +744,6 @@ Show changes between the working tree and the index.
 
 \(fn &optional ARGS FILES)" t nil)
 
-(autoload 'magit-diff-unpushed "magit-diff" "\
-Show unpushed changes.
-
-\(fn &optional ARGS FILES)" t nil)
-
-(autoload 'magit-diff-unpulled "magit-diff" "\
-Show unpulled changes.
-
-\(fn &optional ARGS FILES)" t nil)
-
 (autoload 'magit-diff-while-committing "magit-diff" "\
 While committing, show the changes that are about to be committed.
 While amending, invoking the command again toggles between
@@ -658,8 +766,8 @@ for a revision.
 
 ;;;***
 
-;;;### (autoloads nil "magit-ediff" "magit-ediff.el" (22114 26794
-;;;;;;  0 0))
+;;;### (autoloads nil "magit-ediff" "magit-ediff.el" (22117 9327
+;;;;;;  287212 435000))
 ;;; Generated autoloads from magit-ediff.el
  (autoload 'magit-ediff-popup "magit-ediff" nil t)
 
@@ -739,8 +847,8 @@ Show changes introduced by COMMIT using Ediff.
 
 ;;;***
 
-;;;### (autoloads nil "magit-extras" "magit-extras.el" (22114 26794
-;;;;;;  0 0))
+;;;### (autoloads nil "magit-extras" "magit-extras.el" (22117 9327
+;;;;;;  129173 63000))
 ;;; Generated autoloads from magit-extras.el
 
 (autoload 'magit-run-git-gui "magit-extras" "\
@@ -810,7 +918,8 @@ on a position in a file-visiting buffer.
 
 ;;;***
 
-;;;### (autoloads nil "magit-log" "magit-log.el" (22114 26794 0 0))
+;;;### (autoloads nil "magit-log" "magit-log.el" (22117 9327 298846
+;;;;;;  231000))
 ;;; Generated autoloads from magit-log.el
 
 (autoload 'magit-log-current "magit-log" "\
@@ -878,8 +987,8 @@ Show commits in a branch that are not merged in the upstream branch.
 
 ;;;***
 
-;;;### (autoloads nil "magit-remote" "magit-remote.el" (22114 26794
-;;;;;;  0 0))
+;;;### (autoloads nil "magit-remote" "magit-remote.el" (22117 9327
+;;;;;;  384308 310000))
 ;;; Generated autoloads from magit-remote.el
 
 (autoload 'magit-clone "magit-remote" "\
@@ -910,81 +1019,77 @@ Delete the remote named REMOTE.
 \(fn REMOTE)" t nil)
  (autoload 'magit-fetch-popup "magit-remote" nil t)
 
-(autoload 'magit-fetch-current "magit-remote" "\
-Fetch from the upstream repository of the current branch.
-If `HEAD' is detached or if the upstream is not configured,
-then read the remote.
+(autoload 'magit-fetch-from-pushremote "magit-remote" "\
+Fetch from the push-remote of the current branch.
 
-\(fn REMOTE &optional ARGS)" t nil)
+\(fn ARGS)" t nil)
+
+(autoload 'magit-fetch-from-upstream "magit-remote" "\
+Fetch from the upstream repository of the current branch.
+
+\(fn ARGS)" t nil)
 
 (autoload 'magit-fetch "magit-remote" "\
 Fetch from another repository.
 
-\(fn REMOTE &optional ARGS)" t nil)
+\(fn REMOTE ARGS)" t nil)
 
 (autoload 'magit-fetch-all "magit-remote" "\
-Fetch from all configured remotes.
+Fetch from all remotes.
 
-\(fn &optional ARGS)" t nil)
+\(fn ARGS)" t nil)
  (autoload 'magit-pull-popup "magit-remote" nil t)
 
-(autoload 'magit-pull-current "magit-remote" "\
-Fetch and merge into current branch.
+(autoload 'magit-pull-from-pushremote "magit-remote" "\
+Pull from the push-remote of the current branch.
 
-\(fn REMOTE BRANCH &optional ARGS)" t nil)
+\(fn ARGS)" t nil)
+
+(autoload 'magit-pull-from-upstream "magit-remote" "\
+Pull from the upstream of the current branch.
+
+\(fn ARGS)" t nil)
 
 (autoload 'magit-pull "magit-remote" "\
-Fetch from another repository and merge a fetched branch.
+Pull from a branch read in the minibuffer.
 
-\(fn REMOTE BRANCH &optional ARGS)" t nil)
+\(fn SOURCE ARGS)" t nil)
  (autoload 'magit-push-popup "magit-remote" nil t)
 
-(autoload 'magit-push-current "magit-remote" "\
+(autoload 'magit-push-current-to-pushremote "magit-remote" "\
+Push the current branch to `branch.<name>.pushRemote'.
+If that variable is unset, then push to `remote.pushDefault'.
+
+\(fn ARGS)" t nil)
+
+(autoload 'magit-push-current-to-upstream "magit-remote" "\
 Push the current branch to its upstream branch.
-If the upstream isn't set, then read the remote branch.
 
-If `magit-push-always-verify' is not nil, however, always read
-the remote branch.
+\(fn ARGS)" t nil)
 
-\(fn BRANCH REMOTE &optional REMOTE-BRANCH ARGS)" t nil)
+(autoload 'magit-push-current "magit-remote" "\
+Push the current branch to a branch read in the minibuffer.
+
+\(fn TARGET ARGS)" t nil)
 
 (autoload 'magit-push "magit-remote" "\
-Push a branch to its upstream branch.
-If the upstream isn't set, then read the remote branch.
+Push an arbitrary branch or commit somewhere.
+Both the source and the target are read in the minibuffer.
 
-If `magit-push-always-verify' is not nil, however, always read
-the remote branch.
-
-\(fn BRANCH REMOTE &optional REMOTE-BRANCH ARGS)" t nil)
-
-(autoload 'magit-push-elsewhere "magit-remote" "\
-Push a branch or commit to some remote branch.
-Read the local and remote branch.
-
-\(fn BRANCH REMOTE REMOTE-BRANCH &optional ARGS)" t nil)
-
-(autoload 'magit-push-quickly "magit-remote" "\
-Push the current branch to some remote.
-When the Git variable `magit.pushRemote' is set, then push to
-that remote.  If that variable is undefined or the remote does
-not exist, then push to \"origin\".  If that also doesn't exist
-then raise an error.  The local branch is pushed to the remote
-branch with the same name.
-
-\(fn &optional ARGS)" t nil)
-
-(autoload 'magit-push-implicitly "magit-remote" "\
-Push without explicitly specifing what to push.
-This runs `git push -v'.  What is being pushed depends on various
-Git variables as described in the `git-push(1)' and `git-config(1)'
-manpages.
-
-\(fn &optional ARGS)" t nil)
+\(fn SOURCE TARGET ARGS)" t nil)
 
 (autoload 'magit-push-matching "magit-remote" "\
 Push all matching branches to another repository.
 If multiple remotes exit, then read one from the user.
 If just one exists, use that without requiring confirmation.
+
+\(fn REMOTE &optional ARGS)" t nil)
+
+(autoload 'magit-push-tags "magit-remote" "\
+Push all tags to another repository.
+If only one remote exists, then push to that.  Otherwise prompt
+for a remote, offering the remote configured for the current
+branch as default.
 
 \(fn REMOTE &optional ARGS)" t nil)
 
@@ -1015,8 +1120,8 @@ is asked to pull.  START has to be reachable from that commit.
 
 ;;;***
 
-;;;### (autoloads nil "magit-sequence" "magit-sequence.el" (22114
-;;;;;;  26794 0 0))
+;;;### (autoloads nil "magit-sequence" "magit-sequence.el" (22117
+;;;;;;  9327 359712 476000))
 ;;; Generated autoloads from magit-sequence.el
 
 (autoload 'magit-sequencer-continue "magit-sequence" "\
@@ -1097,43 +1202,50 @@ This discards all changes made since the sequence started.
 \(fn)" t nil)
  (autoload 'magit-rebase-popup "magit-sequence" nil t)
 
-(autoload 'magit-rebase "magit-sequence" "\
-Start a non-interactive rebase sequence.
-All commits not in UPSTREAM are rebased.
+(autoload 'magit-rebase-onto-pushremote "magit-sequence" "\
+Rebase the current branch onto `branch.<name>.pushRemote'.
+If that variable is unset, then rebase onto `remote.pushDefault'.
 
-\(fn UPSTREAM &optional ARGS)" t nil)
+\(fn ARGS)" t nil)
+
+(autoload 'magit-rebase-onto-upstream "magit-sequence" "\
+Rebase the current branch onto its upstream branch.
+
+\(fn ARGS)" t nil)
+
+(autoload 'magit-rebase "magit-sequence" "\
+Rebase the current branch onto a branch read in the minibuffer.
+All commits that are reachable from head but not from the
+selected branch TARGET are being rebased.
+
+\(fn TARGET ARGS)" t nil)
 
 (autoload 'magit-rebase-subset "magit-sequence" "\
-Start a non-interactive rebase sequence.
+Rebase a subset of the current branches history onto a new base.
 Rebase commits from START to `HEAD' onto NEWBASE.
 START has to be selected from a list of recent commits.
 
-\(fn NEWBASE START &optional ARGS)" t nil)
+\(fn NEWBASE START ARGS)" t nil)
 
 (autoload 'magit-rebase-interactive "magit-sequence" "\
 Start an interactive rebase sequence.
 
-\(fn COMMIT &optional ARGS)" t nil)
-
-(autoload 'magit-rebase-unpushed "magit-sequence" "\
-Start an interactive rebase sequence of all unpushed commits.
-
-\(fn &optional ARGS)" t nil)
+\(fn COMMIT ARGS)" t nil)
 
 (autoload 'magit-rebase-autosquash "magit-sequence" "\
 Combine squash and fixup commits with their intended targets.
 
-\(fn &optional ARGS)" t nil)
+\(fn ARGS)" t nil)
 
 (autoload 'magit-rebase-edit-commit "magit-sequence" "\
 Edit a single older commit using rebase.
 
-\(fn COMMIT &optional ARGS)" t nil)
+\(fn COMMIT ARGS)" t nil)
 
 (autoload 'magit-rebase-reword-commit "magit-sequence" "\
 Reword a single older commit using rebase.
 
-\(fn COMMIT &optional ARGS)" t nil)
+\(fn COMMIT ARGS)" t nil)
 
 (autoload 'magit-rebase-continue "magit-sequence" "\
 Restart the current rebasing operation.
@@ -1157,8 +1269,8 @@ Abort the current rebase operation, restoring the original branch.
 
 ;;;***
 
-;;;### (autoloads nil "magit-stash" "magit-stash.el" (22114 26794
-;;;;;;  0 0))
+;;;### (autoloads nil "magit-stash" "magit-stash.el" (22117 9327
+;;;;;;  262567 409000))
 ;;; Generated autoloads from magit-stash.el
  (autoload 'magit-stash-popup "magit-stash" nil t)
 
@@ -1257,7 +1369,8 @@ Show all diffs of a stash in a buffer.
 
 ;;;***
 
-;;;### (autoloads nil "magit-wip" "magit-wip.el" (22114 26794 0 0))
+;;;### (autoloads nil "magit-wip" "magit-wip.el" (22117 9327 152458
+;;;;;;  907000))
 ;;; Generated autoloads from magit-wip.el
 
 (defvar magit-wip-after-save-mode nil "\
@@ -1324,7 +1437,7 @@ command which is about to be called are committed.
 
 ;;;### (autoloads nil nil ("magit-core.el" "magit-git.el" "magit-mode.el"
 ;;;;;;  "magit-pkg.el" "magit-process.el" "magit-section.el" "magit-utils.el")
-;;;;;;  (22114 26794 840977 0))
+;;;;;;  (22117 9327 433074 61000))
 
 ;;;***
 
