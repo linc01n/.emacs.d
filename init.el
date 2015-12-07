@@ -19,6 +19,7 @@
 (setf inhibit-splash-screen t)
 (setq initial-scratch-message nil)
 (delete-other-windows)
+(global-auto-revert-mode t)
 
 (setq ring-bell-function 'ignore)
 
