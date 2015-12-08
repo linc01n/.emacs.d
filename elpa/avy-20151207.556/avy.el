@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20151207.201
+;; Package-Version: 20151207.556
 ;; Version: 0.3.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -956,6 +956,11 @@ The window scope is determined by `avy-all-windows' (ARG negates it)."
 (declare-function subword-backward "subword")
 (defvar subword-backward-regexp)
 
+(defcustom avy-subword-extra-word-chars '(?{ ?= ?} ?* ?: ?> ?<)
+  "A list of characters that should temporarily match \"\\w\".
+This variable is used by `avy-goto-subword-0' and `avy-goto-subword-1'."
+  :type '(repeat character))
+
 ;;;###autoload
 (defun avy-goto-subword-0 (&optional arg predicate)
   "Jump to a word or subword start.
@@ -972,18 +977,22 @@ should return true."
            "\\(\\(\\W\\|[[:lower:][:digit:]]\\)\\([!-/:@`~[:upper:]]+\\W*\\)\\|\\W\\w+\\)")
           candidates)
       (avy-dowindows arg
-        (let ((ws (window-start))
-              window-cands)
-          (save-excursion
-            (goto-char (window-end (selected-window) t))
-            (subword-backward)
-            (while (> (point) ws)
-              (when (or (null predicate)
-                        (and predicate (funcall predicate)))
-                (unless (get-char-property (point) 'invisible)
-                  (push (cons (point) (selected-window)) window-cands)))
-              (subword-backward)))
-          (setq candidates (nconc candidates window-cands))))
+        (let ((syn-tbl (copy-syntax-table)))
+          (dolist (char avy-subword-extra-word-chars)
+            (modify-syntax-entry char "w" syn-tbl))
+          (with-syntax-table syn-tbl
+            (let ((ws (window-start))
+                  window-cands)
+              (save-excursion
+                (goto-char (window-end (selected-window) t))
+                (subword-backward)
+                (while (> (point) ws)
+                  (when (or (null predicate)
+                            (and predicate (funcall predicate)))
+                    (unless (get-char-property (point) 'invisible)
+                      (push (cons (point) (selected-window)) window-cands)))
+                  (subword-backward)))
+              (setq candidates (nconc candidates window-cands))))))
       (avy--process candidates (avy--style-fn avy-style)))))
 
 ;;;###autoload
