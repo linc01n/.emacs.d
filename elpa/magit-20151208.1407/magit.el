@@ -1,4 +1,4 @@
-;;; magit.el --- A Git porcelain inside Emacs
+;;; magit.el --- A Git porcelain inside Emacs  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2008-2015  The Magit Project Contributors
 ;;
@@ -407,10 +407,12 @@ then offer to initialize it as a new repository."
 
 ;;;;; Standard Status Sections
 
+(defvar magit-status-sections-hook-1 nil)
+
 (defun magit-status-refresh-buffer ()
   (magit-git-exit-code "update-index" "--refresh")
   (magit-insert-section (status)
-    (if (--all-p #'functionp magit-status-sections-hook)
+    (if (-all-p #'functionp magit-status-sections-hook)
         (run-hooks 'magit-status-sections-hook)
       (message "`magit-status-sections-hook' contains entries that are \
 no longer valid.\nUsing standard value instead.  Please re-configure")
@@ -727,7 +729,7 @@ Refs are compared with a branch read form the user."
                      (magit-show-refs-arguments)))
   (magit-mode-setup #'magit-refs-mode ref args))
 
-(defun magit-refs-refresh-buffer (&rest ignore)
+(defun magit-refs-refresh-buffer (&rest _ignore)
   (setq magit-set-buffer-margin-refresh (not magit-show-margin))
   (unless (magit-rev-verify (or (car magit-refresh-args) "HEAD"))
     (setq magit-refs-show-commit-count nil))
@@ -1459,7 +1461,7 @@ variable `branch.<name>.description'."
    (list (or (and (not current-prefix-arg)
                   (magit-get-current-branch))
              (magit-read-local-branch "Edit branch description"))))
-  (magit-run-git-with-editor "branch" "--edit-description"))
+  (magit-run-git-with-editor "branch" "--edit-description" branch))
 
 (defun magit-edit-branch*description-check-buffers ()
   (and buffer-file-name
@@ -1697,7 +1699,7 @@ This variable is only used by Magit, Git knows nothing about it."
   :switches '((?f "Fast-forward only" "--ff-only")
               (?n "No fast-forward"   "--no-ff")
               (?s "Squash"            "--squash"))
-  :options  '((?s "Strategy" "--strategy=" read-from-minibuffer))
+  :options  '((?s "Strategy" "--strategy="))
   :actions  '((?m "Merge"                  magit-merge)
               (?e "Merge and edit message" magit-merge-editmsg)
               (?p "Preview merge"          magit-merge-preview)
@@ -2003,7 +2005,7 @@ With a prefix argument annotate the tag.
                      (magit-read-branch-or-commit "Place tag on")
                      (let ((args (magit-tag-arguments)))
                        (when current-prefix-arg
-                         (add-to-list 'args "--annotate"))
+                         (cl-pushnew "--annotate" args))
                        args)))
   (magit-run-git-with-editor "tag" args name rev))
 
@@ -2051,9 +2053,12 @@ defaulting to the tag at point.
   "Popup console for notes commands."
   'magit-commands
   :man-page "git-tag"
-  :switches '((?n "Dry run"          "--dry-run"))
-  :options  '((?r "Manipulate ref"   "--ref="      magit-notes-popup-read-ref)
-              (?s "Merge strategy"   "--strategy=" read-from-minibuffer))
+  :switches '("Switch for prune"
+              (?n "Dry run"          "--dry-run"))
+  :options  '("Option for edit and remove"
+              (?r "Manipulate ref"   "--ref="      magit-notes-popup-read-ref)
+              "Option for merge"
+              (?s "Merge strategy"   "--strategy="))
   :actions  '((?T "Edit"             magit-notes-edit)
               (?r "Remove"           magit-notes-remove)
               (?m "Merge"            magit-notes-merge)
@@ -2084,7 +2089,8 @@ Interactively or when optional REF is nil use the value of Git
 variable `core.notesRef' or \"refs/notes/commits\" if that is
 undefined."
   (interactive (magit-notes-read-args "Remove notes"))
-  (magit-run-git-with-editor "notes" "remove" commit))
+  (magit-run-git-with-editor "notes" (and ref (concat "--ref=" ref))
+                             "remove" commit))
 
 (defun magit-notes-merge (ref)
   "Merge the notes ref REF into the current notes ref.
@@ -2377,7 +2383,7 @@ Currently this only adds the following key bindings.
 (defun magit-blob-successor (rev file)
   (let ((lines (magit-with-toplevel
                  (magit-git-lines "log" "--format=%H" "--name-only" "--follow"
-                                  "HEAD" "--" "lisp/magit-blame.el"))))
+                                  "HEAD" "--" file))))
     (catch 'found
       (while lines
         (if (equal (nth 2 lines) rev)

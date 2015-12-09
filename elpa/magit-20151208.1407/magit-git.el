@@ -1,4 +1,4 @@
-;;; magit-git.el --- Git functionality
+;;; magit-git.el --- Git functionality  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2015  The Magit Project Contributors
 ;;
@@ -533,7 +533,7 @@ range.  Otherwise, it can be any revision or range accepted by
                       (lwarn '(magit) :error
                              "Failed to parse Cygwin mount: %S" it))
                     (ignore-errors (process-lines "mount")))
-             #'> :key (-lambda ((cyg . win)) (length cyg))))
+             #'> :key (-lambda ((cyg . _win)) (length cyg))))
   "Alist of (CYGWIN . WIN32) directory names.
 Sorted from longest to shortest CYGWIN name."
   :package-version '(magit . "2.3.0")
@@ -973,7 +973,8 @@ Return a list of two integers: (A>B B>A)."
     it))
 
 (defun magit-format-ref-label (ref &optional head)
-  (-let [(re face fn) (--first (string-match (car it) ref) magit-ref-namespaces)]
+  (-let [(_re face fn)
+         (--first (string-match (car it) ref) magit-ref-namespaces)]
     (if fn
         (funcall fn ref face)
       (propertize (or (match-string 1 ref) ref)
@@ -1125,7 +1126,8 @@ Return a list of two integers: (A>B B>A)."
 (defun magit-read-local-branch-or-commit (prompt)
   (let ((branches (magit-list-local-branch-names))
         (commit (magit-commit-at-point)))
-    (or (magit-completing-read "Push" (if commit (cons commit branches) branches)
+    (or (magit-completing-read prompt
+                               (if commit (cons commit branches) branches)
                                nil nil nil 'magit-revision-history
                                (or (magit-local-branch-at-point) commit))
                      (user-error "Nothing selected"))))

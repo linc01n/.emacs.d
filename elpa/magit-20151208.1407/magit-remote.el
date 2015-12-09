@@ -1,4 +1,4 @@
-;;; magit-remote.el --- transfer Git commits
+;;; magit-remote.el --- transfer Git commits  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2008-2015  The Magit Project Contributors
 ;;
@@ -329,7 +329,7 @@ branch as default."
      (list tag (magit-read-remote (format "Push %s to remote" tag) nil t)
            (magit-push-arguments))))
   (run-hooks 'magit-credential-hook)
-  (magit-run-git-async-no-revert "push" remote tag))
+  (magit-run-git-async-no-revert "push" remote tag args))
 
 ;;; Email
 
@@ -338,7 +338,8 @@ branch as default."
   "Popup console for patch commands."
   'magit-commands
   :man-page "git-format-patch"
-  :options  '((?f "From"             "--from=")
+  :options  '("Options for formatting patches"
+              (?f "From"             "--from=")
               (?t "To"               "--to=")
               (?c "CC"               "--cc=")
               (?r "In reply to"      "--in-reply-to=")
@@ -389,7 +390,7 @@ is asked to pull.  START has to be reachable from that commit."
     (setq default-directory dir))
   (message-goto-body)
   (let ((inhibit-magit-revert t))
-    (magit-git-insert "request-pull" start url))
+    (magit-git-insert "request-pull" start url end))
   (set-buffer-modified-p nil))
 
 ;;; magit-remote.el ends soon
