@@ -4,7 +4,7 @@
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
 ;;;### (autoloads nil "find-file-in-project" "find-file-in-project.el"
-;;;;;;  (22118 62452 0 0))
+;;;;;;  (22120 10017 0 0))
 ;;; Generated autoloads from find-file-in-project.el
 
 (defvar ffip-filename-rules '(ffip-filename-identity (ffip-filename-dashes-to-camelcase ffip-filename-camelcase-to-dashes)))
@@ -25,7 +25,7 @@ List of patterns to look for with `find-file-in-project'.")
 (defvar ffip-match-path-instead-of-filename nil "\
 Match full path instead of file name when calling `find-file-in-project-by-selected'")
 
-(defvar ffip-prune-patterns '("*/.git/*" "*/.svn/*" "*/.cvs/*" "*/.bzr/*" "*/.hg/*" "*.log" "*/bin/*" "*/.DS_Store/*" "*/tags" "*/TAGS" "*/GTAGS" "*/GPATH" "*/GRTAGS" "*/cscope.files" "*min.js" "*min.css" "*/node_modules/*" "*/bower_components/*" "*.png" "*.jpg" "*.jpeg" "*.gif" "*.bmp" "*.tiff" "*.doc" "*.docx" "*.pdf" "*.obj" "*.o" "*.a" "*.dylib" "*.lib" "*.d" "*.dll" "*.exe" "*/.metadata*" "*/.gradle/*" "*.class" "*.war" "*.jar" "*flymake" "*/#*#" ".#*" "*.swp" "*~" "*.elc" "*/.cask/*" "*.pyc") "\
+(defvar ffip-prune-patterns '("*/.idea/*" "*/.git/*" "*/.svn/*" "*/.cvs/*" "*/.bzr/*" "*/.hg/*" "*.log" "*/bin/*" "*/.DS_Store/*" "*/tags" "*/TAGS" "*/GTAGS" "*/GPATH" "*/GRTAGS" "*/cscope.files" "*min.js" "*min.css" "*/node_modules/*" "*/bower_components/*" "*.png" "*.jpg" "*.jpeg" "*.gif" "*.bmp" "*.tiff" "*.doc" "*.docx" "*.pdf" "*.obj" "*.o" "*.a" "*.dylib" "*.lib" "*.d" "*.dll" "*.exe" "*/.metadata*" "*/.gradle/*" "*.class" "*.war" "*.jar" "*flymake" "*/#*#" ".#*" "*.swp" "*~" "*.elc" "*/.cask/*" "*.pyc") "\
 List of directory/file patterns to not descend into when listing files in `find-file-in-project'.")
 
 (defvar ffip-find-options "" "\

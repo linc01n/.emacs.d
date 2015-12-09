@@ -4,7 +4,7 @@
 ;;   Phil Hagelberg, Doug Alcorn, and Will Farrington
 ;;
 ;; Version: 4.4
-;; Package-Version: 20151208.253
+;; Package-Version: 20151208.2241
 ;; Author: Phil Hagelberg, Doug Alcorn, and Will Farrington
 ;; Maintainer: Chen Bin <chenbin.sh@gmail.com>
 ;; URL: https://github.com/technomancy/find-file-in-project
@@ -119,6 +119,7 @@ May be set using .dir-locals.el.  Checks each entry if set to a list.")
 ;;;###autoload
 (defvar ffip-prune-patterns
   '(;; VCS
+    "*/.idea/*"
     "*/.git/*"
     "*/.svn/*"
     "*/.cvs/*"
