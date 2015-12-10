@@ -1,3 +1,6 @@
+;; Raising garbage collection threshold to speed init time
+(setq gc-cons-threshold (* 20 1024 1024))
+
 (require 'package)
 (setq package-archives '(("gnu" ."http://elpa.gnu.org/packages/")
                          ("melpa" ."http://melpa.org/packages/")))
@@ -84,3 +87,6 @@
   (which-key-mode t))
 
 (req-package-finish)
+
+;; Resetting gc to default value
+(setq gc-cons-threshold (* 1 1024 1024))
