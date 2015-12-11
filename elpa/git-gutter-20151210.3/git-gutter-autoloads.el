@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "git-gutter" "git-gutter.el" (22115 38490 0
+;;;### (autoloads nil "git-gutter" "git-gutter.el" (22122 64371 0
 ;;;;;;  0))
 ;;; Generated autoloads from git-gutter.el
 
@@ -85,7 +85,7 @@ start revision.
 \(fn START-REV)" t nil)
 
 (autoload 'git-gutter:update-all-windows "git-gutter" "\
-Update git-gutter informations for all visible buffers.
+Update git-gutter information for all visible buffers.
 
 \(fn)" t nil)
 
