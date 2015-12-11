@@ -4,7 +4,7 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20151208.1724
+;; Package-Version: 20151210.1702
 ;; Version: 0.7.1
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
@@ -322,6 +322,10 @@ See http://www.gnu.org/software/emacs/manual/html_node/emacs/Modifier-Keys.html"
   :group 'which-key
   :type 'boolean)
 
+;; Hooks
+(defvar which-key-init-buffer-hook '()
+  "Hook run when which-key buffer is initialized.")
+
 ;; Faces
 (defgroup which-key-faces nil
   "Faces for which-key-mode"
@@ -504,7 +508,8 @@ alongside the actual current key sequence when
       (setq-local cursor-type nil)
       (setq-local cursor-in-non-selected-windows nil)
       (setq-local mode-line-format nil)
-      (setq-local word-wrap nil))))
+      (setq-local word-wrap nil)
+      (run-hooks 'which-key-init-buffer-hook))))
 
 (defun which-key--setup ()
   "Initial setup for which-key.
