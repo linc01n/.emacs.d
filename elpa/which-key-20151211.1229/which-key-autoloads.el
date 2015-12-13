@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "which-key" "which-key.el" (22122 64350 0 0))
+;;;### (autoloads nil "which-key" "which-key.el" (22125 10004 0 0))
 ;;; Generated autoloads from which-key.el
 
 (defvar which-key-mode nil "\

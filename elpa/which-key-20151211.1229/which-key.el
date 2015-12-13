@@ -4,7 +4,7 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20151210.1702
+;; Package-Version: 20151211.1229
 ;; Version: 0.7.1
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
@@ -1311,7 +1311,7 @@ alists. Returns a list (key separator description)."
   (let ((key-str-qt (regexp-quote (key-description which-key--current-prefix)))
         (buffer (current-buffer))
         (ignore-bindings '("self-insert-command" "ignore" "ignore-event" "company-ignore"))
-        (ignore-keys-regexp "mouse-\\|wheel-\\|remap\\|drag-\\|scroll-bar\\|select-window\\|switch-frame")
+        (ignore-keys-regexp "mouse-\\|wheel-\\|remap\\|drag-\\|scroll-bar\\|select-window\\|switch-frame\\|-state")
         (ignore-sections-regexp "\\(Key translations\\|Function key map translations\\|Input decoding map translations\\)"))
     (with-temp-buffer
       (let ((indent-tabs-mode t))
