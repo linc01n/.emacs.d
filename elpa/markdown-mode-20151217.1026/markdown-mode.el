@@ -31,7 +31,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.0
-;; Package-Version: 20151216.405
+;; Package-Version: 20151217.1026
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
 
@@ -95,13 +95,14 @@
 ;; The latest development version can be downloaded directly
 ;; ([markdown-mode.el][devel.el]) or it can be obtained from the
 ;; (browsable and clonable) Git repository at
-;; <http://jblevins.org/git/markdown-mode.git>.  The entire repository,
-;; including the full project history, can be cloned via the Git protocol
-;; by running
+;; <http://jblevins.org/git/markdown-mode.git> or from [GitHub][].
+;; The entire repository, including the full project history, can be
+;; cloned via the Git protocol by running
 ;;
 ;;     git clone git://jblevins.org/git/markdown-mode.git
 ;;
 ;;  [devel.el]: http://jblevins.org/git/markdown-mode.git/plain/markdown-mode.el
+;;  [GitHub]: https://github.com/jrblevin/markdown-mode/
 
 ;;; Installation:
 
@@ -1271,14 +1272,11 @@ Returns a cons (NEW-START . NEW-END) or nil if no adjustment should be made.
 Function is called repeatedly until it returns nil. For details, see
 `syntax-propertize-extend-region-functions'."
   (save-excursion
-    (goto-char start)
-    (unless (looking-back "\n\n" nil)
-      (let ((first (or (re-search-backward "\n\n" nil t) (point-min)))
-            (last end))
-        (goto-char end)
-        (when (re-search-forward "\n\n" nil t)
-          (setq last (match-end 0)))
-        (cons first last)))))
+    (cons
+     (or (and (goto-char start) (re-search-backward "\n\n" nil t))
+         (point-min))
+     (or (and (goto-char end) (re-search-forward "\n\n" nil t))
+         (point-max)))))
 
 (defun markdown-syntax-propertize-pre-blocks (start end)
   "Match preformatted text blocks from START to END."
@@ -1349,12 +1347,12 @@ Function is called repeatedly until it returns nil. For details, see
       (let ((open (list (match-beginning 1) (match-end 1)))
             (lang (list (match-beginning 2) (match-end 2))))
         (forward-line)
-        (let ((body (list (point))))
+        (let ((body (point)))
           (when (re-search-forward
                  markdown-regex-gfm-code-block-close end t)
-            (let ((close (list (match-beginning 0) (match-end 0)))
-                  (all (list (car open) (match-end 0))))
-              (setq body (reverse (cons (1- (match-beginning 0)) body)))
+            (let ((close (list (match-beginning 1) (match-end 1)))
+                  (all (list (car open) (match-end 1))))
+              (setq body (list body (1- (match-beginning 0))))
               (put-text-property (car open) (match-end 0) 'markdown-gfm-code
                                  (append all open lang body close)))))))))
 
@@ -1770,12 +1768,12 @@ See `font-lock-syntactic-face-function' for details."
                                                (4 markdown-markup-face)       ; :
                                                (5 markdown-url-face)          ; url
                                                (6 markdown-link-title-face))) ; "title" (optional)
-   (cons 'markdown-match-bold '((1 markdown-markup-face)
-                                (2 markdown-bold-face)
-                                (3 markdown-markup-face)))
-   (cons 'markdown-match-italic '((1 markdown-markup-face)
-                                  (2 markdown-italic-face)
-                                  (3 markdown-markup-face)))
+   (cons 'markdown-match-bold '((1 markdown-markup-face prepend)
+                                (2 markdown-bold-face append)
+                                (3 markdown-markup-face prepend)))
+   (cons 'markdown-match-italic '((1 markdown-markup-face prepend)
+                                  (2 markdown-italic-face append)
+                                  (3 markdown-markup-face prepend)))
    (cons markdown-regex-uri 'markdown-link-face)
    (cons markdown-regex-email 'markdown-link-face)
    (cons markdown-regex-line-break '(1 markdown-line-break-face prepend))
@@ -2289,7 +2287,7 @@ GFM quoted code blocks.  Calls `markdown-code-block-at-pos-p'."
   (when (re-search-forward regex last t)
     (cond
      ;; In code block: move past it and recursively search again
-     ((markdown-code-block-at-point-p)
+     ((markdown-code-block-at-pos-p (match-beginning 0))
       (while (and (markdown-code-block-at-point-p)
                   (< (point) (point-max)))
         (markdown-end-of-block))
@@ -2323,32 +2321,37 @@ GFM quoted code blocks.  Calls `markdown-code-block-at-pos-p'."
 
 (defun markdown-match-italic (last)
   "Match inline italics from the point to LAST."
-  (when (markdown-match-inline-generic
-         (if (eq major-mode 'gfm-mode)
-             markdown-regex-gfm-italic markdown-regex-italic)
-         last)
-    (set-match-data (list (match-beginning 1) (match-end 1)
-                          (match-beginning 2) (match-end 2)
-                          (match-beginning 3) (match-end 3)
-                          (match-beginning 4) (match-end 4)))
-    (goto-char (1+ (match-end 0)))))
+  (let ((regex (if (eq major-mode 'gfm-mode)
+                   markdown-regex-gfm-italic markdown-regex-italic)))
+    (when (markdown-match-inline-generic regex last)
+      (let ((begin (match-beginning 1)) (end (match-end 1)))
+        (cond ((save-match-data
+                 (or (and (goto-char begin)
+                          (thing-at-point-looking-at markdown-regex-bold))
+                     (and (goto-char begin)
+                          (thing-at-point-looking-at markdown-regex-code))
+                     (and (goto-char end)
+                          (thing-at-point-looking-at markdown-regex-code))))
+               (goto-char (1+ (match-end 0)))
+               (markdown-match-italic last))
+              (t
+               (set-match-data (list (match-beginning 1) (match-end 1)
+                                     (match-beginning 2) (match-end 2)
+                                     (match-beginning 3) (match-end 3)
+                                     (match-beginning 4) (match-end 4)))
+               (goto-char (1+ (match-end 0)))))))))
 
 (defun markdown-match-propertized-text (property last)
   "Match text with PROPERTY from point to LAST.
 Restore match data previously stored in PROPERTY."
-  (let ((pos (if (eq (point) (point-min))
-                 (point-min)
-               (next-single-char-property-change (1- (point)) property nil last))))
-    (when (and pos (>= pos (point)))
-      (goto-char pos)
-      (let ((saved-match-data (get-text-property pos property)))
-        (if saved-match-data
-            (progn
-              (set-match-data saved-match-data)
-              (goto-char (match-end 0)))
-          (when (< (point) last)
-            (forward-char)
-            (markdown-match-propertized-text property last)))))))
+  (let (saved pos)
+    (unless (setq saved (get-text-property (point) property))
+      (setq pos (next-single-char-property-change (point) property nil last))
+      (setq saved (get-text-property pos property)))
+    (when saved
+      (set-match-data saved)
+      (goto-char (min (1+ (match-end 0)) (point-max)))
+      saved)))
 
 (defun markdown-match-pre-blocks (last)
   "Match preformatted blocks from point to LAST.
@@ -2416,6 +2419,15 @@ analysis."
          t)
         (t nil)))
 
+(defun markdown-match-comments (last)
+  "Match HTML comments from the point to LAST."
+  (when (and (skip-syntax-forward "^<" last))
+    (let ((beg (point)))
+      (when (and (skip-syntax-forward "^>" last) (< (point) last))
+        (forward-char)
+        (set-match-data (list beg (point)))
+        t))))
+
 (defun markdown-match-generic-metadata (regexp last)
   "Match generic metadata specified by REGEXP from the point to LAST."
   (let ((header-end (save-excursion
@@ -2461,22 +2473,10 @@ This helps improve font locking for block constructs such as pre blocks."
   ;; Avoid compiler warnings about these global variables from font-lock.el.
   ;; See the documentation for variable `font-lock-extend-region-functions'.
   (eval-when-compile (defvar font-lock-beg) (defvar font-lock-end))
-  (save-excursion
-    (goto-char font-lock-beg)
-    (unless (looking-back "\n\n" nil)
-      (let ((found (or (re-search-backward "\n\n" nil t) (point-min))))
-        (goto-char font-lock-end)
-        (when (re-search-forward "\n\n" nil t)
-          (setq font-lock-end (match-beginning 0))
-          (setq font-lock-beg found))))))
-
-(defun markdown-font-lock-extend-after-change-region (beg end old-len)
-  "Possibly extends font-lock region range from BEG and END was edited.
-Designed to be used as a `font-lock-extend-after-change-region-function'.
-OLD-LEN is the number of bytes of pre-change text replaced by the
-given range. Returns either a new regon (NEW-BEG . NEW-END) or nil to
-keep the default region."
-  (markdown-syntax-propertize-extend-region beg end))
+  (let ((range (markdown-syntax-propertize-extend-region
+                font-lock-beg font-lock-end)))
+    (setq font-lock-beg (car range))
+    (setq font-lock-end (cdr range))))
 
 
 ;;; Syntax Table ==============================================================
@@ -3466,9 +3466,9 @@ duplicate positions, which are handled up by calling functions."
 (defun markdown-enter-key ()
   "Handle RET according to to the value of `markdown-indent-on-enter'."
   (interactive)
-  (if markdown-indent-on-enter
-      (newline-and-indent)
-    (newline)))
+  (newline)
+  (when markdown-indent-on-enter
+    (markdown-indent-line)))
 
 (defun markdown-exdent-or-delete (arg)
   "Handle BACKSPACE by cycling through indentation points.
@@ -5602,8 +5602,6 @@ before regenerating font-lock rules for extensions."
   ;; Multiline font lock
   (add-hook 'font-lock-extend-region-functions
             'markdown-font-lock-extend-region)
-  (setq font-lock-extend-after-change-region-function
-        'markdown-font-lock-extend-after-change-region)
 
   ;; Anytime text changes make sure it gets fontified correctly
   (add-hook 'after-change-functions 'markdown-check-change-for-wiki-link t t)
