@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20151207.556
+;; Package-Version: 20151219.630
 ;; Version: 0.3.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -1071,8 +1071,10 @@ Otherwise, forward to `goto-line' with ARG."
                                "Goto line: " (string char))))
                     (when line
                       (avy-push-mark)
-                      (goto-char (point-min))
-                      (forward-line (1- (string-to-number line)))
+                      (save-restriction
+                        (widen)
+                        (goto-char (point-min))
+                        (forward-line (1- (string-to-number line))))
                       (throw 'done 'exit))))))
              (r (avy--line (eq arg 4))))
         (unless (eq r t)
