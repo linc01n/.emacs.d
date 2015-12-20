@@ -5,7 +5,7 @@
 ;; Author: Wilfred Hughes <me@wilfred.me.uk>
 ;; Created: 11 January 2013
 ;; Version: 0.47
-;; Package-Version: 20151209.1550
+;; Package-Version: 20151219.903
 ;; Package-Requires: ((dash "2.8.0") (s "1.9.0") (cl-lib "0.5"))
 ;;; Commentary:
 
@@ -184,7 +184,7 @@ If REGEXP is non-nil, treat STRING as a regular expression."
       (setq arguments (cons "--literal" arguments)))
     (if ag-highlight-search
         (setq arguments (append '("--color" "--color-match" "30;43") arguments))
-      (setq arguments (append '("--nocolor") arguments)))
+      (setq arguments (append '("--nocolor" "--vimgrep") arguments)))
     (when (char-or-string-p file-regex)
       (setq arguments (append `("--file-search-regex" ,file-regex) arguments)))
     (when file-type
