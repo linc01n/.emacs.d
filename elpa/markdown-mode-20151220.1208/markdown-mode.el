@@ -31,7 +31,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.0
-;; Package-Version: 20151219.1139
+;; Package-Version: 20151220.1208
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
 
@@ -753,6 +753,8 @@
 ;;   * Howard Melman <hmelman@gmail.com> for supporting GFM checkboxes
 ;;     as buttons.
 ;;   * Danny McClanahan <danieldmcclanahan@gmail.com> for live preview mode.
+;;   * Syohei Yoshida <syohex@gmail.com> for better heading detection
+;;     and movement functions.
 
 ;;; Bugs:
 
@@ -1276,11 +1278,18 @@ Returns a cons (NEW-START . NEW-END) or nil if no adjustment should be made.
 Function is called repeatedly until it returns nil. For details, see
 `syntax-propertize-extend-region-functions'."
   (save-excursion
-    (let ((new-start (and (goto-char start) (re-search-backward "\n\n" nil t)))
-          (new-end (and (goto-char end) (re-search-forward "\n\n" nil t))))
-      (when (or new-start new-end)
-        (cons (or new-start start)
-              (or new-end end))))))
+    (goto-char start)
+    (unless (or (bobp) (looking-back "\n\n" nil))
+      (let (new-start new-end)
+        (setq new-start (if (re-search-backward "\n\n" nil t)
+                            (match-end 0)
+                          (point-min)))
+        (goto-char end)
+        (setq new-end (if (re-search-forward "\n\n" nil t)
+                          (match-beginning 0)
+                        (point-max)))
+        (unless (and (eq new-start start) (eq new-end end))
+          (cons new-start new-end))))))
 
 (defun markdown-syntax-propertize-pre-blocks (start end)
   "Match preformatted text blocks from START to END."
