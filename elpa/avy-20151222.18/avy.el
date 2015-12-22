@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20151219.630
+;; Package-Version: 20151222.18
 ;; Version: 0.3.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -1042,8 +1042,8 @@ Narrow the scope to BEG END."
                     (setq temporary-goal-column 0)
                     (line-move-visual 1 t))
                 (forward-line 1)))))))
-    (setq avy-action #'identity)
-    (avy--process (nreverse candidates) (avy--style-fn avy-style))))
+    (let ((avy-action #'identity))
+      (avy--process (nreverse candidates) (avy--style-fn avy-style)))))
 
 ;;;###autoload
 (defun avy-goto-line (&optional arg)
@@ -1057,6 +1057,7 @@ When ARG is 4, negate the window scope determined by
 
 Otherwise, forward to `goto-line' with ARG."
   (interactive "p")
+  (setq arg (or arg 1))
   (if (not (memq arg '(1 4)))
       (progn
         (goto-char (point-min))
