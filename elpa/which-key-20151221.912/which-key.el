@@ -4,7 +4,7 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20151220.1643
+;; Package-Version: 20151221.912
 ;; Version: 0.8
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
@@ -1797,7 +1797,10 @@ prefix) if `which-key-use-C-h-commands' is non nil."
   (let* ((prefix-keys (key-description which-key--current-prefix))
          (full-prefix (which-key--full-prefix prefix-keys current-prefix-arg t))
          (prompt (concat (when (string-equal prefix-keys "")
-                           (propertize " Top-level bindings" 'face 'which-key-note-face))
+                           (propertize (concat " "
+                                               (or which-key--current-show-keymap-name
+                                                   "Top-level bindings"))
+                                       'face 'which-key-note-face))
                          full-prefix
                          (propertize
                           (substitute-command-keys
