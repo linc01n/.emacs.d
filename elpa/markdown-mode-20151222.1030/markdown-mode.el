@@ -31,7 +31,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.0
-;; Package-Version: 20151221.731
+;; Package-Version: 20151222.1030
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
 
@@ -577,10 +577,11 @@
 ;;     this variable buffer-local allows `markdown-mode' to override
 ;;     the default behavior induced when the global variable is non-nil.
 ;;
-;;   * `markdown-make-gfm-checkboxes-buttons' - Whether GitHub Flavored
-;;     Markdown style checkboxes should be turned into buttons that can
-;;     be toggled with mouse-1 or RET. If non-nil buttons are enabled, the
-;;     default is t. This works in `markdown-mode' as well as `gfm-mode'.
+;;   * `markdown-make-gfm-checkboxes-buttons' - Whether GitHub
+;;     Flavored Markdown style task lists (checkboxes) should be
+;;     turned into buttons that can be toggled with mouse-1 or RET. If
+;;     non-nil (default), then buttons are enabled.  This works in
+;;     `markdown-mode' as well as `gfm-mode'.
 ;;
 ;; Additionally, the faces used for syntax highlighting can be modified to
 ;; your liking by issuing `M-x customize-group RET markdown-faces`
@@ -612,10 +613,7 @@
 ;; You can do this either by using `M-x customize-group markdown`
 ;; or by placing the following in your `.emacs` file:
 ;;
-;;     (defun markdown-custom ()
-;;       "markdown-mode-hook"
-;;       (setq markdown-command "markdown | smartypants"))
-;;     (add-hook 'markdown-mode-hook '(lambda() (markdown-custom)))
+;;     (setq markdown-command "markdown | smartypants")
 ;;
 ;; [SmartyPants]: http://daringfireball.net/projects/smartypants/
 ;;
@@ -626,39 +624,82 @@
 ;; in `.emacs`, and then restarting Emacs or calling
 ;; `markdown-reload-extensions'.
 
-;;; GitHub Flavored Markdown:
+;;; GitHub Flavored Markdown (GFM):
 
-;; A [GitHub Flavored Markdown][GFM] (GFM) mode, `gfm-mode', is also
-;; available.  The GitHub implementation of differs slightly from
-;; standard Markdown.  The most important differences are that
-;; newlines are significant, triggering hard line breaks, and that
-;; underscores inside of words (e.g., variable names) need not be
-;; escaped.  As such, `gfm-mode' turns off `auto-fill-mode' and turns
-;; on `visual-line-mode' (or `longlines-mode' if `visual-line-mode' is
-;; not available).  Underscores inside of words (such as
-;; test_variable) will not trigger emphasis.
+;; A [GitHub Flavored Markdown][GFM] mode, `gfm-mode', is also
+;; available.  The GitHub implementation differs slightly from
+;; standard Markdown in that it supports things like different
+;; behavior for underscores inside of words, automatic linking of
+;; URLs, strikethrough text, and fenced code blocks with an optional
+;; language keyword.
 ;;
-;; Wiki links in this mode will be treated as on GitHub, with hyphens
-;; replacing spaces in filenames and where the first letter of the
-;; filename capitalized.  For example, `[[wiki link]]' will map to a
-;; file named `Wiki-link` with the same extension as the current file.
+;; The GFM-specific features above apply to `README.md` files, wiki
+;; pages, and other Markdown-formatted files in repositories on
+;; GitHub.  GitHub also enables [additional features][GFM comments] for
+;; writing on the site (for issues, pull requests, messages, etc.)
+;; that are further extensions of GFM.  These features include task
+;; lists (checkboxes), newlines corresponding to hard line breaks,
+;; auto-linked references to issues and commits, wiki links, and so
+;; on.  To make matters more confusing, although task lists are not
+;; part of [GFM proper][GFM], [since 2014][] they are rendered (in a
+;; read-only fashion) in all Markdown documents in repositories on the
+;; site.  These additional extensions are supported to varying degrees
+;; by `markdown-mode' and `gfm-mode' as described below.
 ;;
-;; GFM code blocks, with optional programming language keywords, will
-;; be highlighted.  They can be inserted with `C-c C-s P`.  If there
-;; is an active region, the text in the region will be placed inside
-;; the code block.  You will be prompted for the name of the language,
-;; but may press enter to continue without naming a language.
+;; * **URL autolinking:** Both `markdown-mode' and `gfm-mode' support
+;;   highlighting of URLs without angle brackets.
 ;;
-;; Similarly, strike through text is supoorted in GFM mode and can be
-;; inserted (and toggled) using `C-c C-s d`. Following the mnemonics
-;; for the other style keybindings, the letter `d` coincides with the
-;; HTML tag `<del>`.
+;; * **Multiple underscores in words:** You must enable `gfm-mode' to
+;;   toggle support for underscores inside of words. In this mode
+;;   variable names such as `a_test_variable` will not trigger
+;;   emphasis (italics).
 ;;
-;; For GFM preview can be powered by setting `markdown-command' to
-;; use [Docter][].  This may also be configured to work with [Marked 2][]
-;; for `markdown-open-command'.
+;; * **Fenced code blocks:** Code blocks quoted with backticks, with
+;;   optional programming language keywords, are highlighted in
+;;   both `markdown-mode' and `gfm-mode'.  They can be inserted with
+;;   `C-c C-s P`.  If there is an active region, the text in the
+;;   region will be placed inside the code block.  You will be
+;;   prompted for the name of the language, but may press enter to
+;;   continue without naming a language.
+;;
+;; * **Strikethrough:** Strikethrough text is only supported in
+;;   `gfm-mode' and can be inserted (and toggled) using `C-c C-s d`.
+;;   Following the mnemonics for the other style keybindings, the
+;;   letter `d` coincides with the HTML tag `<del>`.
+;;
+;; * **Task lists:** GFM task lists will be rendered as checkboxes
+;;   (Emacs buttons) in both `markdown-mode' and `gfm-mode' when
+;;   `markdown-make-gfm-checkboxes-buttons' is set to a non-nil value
+;;   (and it is set to t by default).  These checkboxes can be
+;;   toggled by clicking `mouse-1` or pressing `RET` over the button.
+;;
+;; * **Wiki links:** Generic wiki links are supported in
+;;   `markdown-mode', but in `gfm-mode' specifically they will be
+;;   treated as they are on GitHub: spaces will be replaced by hyphens
+;;   in filenames and the first letter of the filename will be
+;;   capitalized.  For example, `[[wiki link]]' will map to a file
+;;   named `Wiki-link` with the same extension as the current file.
+;;
+;; * **Newlines:** Neither `markdown-mode' nor `gfm-mode' do anything
+;;   specifically with respect to newline behavior.  If you use
+;;   `gfm-mode' mostly to write text for comments or issues on the
+;;   GitHub site--where newlines are significant and correspond to
+;;   hard line breaks--then you may want to enable `visual-line-mode'
+;;   for line wrapping in buffers.  You can do this with a
+;;   `gfm-mode-hook' as follows:
+;;
+;;         ;; Use visual-line-mode in gfm-mode
+;;         (defun my-gfm-mode-hook ()
+;;           (visual-line-mode 1))
+;;         (add-hook 'gfm-mode-hook 'my-gfm-mode-hook)
+;;
+;; * **Preview:** GFM-specific preview can be powered by setting
+;;   `markdown-command' to use [Docter][].  This may also be
+;;   configured to work with [Marked 2][] for `markdown-open-command'.
 ;;
 ;; [GFM]: http://github.github.com/github-flavored-markdown/
+;; [GFM comments]: https://help.github.com/articles/writing-on-github/
+;; [since 2014]: https://github.com/blog/1825-task-lists-in-all-markdown-documents
 ;; [Docter]: https://github.com/alampros/Docter
 
 ;;; Acknowledgments:
@@ -742,7 +783,7 @@
 ;;     behavior regarding list items, footnotes, and reference
 ;;     definitions, improved killing of footnotes, and numerous other
 ;;     tests and bug fixes.
-;;   * Antonis Kanouras <antonis@metadosis.gr> for strike through support.
+;;   * Antonis Kanouras <antonis@metadosis.gr> for strikethrough support.
 ;;   * Tim Visher <tim.visher@gmail.com> for multiple CSS files and other
 ;;     general improvements.
 ;;   * Matt McClure <matthewlmcclure@gmail.com> for a patch to prevent
@@ -2686,10 +2727,10 @@ insert italic delimiters and place the cursor in between them."
         (markdown-wrap-or-insert delim delim 'word nil nil)))))
 
 (defun markdown-insert-strike-through ()
-  "Insert markup to make a region or word strike-through.
-If there is an active region, make the region strike-through.  If the point
-is at a non-bold word, make the word strike-through.  If the point is at a
-strike-through word or phrase, remove the strike-through markup.  Otherwise,
+  "Insert markup to make a region or word strikethrough.
+If there is an active region, make the region strikethrough.  If the point
+is at a non-bold word, make the word strikethrough.  If the point is at a
+strikethrough word or phrase, remove the strikethrough markup.  Otherwise,
 simply insert bold delimiters and place the cursor in between them."
   (interactive)
   (let ((delim "~~"))
@@ -2699,7 +2740,7 @@ simply insert bold delimiters and place the cursor in between them."
                        (region-beginning) (region-end)
                        markdown-regex-strike-through 2 4)))
           (markdown-wrap-or-insert delim delim nil (car bounds) (cdr bounds)))
-      ;; Strike-through markup removal, strike-through word at point, or empty markup insertion
+      ;; Strikethrough markup removal, strikethrough word at point, or empty markup insertion
       (if (thing-at-point-looking-at markdown-regex-strike-through)
           (markdown-unwrap-thing-at-point nil 2 4)
         (markdown-wrap-or-insert delim delim 'word nil nil)))))
@@ -3401,7 +3442,7 @@ text to kill ring), and list items."
      ((thing-at-point-looking-at markdown-regex-italic)
       (kill-new (match-string 3))
       (delete-region (match-beginning 1) (match-end 1)))
-     ;; Strike-through
+     ;; Strikethrough
      ((thing-at-point-looking-at markdown-regex-strike-through)
       (kill-new (match-string 4))
       (delete-region (match-beginning 2) (match-end 2)))
@@ -3926,7 +3967,7 @@ See also `markdown-mode-map'.")
     "---"
     ["Bold" markdown-insert-bold]
     ["Italic" markdown-insert-italic]
-    ["Strike-through" markdown-insert-strike-through]
+    ["Strikethrough" markdown-insert-strike-through]
     ["Blockquote" markdown-insert-blockquote]
     ["Preformatted" markdown-insert-pre]
     ["Code" markdown-insert-code]
@@ -5689,6 +5730,9 @@ before regenerating font-lock rules for extensions."
 
 ;;; GitHub Flavored Markdown Mode  ============================================
 
+(defvar gfm-mode-hook nil
+  "Hook run when entering GFM mode.")
+
 (defvar gfm-font-lock-keywords
   (append
    ;; GFM features to match first
@@ -5706,12 +5750,6 @@ before regenerating font-lock rules for extensions."
   (setq markdown-link-space-sub-char "-")
   (set (make-local-variable 'font-lock-defaults)
        '(gfm-font-lock-keywords))
-  (auto-fill-mode 0)
-  ;; Use visual-line-mode if available, fall back to longlines-mode:
-  (cond ((fboundp 'visual-line-mode)
-         (visual-line-mode 1))
-        ((fboundp 'longlines-mode)
-         (longlines-mode 1)))
   ;; do the initial link fontification
   (markdown-fontify-buffer-wiki-links))
 
