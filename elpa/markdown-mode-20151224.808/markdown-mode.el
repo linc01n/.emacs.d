@@ -31,7 +31,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.0
-;; Package-Version: 20151222.1030
+;; Package-Version: 20151224.808
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
 
@@ -503,6 +503,9 @@
 ;;   * `markdown-asymmetric-header' - set to a non-nil value to use
 ;;     asymmetric header styling, placing header characters only on
 ;;     the left of headers (default: `nil').
+;;
+;;   * `markdown-list-indent-width' - depth of indentation for lists
+;;     when inserting, promoting, and demoting list items (default: 4).
 ;;
 ;;   * `markdown-indent-function' - the function to use for automatic
 ;;     indentation (default: `markdown-indent-line').
@@ -1056,6 +1059,12 @@ export by setting to 'delete-on-export, when quitting
   :group 'markdown
   :type 'symbol)
 
+(defcustom markdown-list-indent-width 4
+  "Depth of indentation for markdown lists. Used in `markdown-demote-list-item'
+and `markdown-promote-list-item'."
+  :group 'markdown
+  :type 'integer)
+
 
 ;;; Regular Expressions =======================================================
 
@@ -1436,17 +1445,26 @@ Function is called repeatedly until it returns nil. For details, see
 
 (defun markdown-syntax-propertize-comments (start end)
   "Match HTML comments from the START to END."
-  (save-excursion
+  (let* ((state (syntax-ppss)) (in-comment (nth 4 state)))
     (goto-char start)
-    (while (re-search-forward markdown-regex-comment-start end t)
+    (cond
+     ;; Comment start
+     ((and (not in-comment)
+           (re-search-forward markdown-regex-comment-start end t)
+           (save-match-data (not (markdown-code-at-point-p)))
+           (save-match-data (not (markdown-code-block-at-point))))
       (let ((open-beg (match-beginning 0)))
-        (when (and (not (markdown-code-at-point-p))
-                   (not (markdown-code-block-at-point))
-                   (re-search-forward markdown-regex-comment-end end t))
-          (put-text-property open-beg (1+ open-beg)
-                             'syntax-table (string-to-syntax "<"))
-          (put-text-property (1- (match-end 0)) (match-end 0)
-                             'syntax-table (string-to-syntax ">")))))))
+        (put-text-property open-beg (1+ open-beg)
+                           'syntax-table (string-to-syntax "<"))
+        (markdown-syntax-propertize-comments (1+ open-beg) end)))
+     ;; Comment end
+     ((and in-comment
+           (re-search-forward markdown-regex-comment-end end t))
+      (put-text-property (1- (match-end 0)) (match-end 0)
+                         'syntax-table (string-to-syntax ">"))
+      (markdown-syntax-propertize-comments (match-end 0) end))
+     ;; Nothing found
+     (t nil))))
 
 (defun markdown-syntax-propertize (start end)
   "See `syntax-propertize-function'."
@@ -4444,12 +4462,11 @@ Optionally, BOUNDS of the current list item may be provided if available."
   (when (or bounds (setq bounds (markdown-cur-list-item-bounds)))
     (save-excursion
       (save-match-data
-        (let* ((end-marker (make-marker))
-               (end-marker (set-marker end-marker (nth 1 bounds))))
+        (let ((end-marker (set-marker (make-marker) (nth 1 bounds))))
           (goto-char (nth 0 bounds))
           (while (< (point) end-marker)
             (unless (markdown-cur-line-blank-p)
-              (insert "    "))
+              (insert (make-string markdown-list-indent-width ? )))
             (forward-line)))))))
 
 (defun markdown-promote-list-item (&optional bounds)
@@ -4459,11 +4476,11 @@ Optionally, BOUNDS of the current list item may be provided if available."
   (when (or bounds (setq bounds (markdown-cur-list-item-bounds)))
     (save-excursion
       (save-match-data
-        (let* ((end-marker (make-marker))
-               (end-marker (set-marker end-marker (nth 1 bounds)))
-               num regexp)
+        (let ((end-marker (set-marker (make-marker) (nth 1 bounds)))
+              num regexp)
           (goto-char (nth 0 bounds))
-          (when (looking-at "^[ ]\\{1,4\\}")
+          (when (looking-at (format "^[ ]\\{1,%d\\}"
+                                    markdown-list-indent-width))
             (setq num (- (match-end 0) (match-beginning 0)))
             (setq regexp (format "^[ ]\\{1,%d\\}" num))
             (while (and (< (point) end-marker)
@@ -5160,10 +5177,11 @@ the rendered output."
     ;; reset all windows displaying output buffer to where they were, now with
     ;; the new output
     (mapc #'markdown-live-preview-window-deserialize window-data)
+    ;; delete html editing buffer
+    (let ((buf (get-file-buffer export-file))) (when buf (kill-buffer buf)))
     (when (and (eq markdown-live-preview-delete-export 'delete-on-export)
                export-file (file-exists-p export-file))
-      (delete-file export-file)
-      (let ((buf (get-file-buffer export-file))) (when buf (kill-buffer buf))))
+      (delete-file export-file))
     markdown-live-preview-buffer))
 
 (defun markdown-live-preview-remove ()
