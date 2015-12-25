@@ -214,11 +214,11 @@ the remote branch and then checking out the new local branch."
 (defcustom magit-branch-prefer-remote-upstream nil
   "Whether to favor remote upstreams when creating new branches.
 
-When a new branch is created, Magit offer the branch, commit, or
-stash as the default starting-point as the starting point of the
-new branch.  If there is no such thing at point, then it falls
-back to offer the current branch as starting-point.  The user may
-then accept that default or pick something else.
+When a new branch is created, Magit offers the branch, commit, or
+stash as the default starting point of the new branch.  If there
+is no such thing at point, then it falls back to offer the
+current branch as starting-point.  The user may then accept that
+default or pick something else.
 
 If the chosen starting-point is a branch, then it may also be set
 as the upstream of the new branch, depending on the value of the
@@ -668,10 +668,10 @@ remote in alphabetic order."
 
 To make this command available use something like:
 
-  (add-hook 'ido-setup-hook
+  (add-hook \\='ido-setup-hook
             (lambda ()
               (define-key ido-completion-map
-                (kbd \"C-x g\") 'ido-enter-magit-status)))
+                (kbd \"C-x g\") \\='ido-enter-magit-status)))
 
 Starting with Emacs 25.1 the Ido keymaps are defined just once
 instead of every time Ido is invoked, so now you can modify it
@@ -1370,9 +1370,10 @@ of the new branch, instead of the starting-point itself."
         (when (and (setq tracked (magit-get-upstream-branch current))
                    (setq base (magit-git-string "merge-base" current tracked))
                    (not (magit-rev-equal base current)))
-          (magit-run-git "update-ref" "-m"
-                         (format "reset: moving to %s" base)
-                         (concat "refs/heads/" current) base)))
+          (magit-call-git "update-ref" "-m"
+                          (format "reset: moving to %s" base)
+                          (concat "refs/heads/" current) base))
+        (magit-refresh))
     (magit-run-git "checkout" "-b" branch)))
 
 ;;;###autoload

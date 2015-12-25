@@ -241,10 +241,10 @@ removed on the respective remote."
 
 This popup is intended as a replacement for the separate popups
 `magit-pull-popup' and `magit-fetch-popup'.  To use it, add this
-to you init file:
+to your init file:
 
-  (with-eval-after-load 'magit-remote
-    (define-key magit-mode-map \"f\" 'magit-pull-and-fetch-popup)
+  (with-eval-after-load \\='magit-remote
+    (define-key magit-mode-map \"f\" \\='magit-pull-and-fetch-popup)
     (define-key magit-mode-map \"F\" nil))
 
 The combined popup does not offer all commands and arguments
@@ -254,13 +254,13 @@ available from the individual popups.  Instead of the argument
 `magit-fetch-from-pushremote' and `magit-fetch-from-upstream' are
 missing.  To add them use something like:
 
-  (with-eval-after-load 'magit-remote
-    (magit-define-popup-action 'magit-pull-and-fetch-popup ?U
-      'magit-get-upstream-branch
-      'magit-fetch-from-upstream-remote ?F)
-    (magit-define-popup-action 'magit-pull-and-fetch-popup ?P
-      'magit-get-push-branch
-      'magit-fetch-from-push-remote ?F))"
+  (with-eval-after-load \\='magit-remote
+    (magit-define-popup-action \\='magit-pull-and-fetch-popup ?U
+      \\='magit-get-upstream-branch
+      \\='magit-fetch-from-upstream-remote ?F)
+    (magit-define-popup-action \\='magit-pull-and-fetch-popup ?P
+      \\='magit-get-push-branch
+      \\='magit-fetch-from-push-remote ?F))"
   'magit-commands
   :man-page "git-pull"
   :variables '("Pull variables"
@@ -343,9 +343,9 @@ a first time.
 
 This option also affects whether the argument `--set-upstream' is
 available in the popup.  If the value is t, then that argument is
-redundant.  But note that changing the value of this options here
-does not take affect immediately, the argument will only be added
-or removed after restarting Emacs."
+redundant.  But note that changing the value of this option does
+not take affect immediately, the argument will only be added or
+removed after restarting Emacs."
   :package-version '(magit . "2.4.0")
   :group 'magit-commands
   :type 'boolean)
@@ -413,9 +413,10 @@ the push-remote can be changed before pushed to it."
     (user-error "No branch is checked out")))
 
 (defun magit--push-current-set-pushremote-p (&optional change)
-  (and (or change magit-push-current-set-remote-if-missing)
-       (magit-get-current-branch)
-       (not (magit-get-push-remote))))
+  (and (or change
+           (and magit-push-current-set-remote-if-missing
+                (not (magit-get-push-remote))))
+       (magit-get-current-branch)))
 
 (defun magit--push-current-to-pushremote-desc ()
   (--if-let (magit-get-push-branch)
@@ -435,20 +436,27 @@ upstream can be changed before pushed to it."
   (interactive
    (list (magit-push-arguments)
          (and (magit--push-current-set-upstream-p current-prefix-arg)
-              (magit-read-remote (format "Set upstream of %s and push there"
-                                         (magit-get-current-branch))))))
+              (magit-read-remote-branch
+               (format "Set upstream of %s and push there"
+                       (magit-get-current-branch))))))
   (--if-let (magit-get-current-branch)
-      (progn (when upstream
-               (magit-call-git "branch" (concat "--set-upstream-to=" upstream)))
-             (-if-let (target (magit-get-upstream-branch it))
-                 (magit-git-push it target args)
-               (user-error "No upstream is configured for %s" it)))
+      (progn
+        (when upstream
+          (-let (((remote . merge) (magit-split-branch-name upstream))
+                 (branch (magit-get-current-branch)))
+            (magit-call-git "config" (format "branch.%s.remote" branch) remote)
+            (magit-call-git "config" (format "branch.%s.merge"  branch)
+                            (concat "refs/heads/" merge))))
+        (-if-let (target (magit-get-upstream-branch it))
+            (magit-git-push it target args)
+          (user-error "No upstream is configured for %s" it)))
     (user-error "No branch is checked out")))
 
 (defun magit--push-current-set-upstream-p (&optional change)
-  (and (or change magit-push-current-set-remote-if-missing)
-       (magit-get-current-branch)
-       (not (magit-get-upstream-branch))))
+  (and (or change
+           (and magit-push-current-set-remote-if-missing
+                (not (magit-get-upstream-branch))))
+       (magit-get-current-branch)))
 
 (defun magit--push-current-to-upstream-desc ()
   (--if-let (magit-get-upstream-branch)
@@ -511,6 +519,84 @@ branch as default."
            (magit-push-arguments))))
   (run-hooks 'magit-credential-hook)
   (magit-run-git-async-no-revert "push" remote tag args))
+
+;;;###autoload
+(defun magit-push-implicitly (args)
+  "Push somewhere without using an explicit refspec.
+
+This command simply runs \"git push -v [ARGS]\".  ARGS are the
+arguments specified in the popup buffer.  No explicit refspec
+arguments are used.  Instead the behavior depends on at least
+these Git variables: `push.default', `branch.pushDefault',
+`branch.<branch>.pushRemote', `branch.<branch>.remote',
+`branch.<branch>.merge', and `remote.<remote>.push'.
+
+To add this command to the push popup add this to your init file:
+
+  (with-eval-after-load \\='magit-remote
+    (magit-define-popup-action \\='magit-push-popup ?P
+      'magit-push-implicitly--desc
+      'magit-push-implicitly ?p t))
+
+The function `magit-push-implicitly--desc' attempts to predict
+what this command will do, the value it returns is displayed in
+the popup buffer."
+  (interactive (list (magit-push-arguments)))
+  (run-hooks 'magit-credential-hook)
+  (magit-run-git-async-no-revert "push" "-v" args))
+
+(defun magit-push-implicitly--desc ()
+  (let ((default (magit-get "push.default")))
+    (unless (equal default "nothing")
+      (or (-when-let* ((remote (or (magit-get-remote)
+                                   (magit-remote-p "origin")))
+                       (refspec (magit-get "remote" remote "push")))
+            (format "%s using %s"
+                    (propertize remote  'face 'magit-branch-remote)
+                    (propertize refspec 'face 'bold)))
+          (--when-let (and (not (magit-get-push-branch))
+                           (magit-get-upstream-branch))
+            (format "%s aka %s\n"
+                    (magit-branch-set-face it)
+                    (propertize "@{upstream}" 'face 'bold)))
+          (--when-let (magit-get-push-branch)
+            (format "%s aka %s\n"
+                    (magit-branch-set-face it)
+                    (propertize "pushRemote" 'face 'bold)))
+          (--when-let (magit-get-@{push}-branch)
+            (format "%s aka %s\n"
+                    (magit-branch-set-face it)
+                    (propertize "@{push}" 'face 'bold)))
+          (format "using %s (%s is %s)\n"
+                  (propertize "git push"     'face 'bold)
+                  (propertize "push.default" 'face 'bold)
+                  (propertize default        'face 'bold))))))
+
+;;;###autoload
+(defun magit-push-to-remote (remote args)
+  "Push to REMOTE without using an explicit refspec.
+The REMOTE is read in the minibuffer.
+
+This command simply runs \"git push -v [ARGS] REMOTE\".  ARGS
+are the arguments specified in the popup buffer.  No refspec
+arguments are used.  Instead the behavior depends on at least
+these Git variables: `push.default', `branch.pushDefault',
+`branch.<branch>.pushRemote', `branch.<branch>.remote',
+`branch.<branch>.merge', and `remote.<remote>.push'.
+
+To add this command to the push popup add this to your init file:
+
+  (with-eval-after-load \\='magit-remote
+    (magit-define-popup-action \\='magit-push-popup ?r
+      'magit-push-to-remote--desc
+      'magit-push-to-remote ?p t))"
+  (interactive (list (magit-read-remote "Push to remote")
+                     (magit-push-arguments)))
+  (run-hooks 'magit-credential-hook)
+  (magit-run-git-async-no-revert "push" "-v" args remote))
+
+(defun magit-push-to-remote--desc ()
+  (format "using %s\n" (propertize "git push <remote>" 'face 'bold)))
 
 ;;; Email
 
