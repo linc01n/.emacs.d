@@ -4,7 +4,7 @@
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
-;; Package-Version: 20151221.657
+;; Package-Version: 20151224.1243
 ;; Keywords: project, convenience
 ;; Version: 0.13.0
 ;; Package-Requires: ((dash "2.11.0") (pkg-info "0.4"))
@@ -207,6 +207,22 @@ Two example filter functions are shipped by default -
 `projectile-buffers-with-file-or-process'."
   :group 'projectile
   :type 'symbol)
+
+(defcustom projectile-project-name nil
+  "If this value is non-nil, it will be used as project name.
+
+It has precedence over function `projectile-project-name-function'."
+  :group 'projectile
+  :type 'string
+  :package-version '(projectile . "0.14.0"))
+
+(defcustom projectile-project-name-function 'projectile-default-project-name
+  "A function that receives the project-root and returns the project name.
+
+If variable `projectile-project-name' is non-nil, this function will not be used."
+  :group 'projectile
+  :type 'symbol
+  :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-project-root-files
   '("rebar.config"       ; Rebar project file
@@ -739,15 +755,21 @@ A thin wrapper around `file-truename' that handles nil."
       (projectile-project-root)
     (error nil)))
 
+(defun projectile-default-project-name (project-root)
+  "Default function used create project name to be displayed based on the value of PROJECT-ROOT."
+  (file-name-nondirectory (directory-file-name project-root)))
+
 (defun projectile-project-name ()
   "Return project name."
-  (let ((project-root
-         (condition-case nil
-             (projectile-project-root)
-           (error nil))))
-    (if project-root
-        (file-name-nondirectory (directory-file-name project-root))
-      "-")))
+  (if projectile-project-name
+      projectile-project-name
+    (let ((project-root
+           (condition-case nil
+               (projectile-project-root)
+             (error nil))))
+      (if project-root
+          (funcall projectile-project-name-function project-root)
+        "-"))))
 
 
 ;;; Project indexing
@@ -1206,8 +1228,8 @@ https://github.com/abo-abo/swiper")))
 (defun projectile-current-project-dirs ()
   "Return a list of dirs for the current project."
   (-remove #'null (-distinct
-                  (-map #'file-name-directory
-                        (projectile-current-project-files)))))
+                   (-map #'file-name-directory
+                         (projectile-current-project-files)))))
 
 (defun projectile-hash-keys (hash)
   "Return a list of all HASH keys."
@@ -1323,7 +1345,7 @@ With FLEX-MATCHING, match any file that contains the base name of current file"
           (-sort (lambda (file _)
                    (let ((candidate-dirname (file-name-nondirectory (directory-file-name (file-name-directory file)))))
                      (unless (equal fulldirname (file-name-directory file))
-                     (equal dirname candidate-dirname))))
+                       (equal dirname candidate-dirname))))
                  candidates)))
     candidates))
 
@@ -1859,10 +1881,12 @@ regular expression."
          current-prefix-arg))
   (if (require 'ag nil 'noerror)
       (let ((ag-command (if arg 'ag-regexp 'ag))
-            (ag-ignore-list (-union ag-ignore-list
-                                    (append
-                                     (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
-                                     grep-find-ignored-files grep-find-ignored-directories)))
+            (ag-ignore-list (unless (eq (projectile-project-vcs) 'git)
+                              ;; ag supports git ignore files
+                              (-union ag-ignore-list
+                                      (append
+                                       (projectile-ignored-files-rel) (projectile-ignored-directories-rel)
+                                       grep-find-ignored-files grep-find-ignored-directories))))
             ;; reset the prefix arg, otherwise it will affect the ag-command
             (current-prefix-arg nil))
         (funcall ag-command search-term (projectile-project-root)))
@@ -1911,25 +1935,16 @@ regular expression."
 (defun projectile-find-tag ()
   "Find tag in project."
   (interactive)
-  (let ((find-tag-function (if (boundp 'ggtags-mode) 'ggtags-find-tag 'find-tag))
-        (tags (if (boundp 'ggtags-mode)
-                  (projectile--tags (all-completions "" ggtags-completion-table))
-                (require 'etags)
-                ;; we have to manually reset the tags-completion-table every time
-                (setq tags-completion-table nil)
-                (tags-completion-table)
-                (projectile--tags tags-completion-table))))
-    (funcall find-tag-function (projectile-completing-read "Find tag: "
-                                                           tags
-                                                           (projectile-symbol-or-selection-at-point)))))
-
-(defun projectile--tags (completion-table)
-  "Find tags using COMPLETION-TABLE."
-  (-reject #'null
-           (-map (lambda (x)
-                   (unless (integerp x)
-                     (prin1-to-string x t)))
-                 completion-table)))
+  (projectile-visit-project-tags-table)
+  ;; Auto-discover the user's preference for tags
+  (let ((find-tag-fn (cond
+                      ((fboundp 'ggtags-find-tag-dwim)
+                       'ggtags-find-tag-dwim)
+                      ((fboundp 'etags-select-find-tag)
+                       'etags-select-find-tag)
+                      (t
+                       'find-tag))))
+    (call-interactively find-tag-fn)))
 
 (defmacro projectile-with-default-dir (dir &rest body)
   "Invoke in DIR the BODY."
@@ -2266,12 +2281,31 @@ with a prefix ARG."
     (puthash project-root run-cmd projectile-run-cmd-map)
     (projectile-run-compilation run-cmd)))
 
+(defun projectile-open-projects ()
+  "Return a list of all open projects.
+An open project is a project with any open buffers."
+  (-distinct
+   (-non-nil
+    (-map (lambda (buffer)
+                      (with-current-buffer buffer
+                        (when (projectile-project-p)
+                          (abbreviate-file-name (projectile-project-root)))))
+          (buffer-list)))))
+
+(defun projectile--remove-current-project (projects)
+  "Remove the current project (if any) from the list of PROJECTS."
+  (if (projectile-project-p)
+      (-difference projects
+                   (list (abbreviate-file-name (projectile-project-root))))
+    projects))
+
 (defun projectile-relevant-known-projects ()
   "Return a list of known projects except the current one (if present)."
-  (if (projectile-project-p)
-      (-difference projectile-known-projects
-                   (list (abbreviate-file-name (projectile-project-root))))
-    projectile-known-projects))
+  (projectile--remove-current-project projectile-known-projects))
+
+(defun projectile-relevant-open-projects ()
+  "Return a list of open projects except the current one (if present)."
+  (projectile--remove-current-project (projectile-open-projects)))
 
 (defun projectile-switch-project (&optional arg)
   "Switch to a project we have visited before.
@@ -2284,6 +2318,18 @@ With a prefix ARG invokes `projectile-commander' instead of
        (projectile-completing-read "Switch to project: " projects)
        arg)
     (error "There are no known projects")))
+
+(defun projectile-switch-open-project (&optional arg)
+  "Switch to a project we have currently opened.
+Invokes the command referenced by `projectile-switch-project-action' on switch.
+With a prefix ARG invokes `projectile-commander' instead of
+`projectile-switch-project-action.'"
+  (interactive "P")
+  (-if-let (projects (projectile-relevant-open-projects))
+      (projectile-switch-project-by-name
+       (projectile-completing-read "Switch to open project: " projects)
+       arg)
+    (error "There are no open projects")))
 
 (defun projectile-switch-project-by-name (project-to-switch &optional arg)
   "Switch to project by project name PROJECT-TO-SWITCH.
@@ -2459,7 +2505,7 @@ overwriting each other's changes."
 
 (defun projectile-ibuffer-by-project (project-root)
   "Open an IBuffer window showing all buffers in PROJECT-ROOT."
-  (let ((project-name (file-name-nondirectory (directory-file-name project-root))))
+  (let ((project-name (funcall projectile-project-name-function project-root)))
     (ibuffer nil (format "*%s Buffers*" project-name)
              (list (cons 'projectile-files project-root)))))
 
@@ -2620,6 +2666,7 @@ is chosen."
     (define-key map (kbd "m") #'projectile-commander)
     (define-key map (kbd "o") #'projectile-multi-occur)
     (define-key map (kbd "p") #'projectile-switch-project)
+    (define-key map (kbd "q") #'projectile-switch-open-project)
     (define-key map (kbd "P") #'projectile-test-project)
     (define-key map (kbd "r") #'projectile-replace)
     (define-key map (kbd "R") #'projectile-regenerate-tags)
@@ -2657,6 +2704,7 @@ is chosen."
    "--"
    ["Open project in dired" projectile-dired]
    ["Switch to project" projectile-switch-project]
+   ["Switch to open project" projectile-switch-open-project]
    ["Search in project (grep)" projectile-grep]
    ["Search in project (ag)" projectile-ag]
    ["Replace in project" projectile-replace]
