@@ -4,7 +4,7 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter
-;; Package-Version: 20151210.3
+;; Package-Version: 20151226.2002
 ;; Version: 0.85
 ;; Package-Requires: ((cl-lib "0.5") (emacs "24"))
 
@@ -313,7 +313,8 @@ gutter information of other windows."
 (defun git-gutter:start-git-diff-process (file proc-buf)
   (let ((arg (git-gutter:git-diff-arguments file)))
     (apply 'start-file-process "git-gutter" proc-buf
-           "git" "--no-pager" "diff" "--no-color" "--no-ext-diff" "--relative" "-U0"
+           "git" "--no-pager" "-c" "diff.autorefreshindex=0"
+           "diff" "--no-color" "--no-ext-diff" "--relative" "-U0"
            arg)))
 
 (defun git-gutter:svn-diff-arguments (file)
@@ -725,7 +726,8 @@ gutter information of other windows."
   (git-gutter:awhen (git-gutter:base-file)
     (with-temp-buffer
       (when (zerop (git-gutter:execute-command
-                    "git" t "--no-pager" "diff" "--no-color" "--no-ext-diff"
+                    "git" t "--no-pager" "-c" "diff.autorefreshindex=0"
+                    "diff" "--no-color" "--no-ext-diff"
                     "--relative" (file-name-nondirectory it)))
         (goto-char (point-min))
         (forward-line 4)
