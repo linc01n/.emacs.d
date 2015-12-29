@@ -4,7 +4,7 @@
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
-;; Package-Version: 20151224.1243
+;; Package-Version: 20151227.1230
 ;; Keywords: project, convenience
 ;; Version: 0.13.0
 ;; Package-Requires: ((dash "2.11.0") (pkg-info "0.4"))
@@ -1568,6 +1568,7 @@ a COMPILE-CMD, a TEST-CMD, and a RUN-CMD."
                               'run-command run-cmd)
            projectile-project-types))
 
+(projectile-register-project-type 'emacs-cask '("Cask") "cask install")
 (projectile-register-project-type 'rails-rspec '("Gemfile" "app" "lib" "db" "config" "spec") "bundle exec rails server" "bundle exec rspec")
 (projectile-register-project-type 'rails-test '("Gemfile" "app" "lib" "db" "config" "test") "bundle exec rails server" "bundle exec rake test")
 (projectile-register-project-type 'symfony '("composer.json" "app" "src" "vendor") "app/console server:run" "phpunit -c app ")
@@ -1742,11 +1743,13 @@ It assumes the test/ folder is at the same level as src/."
   "Find default test files prefix based on PROJECT-TYPE."
   (cond
    ((member project-type '(django python-pip python-pkg python-tox)) "test_")
+   ((member project-type '(emacs-cask)) "test-")
    ((member project-type '(lein-midje)) "t_")))
 
 (defun projectile-test-suffix (project-type)
   "Find default test files suffix based on PROJECT-TYPE."
   (cond
+   ((member project-type '(emacs-cask)) "-test")
    ((member project-type '(rails-rspec ruby-rspec)) "_spec")
    ((member project-type '(rails-test ruby-test lein-test boot-clj go)) "_test")
    ((member project-type '(scons)) "test")
