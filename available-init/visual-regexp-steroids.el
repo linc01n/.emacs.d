@@ -1,3 +1,3 @@
 (req-package visual-regexp-steroids
-  :depend visual-regexp
+  :require visual-regexp
   :bind ("M-%" . vr/query-replace))
