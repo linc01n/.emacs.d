@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "occur-x" "occur-x.el" (22087 16589 0 0))
+;;;### (autoloads nil "occur-x" "occur-x.el" (22148 2273 0 0))
 ;;; Generated autoloads from occur-x.el
 
 (autoload 'occur-x-mode "occur-x" "\

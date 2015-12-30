@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "jsx-mode" "jsx-mode.el" (22087 63848 0 0))
+;;;### (autoloads nil "jsx-mode" "jsx-mode.el" (22148 2233 0 0))
 ;;; Generated autoloads from jsx-mode.el
 
 (autoload 'jsx-mode "jsx-mode" "\
