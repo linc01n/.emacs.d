@@ -37,8 +37,18 @@
   (global-set-key (kbd "s-k")
                   'kill-this-buffer)
   (global-set-key (kbd "s-1")
-                  'delete-other-windows))
-                  
+                  'delete-other-windows)
+  (global-set-key (kbd "s-c")
+                  'kill-ring-save)
+  (global-set-key (kbd "s-x")
+                  'kill-region)
+  (global-set-key (kbd "s-v")
+                  'yank)
+  (global-set-key (kbd "s-=")
+                  'text-scale-increase)
+  (global-set-key (kbd "s--")
+                  'text-scale-decrease))
+
 (defun smart-beginning-of-line ()
   "Move point to first non-whitespace character or `beginning-of-line'."
   (interactive)
@@ -98,4 +108,3 @@
   (which-key-mode t))
 
 (req-package-finish)
-
