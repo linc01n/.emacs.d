@@ -4,7 +4,7 @@
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
 ;;;### (autoloads nil "ido-ubiquitous" "ido-ubiquitous.el" (22148
-;;;;;;  2226 0 0))
+;;;;;;  3907 0 0))
 ;;; Generated autoloads from ido-ubiquitous.el
 
 (defvar ido-ubiquitous-debug-mode nil "\
