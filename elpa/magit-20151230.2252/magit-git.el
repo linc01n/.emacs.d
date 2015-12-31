@@ -965,12 +965,12 @@ where COMMITS is the number of commits in TAG but not in REV."
             (magit-git-items "ls-files" "-z" "--stage")))
 
 (defun magit-branch-p (string)
-  (and (or (member string (magit-list-branches))
-           (member string (magit-list-branch-names))) t))
+  (or (car (member string (magit-list-branches)))
+      (car (member string (magit-list-branch-names)))))
 
-(defun magit-local-branch-p (branch)
-  (and (or (member branch (magit-list-local-branches))
-           (member branch (magit-list-local-branch-names))) t))
+(defun magit-local-branch-p (string)
+  (or (car (member string (magit-list-local-branches)))
+      (car (member string (magit-list-local-branch-names)))))
 
 (defun magit-branch-set-face (branch)
   (propertize branch 'face (if (magit-local-branch-p branch)
@@ -1223,7 +1223,8 @@ Return a list of two integers: (A>B B>A)."
          (exclude (or exclude current))
          (default (or (and (not (equal atpoint exclude)) atpoint)
                       (and (not (equal current exclude)) current)
-                      secondary-default (magit-get-previous-branch))))
+                      secondary-default
+                      (magit-get-previous-branch))))
     (magit-completing-read prompt (delete exclude (magit-list-branch-names))
                            nil t nil 'magit-revision-history default)))
 
@@ -1234,7 +1235,8 @@ Return a list of two integers: (A>B B>A)."
          (exclude (or exclude current))
          (default (or (and (not (equal atpoint exclude)) atpoint)
                       (and (not (equal current exclude)) current)
-                      secondary-default (magit-get-previous-branch))))
+                      secondary-default
+                      (magit-get-previous-branch))))
     (or (magit-completing-read prompt (delete exclude (magit-list-refnames))
                                nil nil nil 'magit-revision-history default)
         (user-error "Nothing selected"))))

@@ -971,6 +971,16 @@ undesirable.
           input arrives, then stop reverting.  After (the absolute value
           of) NUMBER seconds resume reverting.
 
+ -- User Option: magit-revert-buffers-only-for-tracked-files
+
+     This option controls whether only buffers that visit tracked files
+
+     If non-nil, then only tracked files may be reverted.  If nil, then
+     all files in the current repository may potentially be reverted.
+     Reverting untracked files should be safe and limiting to only
+     tracked files has the potential of causing very noticable delays,
+     so the default is to revert all buffers.
+
    Buffers can also be refreshed explicitly, which is useful in buffers
 that weren’t current during the last refresh and after changes were made
 to the repository outside of Magit.
@@ -6687,9 +6697,9 @@ Appendix B Keystroke Index
 * f u:                                   Fetching.            (line  17)
 * F u:                                   Pulling.             (line  17)
 * g:                                     Automatic refresh and revert.
-                                                              (line  68)
+                                                              (line  78)
 * G:                                     Automatic refresh and revert.
-                                                              (line  77)
+                                                              (line  87)
 * j:                                     Diff buffer.         (line  38)
 * k:                                     Viewing Git output.  (line  19)
 * k <1>:                                 Applying.            (line  37)
@@ -7156,9 +7166,9 @@ Appendix C Command Index
 * magit-reflog-head:                     Reflog.              (line  19)
 * magit-reflog-other:                    Reflog.              (line  15)
 * magit-refresh:                         Automatic refresh and revert.
-                                                              (line  68)
+                                                              (line  78)
 * magit-refresh-all:                     Automatic refresh and revert.
-                                                              (line  77)
+                                                              (line  87)
 * magit-remote-add:                      Remotes.             (line  13)
 * magit-remote-popup:                    Remotes.             (line   8)
 * magit-remote-remove:                   Remotes.             (line  28)
