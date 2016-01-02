@@ -47,7 +47,15 @@
   (global-set-key (kbd "s-=")
                   'text-scale-increase)
   (global-set-key (kbd "s--")
-                  'text-scale-decrease))
+                  'text-scale-decrease)
+  (global-set-key (kbd "s-z")
+                  'undo-only)
+  (global-set-key (kbd "s-b")
+                  'switch-to-buffer)
+  (global-set-key (kbd "s-/")
+                  'hippie-expand)
+  (global-set-key [s-down]
+                  'duplicate-current-line-or-region))
 
 (global-set-key (kbd "C-a") 'smart-beginning-of-line)
 
