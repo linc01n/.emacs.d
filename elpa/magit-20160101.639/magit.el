@@ -1,6 +1,6 @@
 ;;; magit.el --- A Git porcelain inside Emacs  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2008-2015  The Magit Project Contributors
+;; Copyright (C) 2008-2016  The Magit Project Contributors
 ;;
 ;; You should have received a copy of the AUTHORS.md file which
 ;; lists all contributors.  If not, see http://magit.vc/authors.
@@ -2649,7 +2649,7 @@ expansion of EOB-FORMAT is inserted at the end of the buffer (if
 the buffer ends with a comment, then it is inserted right before
 that)."
   :package-version '(magit . "2.3.0")
-  :group 'magit-status
+  :group 'magit-commands
   :type '(list (choice (string :tag "Insert at point format")
                        (cons (string :tag "Insert at point format")
                              (repeat (string :tag "Argument to git show")))

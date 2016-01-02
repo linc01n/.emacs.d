@@ -1,6 +1,6 @@
 ;;; magit-section.el --- section functionality  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2010-2015  The Magit Project Contributors
+;; Copyright (C) 2010-2016  The Magit Project Contributors
 ;;
 ;; You should have received a copy of the AUTHORS.md file which
 ;; lists all contributors.  If not, see http://magit.vc/authors.
@@ -941,6 +941,10 @@ invisible."
 (put 'magit-section-visibility-cache 'permanent-local t)
 
 (defun magit-section-set-visibility-from-cache (section)
+  "Set SECTION's visibility to the cached value.
+Currently the cache can only be used to remember that a section's
+body should be collapsed, not that it should be expanded.  Return
+either `hide' or nil."
   (and (member (magit-section-visibility-ident section)
                magit-section-visibility-cache)
        'hide))
@@ -1116,10 +1120,13 @@ again use `remove-hook'."
     (if at
         (when (setq at (member at value))
           (setq value (delq function value))
-          (if append
-              (push function (cdr at))
-            (push (car at) (cdr at))
-            (setcar at function)))
+          (cond ((eq append 'replace)
+                 (setcar at function))
+                (append
+                 (push function (cdr at)))
+                (t
+                 (push (car at) (cdr at))
+                 (setcar at function))))
       (setq value (delq function value)))
     (unless (member function value)
       (setq value (if append
