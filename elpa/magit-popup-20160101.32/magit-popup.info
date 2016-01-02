@@ -6,7 +6,7 @@ this library implements a similar abstraction; a new kind of prefix
 command that is associated with a specific set of infix arguments and
 suffix commands.
 
-     Copyright (C) 2015 Jonas Bernoulli <jonas@bernoul.li>
+     Copyright (C) 2015-2016 Jonas Bernoulli <jonas@bernoul.li>
 
      You can redistribute this document and/or modify it under the terms
      of the GNU General Public License as published by the Free Software
@@ -33,7 +33,7 @@ this library implements a similar abstraction; a new kind of prefix
 command that is associated with a specific set of infix arguments and
 suffix commands.
 
-     Copyright (C) 2015 Jonas Bernoulli <jonas@bernoul.li>
+     Copyright (C) 2015-2016 Jonas Bernoulli <jonas@bernoul.li>
 
      You can redistribute this document and/or modify it under the terms
      of the GNU General Public License as published by the Free Software
@@ -686,14 +686,14 @@ directly.
 
 
 Tag Table:
-Node: Top989
-Node: Introduction2158
-Node: Usage4735
-Node: Customizing existing popups9392
-Node: Other options14920
-Node: Defining prefix and suffix commands16626
-Node: Defining prefix commands18722
-Node: Defining suffix commands25402
+Node: Top994
+Node: Introduction2168
+Node: Usage4745
+Node: Customizing existing popups9402
+Node: Other options14930
+Node: Defining prefix and suffix commands16636
+Node: Defining prefix commands18732
+Node: Defining suffix commands25412
 
 End Tag Table
 
