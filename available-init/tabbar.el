@@ -68,7 +68,8 @@
                        (cond ((member (buffer-name) '("*Completions*"
                                                       "*scratch*"
                                                       "*Messages*"
-                                                      "*Ediff Registry*"))
+                                                      "*Ediff Registry*"
+                                                      "TAGS"))
                               (list "#misc"))
                              ;; All Magit status goes the same place
                              ((string-match "^*magit" (buffer-name)) (list "#magic"))
