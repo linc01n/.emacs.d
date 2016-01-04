@@ -25,6 +25,7 @@
 (global-auto-revert-mode t)
 
 (setq ring-bell-function 'ignore)
+(fset 'yes-or-no-p 'y-or-n-p)
 
 (show-paren-mode 1)
 
