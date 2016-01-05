@@ -55,6 +55,8 @@
                   'switch-to-buffer)
   (global-set-key (kbd "s-/")
                   'hippie-expand)
+  (global-set-key (kbd "s-a")
+                  'mark-whole-buffer)
   (global-set-key [s-down]
                   'duplicate-current-line-or-region))
 
