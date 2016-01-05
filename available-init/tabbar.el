@@ -69,7 +69,8 @@
                                                       "*scratch*"
                                                       "*Messages*"
                                                       "*Ediff Registry*"
-                                                      "TAGS"))
+                                                      "TAGS"
+                                                      "*rails*"))
                               (list "#misc"))
                              ;; All Magit status goes the same place
                              ((string-match "^*magit" (buffer-name)) (list "#magic"))
