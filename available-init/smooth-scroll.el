@@ -1,5 +1,3 @@
-(setq redisplay-dont-pause t
-      scroll-margin 1
-      scroll-step 1
-      scroll-conservatively 10000
-      scroll-preserve-screen-position 1)
+(req-package smooth-scrolling
+  :init
+  (setq scroll-conservatively 10000))
