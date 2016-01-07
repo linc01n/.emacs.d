@@ -4,7 +4,7 @@
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
 ;;;### (autoloads nil nil ("spaceline-config.el" "spaceline-pkg.el"
-;;;;;;  "spaceline-segments.el" "spaceline.el") (22148 3957 942008
+;;;;;;  "spaceline-segments.el" "spaceline.el") (22157 44788 580093
 ;;;;;;  0))
 
 ;;;***

@@ -1,5 +1,5 @@
-(define-package "spaceline" "20151215.25" "Modeline configuration library for powerline"
-  '((emacs "24")
+(define-package "spaceline" "20160106.601" "Modeline configuration library for powerline"
+  '((emacs "24.3")
     (cl-lib "0.5")
     (powerline "2.3")
     (dash "2.11.0")
