@@ -1097,7 +1097,8 @@ Return a list of two integers: (A>B B>A)."
 (defmacro magit-with-temp-index (tree arg &rest body)
   (declare (indent 2) (debug (form form body)))
   (let ((file (cl-gensym "file")))
-    `(let ((,file (magit-git-dir (make-temp-name "index.magit."))))
+    `(let ((,file (magit-convert-git-filename
+                   (magit-git-dir (make-temp-name "index.magit.")))))
        (setq ,file (or (file-remote-p ,file 'localname) ,file))
        (unwind-protect
            (progn (--when-let ,tree
@@ -1217,7 +1218,8 @@ Return a list of two integers: (A>B B>A)."
                              secondary-default
                              (magit-get-current-branch))))
 
-(defun magit-read-other-branch (prompt &optional exclude secondary-default)
+(defun magit-read-other-branch
+    (prompt &optional exclude secondary-default no-require-match)
   (let* ((current (magit-get-current-branch))
          (atpoint (magit-branch-at-point))
          (exclude (or exclude current))
@@ -1226,7 +1228,8 @@ Return a list of two integers: (A>B B>A)."
                       secondary-default
                       (magit-get-previous-branch))))
     (magit-completing-read prompt (delete exclude (magit-list-branch-names))
-                           nil t nil 'magit-revision-history default)))
+                           nil (not no-require-match)
+                           nil 'magit-revision-history default)))
 
 (defun magit-read-other-branch-or-commit
     (prompt &optional exclude secondary-default)
@@ -1240,6 +1243,21 @@ Return a list of two integers: (A>B B>A)."
     (or (magit-completing-read prompt (delete exclude (magit-list-refnames))
                                nil nil nil 'magit-revision-history default)
         (user-error "Nothing selected"))))
+
+(cl-defun magit-read-upstream-branch
+    (&optional (branch (magit-get-current-branch)) prompt)
+  (magit-completing-read (or prompt (format "Change upstream of %s to" branch))
+                         (nconc (--map (concat it "/" branch)
+                                       (magit-list-remotes))
+                                (delete branch (magit-list-branch-names)))
+                         nil nil nil 'magit-revision-history
+                         (or (let ((atpoint (magit-branch-at-point)))
+                               (and (not (equal atpoint branch)) atpoint))
+                             (magit-branch-p "origin/master")
+                             (and (not (equal branch "master"))
+                                  (magit-branch-p "master"))
+                             (let ((previous (magit-get-previous-branch)))
+                               (and (not (equal previous branch)) previous)))))
 
 (defun magit-read-tag (prompt &optional require-match)
   (magit-completing-read prompt (magit-list-tags) nil
