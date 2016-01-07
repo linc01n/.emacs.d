@@ -1,6 +1,6 @@
 ;;; solarized.el --- Solarized for Emacs.
 
-;; Copyright (C) 2011-2015 Bozhidar Batsov
+;; Copyright (C) 2011-2016 Bozhidar Batsov
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; Author: Thomas Frössman <thomasf@jossystem.se>
@@ -246,7 +246,6 @@ Alpha should be a float between 0 and 1."
          (s-fringe-bg (if solarized-distinct-fringe-background
                           base02 base03))
          (s-fringe-fg base01)
-
 
          (s-header-line-fg (if solarized-high-contrast-mode-line
                                base1 base0))
@@ -2050,7 +2049,7 @@ customize the resulting theme."
      `(whitespace-hspace ((,class (:background unspecified :foreground ,base1
                                                :inverse-video unspecified))))
      `(whitespace-tab ((,class (:background unspecified :foreground ,red
-                                            :inverse-video unspecified :weight bold))))
+                                            :inverse-video t))))
      `(whitespace-newline ((,class(:background unspecified :foreground ,base01
                                                :inverse-video unspecified))))
      `(whitespace-trailing ((,class (:background unspecified :foreground ,orange-lc
