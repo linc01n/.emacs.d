@@ -1100,7 +1100,8 @@ candidates is updated after each input by calling COLLECTION.
 CALLER is a symbol to uniquely identify the caller to `ivy-read'.
 It is used, along with COLLECTION, to determine which
 customizations apply to the current completion session."
-  (let ((extra-actions (plist-get ivy--actions-list this-command)))
+  (let ((extra-actions (append (plist-get ivy--actions-list t)
+                               (plist-get ivy--actions-list this-command))))
     (when extra-actions
       (setq action
             (if (functionp action)
@@ -1132,30 +1133,30 @@ customizations apply to the current completion session."
     (ivy--reset-state ivy-last)
     (prog1
         (unwind-protect
-             (minibuffer-with-setup-hook
-                 #'ivy--minibuffer-setup
-               (let* ((hist (or history 'ivy-history))
-                      (minibuffer-completion-table collection)
-                      (minibuffer-completion-predicate predicate)
-                      (resize-mini-windows (cond
-                                             ((display-graphic-p) nil)
-                                             ((null resize-mini-windows) 'grow-only)
-                                             (t resize-mini-windows)))
-                      (res (read-from-minibuffer
-                            prompt
-                            (ivy-state-initial-input ivy-last)
-                            (make-composed-keymap keymap ivy-minibuffer-map)
-                            nil
-                            hist)))
-                 (when (eq ivy-exit 'done)
-                   (let ((item (if ivy--directory
-                                   ivy--current
-                                 ivy-text)))
-                     (unless (equal item "")
-                       (set hist (cons (propertize item 'ivy-index ivy--index)
-                                       (delete item
-                                               (cdr (symbol-value hist)))))))
-                   res)))
+            (minibuffer-with-setup-hook
+                #'ivy--minibuffer-setup
+              (let* ((hist (or history 'ivy-history))
+                     (minibuffer-completion-table collection)
+                     (minibuffer-completion-predicate predicate)
+                     (resize-mini-windows (cond
+                                           ((display-graphic-p) nil)
+                                           ((null resize-mini-windows) 'grow-only)
+                                           (t resize-mini-windows))))
+                (read-from-minibuffer
+                 prompt
+                 (ivy-state-initial-input ivy-last)
+                 (make-composed-keymap keymap ivy-minibuffer-map)
+                 nil
+                 hist)
+                (when (eq ivy-exit 'done)
+                  (let ((item (if ivy--directory
+                                  ivy--current
+                                ivy-text)))
+                    (unless (equal item "")
+                      (set hist (cons (propertize item 'ivy-index ivy--index)
+                                      (delete item
+                                              (cdr (symbol-value hist))))))))
+                ivy--current))
           (remove-hook 'post-command-hook #'ivy--exhibit)
           (when (setq unwind (ivy-state-unwind ivy-last))
             (funcall unwind))
@@ -1228,7 +1229,8 @@ This is useful for recursive `ivy-read'."
                            (equal initial-input default-directory)
                            (equal initial-input ""))
                  (setq coll (cons initial-input coll)))
-               (setq initial-input nil)))
+               (unless (ivy-state-action ivy-last)
+                 (setq initial-input nil))))
             ((eq collection 'internal-complete-buffer)
              (setq coll (ivy--buffer-list "" ivy-use-virtual-buffers)))
             ((or (functionp collection)
@@ -1356,6 +1358,44 @@ INHERIT-INPUT-METHOD is currently ignored."
                     (cdr sort)
                   t)))))
 
+(defvar ivy-completion-beg nil
+  "Completion bounds start.")
+
+(defvar ivy-completion-end nil
+  "Completion bounds end.")
+
+(defun ivy-completion-in-region-action (str)
+  "Insert STR, erasing the previous one.
+The previous string is between `ivy-completion-beg' and `ivy-completion-end'."
+  (when (stringp str)
+    (with-ivy-window
+      (when ivy-completion-beg
+        (delete-region
+         ivy-completion-beg
+         ivy-completion-end))
+      (setq ivy-completion-beg
+            (move-marker (make-marker) (point)))
+      (insert str)
+      (setq ivy-completion-end
+            (move-marker (make-marker) (point))))))
+
+(defun ivy-completion-in-region (start end collection &optional predicate)
+  "An Ivy function suitable for `completion-in-region-function'."
+  (let* ((str (buffer-substring-no-properties start end))
+         (comps (all-completions str collection predicate)))
+    (if (null comps)
+        (message "No matches")
+      (let* ((w (1+ (floor (log (length comps) 10))))
+             (ivy-count-format (format "%%-%dd " w)))
+        (setq ivy-completion-beg start)
+        (setq ivy-completion-end end)
+        (and
+         (ivy-read (format "(%s): " str) comps
+                   :predicate predicate
+                   :action #'ivy-completion-in-region-action
+                   :require-match t)
+         t)))))
+
 ;;;###autoload
 (define-minor-mode ivy-mode
   "Toggle Ivy mode on or off.
@@ -1373,8 +1413,11 @@ Minibuffer bindings:
   :keymap ivy-mode-map
   :lighter " ivy"
   (if ivy-mode
-      (setq completing-read-function 'ivy-completing-read)
-    (setq completing-read-function 'completing-read-default)))
+      (progn
+        (setq completing-read-function 'ivy-completing-read)
+        (setq completion-in-region-function 'ivy-completion-in-region))
+    (setq completing-read-function 'completing-read-default)
+    (setq completion-in-region-function 'completion--in-region)))
 
 (defun ivy--preselect-index (preselect candidates)
   "Return the index of PRESELECT in CANDIDATES."
@@ -1935,6 +1978,13 @@ Prefix matches to NAME are put ahead of the list."
 (defun ivy-recompute-index-zero (_re-str _cands)
   0)
 
+(defcustom ivy-minibuffer-faces
+  '(ivy-minibuffer-match-face-1
+    ivy-minibuffer-match-face-2
+    ivy-minibuffer-match-face-3
+    ivy-minibuffer-match-face-4)
+  "List of `ivy' faces for minibuffer group matches.")
+
 (defun ivy--flx-sort (name cands)
   "Sort according to closeness to string NAME the string list CANDS."
   (condition-case nil
@@ -1947,15 +1997,28 @@ Prefix matches to NAME are put ahead of the list."
                   (delq nil
                         (mapcar
                          (lambda (x)
-                           (let ((score (car (flx-score x flx-name ivy--flx-cache))))
+                           (let ((score (flx-score x flx-name ivy--flx-cache)))
                              (and score
                                   (cons score x))))
                          cands))))
             (if cands-with-score
-                (mapcar #'cdr
+                (mapcar (lambda (x)
+                          (let ((str (copy-sequence (cdr x)))
+                                (i 0)
+                                (last-j -2))
+                            (dolist (j (cdar x))
+                              (unless (eq j (1+ last-j))
+                                (cl-incf i))
+                              (setq last-j j)
+                              (ivy-add-face-text-property
+                               j (1+ j)
+                               (nth (1+ (mod (+ i 2) (1- (length ivy-minibuffer-faces))))
+                                    ivy-minibuffer-faces)
+                               str))
+                            str))
                         (sort cands-with-score
                               (lambda (x y)
-                                (> (car x) (car y)))))
+                                (> (caar x) (caar y)))))
               cands))
         cands)
     (error
@@ -2021,17 +2084,18 @@ SEPARATOR is used to join the candidates."
    cand-pairs
    ""))
 
-(defcustom ivy-minibuffer-faces
-  '(ivy-minibuffer-match-face-1
-    ivy-minibuffer-match-face-2
-    ivy-minibuffer-match-face-3
-    ivy-minibuffer-match-face-4)
-  "List of `ivy' faces for minibuffer group matches.")
+(defun ivy-add-face-text-property (start end face str)
+  (if (fboundp 'add-face-text-property)
+      (add-face-text-property
+       start end face nil str)
+    (font-lock-append-text-property
+     start end 'face face str)))
 
 (defun ivy--format-minibuffer-line (str)
   (let ((start 0)
         (str (copy-sequence str)))
-    (when (eq ivy-display-style 'fancy)
+    (when (and (eq ivy-display-style 'fancy)
+               (not (eq ivy--regex-function 'ivy--regex-fuzzy)))
       (unless ivy--old-re
         (setq ivy--old-re (funcall ivy--regex-function ivy-text)))
       (while (and (string-match ivy--old-re str start)
@@ -2047,19 +2111,9 @@ SEPARATOR is used to join the candidates."
                          (t
                           (nth (1+ (mod (+ i 2) (1- (length ivy-minibuffer-faces))))
                                ivy-minibuffer-faces)))))
-              (if (fboundp 'add-face-text-property)
-                  (add-face-text-property
-                   (match-beginning i)
-                   (match-end i)
-                   face
-                   nil
-                   str)
-                (font-lock-append-text-property
-                 (match-beginning i)
-                 (match-end i)
-                 'face
-                 face
-                 str)))
+              (ivy-add-face-text-property
+               (match-beginning i) (match-end i)
+               face str))
             (cl-incf i)))))
     str))
 
