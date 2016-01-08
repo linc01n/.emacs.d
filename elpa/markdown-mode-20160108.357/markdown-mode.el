@@ -31,7 +31,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.0
-;; Package-Version: 20160106.1004
+;; Package-Version: 20160108.357
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -5490,14 +5490,16 @@ and [[test test]] both map to Test-test.ext."
                                 (file-name-extension (buffer-file-name))))))
            (current default))
       (catch 'done
-        (cl-loop
-         (if (or (file-exists-p current)
-                 (not markdown-wiki-link-search-parent-directories))
-             (throw 'done current))
-         (if (string-equal (expand-file-name current)
-                           (concat "/" default))
-             (throw 'done default))
-         (setq current (concat "../" current)))))))
+        (condition-case nil
+            (cl-loop
+             (if (or (not markdown-wiki-link-search-parent-directories)
+                     (file-exists-p current))
+                 (throw 'done current))
+             (if (string-equal (expand-file-name current)
+                               (concat "/" default))
+                 (throw 'done default))
+             (setq current (concat "../" current)))
+          (error default))))))
 
 (defun markdown-follow-wiki-link (name &optional other)
   "Follow the wiki link NAME.
@@ -5544,7 +5546,7 @@ and highlight accordingly."
               (file-name
                (markdown-convert-wiki-link-to-filename
                 (markdown-wiki-link-link))))
-          (if (file-exists-p file-name)
+          (if (condition-case nil (file-exists-p file-name) (error nil))
               (markdown-highlight-wiki-link
                highlight-beginning highlight-end markdown-link-face)
             (markdown-highlight-wiki-link
