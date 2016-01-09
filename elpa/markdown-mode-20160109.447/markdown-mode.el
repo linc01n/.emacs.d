@@ -31,7 +31,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.0
-;; Package-Version: 20160108.357
+;; Package-Version: 20160109.447
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -5278,7 +5278,7 @@ buffer. Inverse of `markdown-live-preview-buffer'.")
 
 (defun markdown-live-preview-window-eww (file)
   "A `markdown-live-preview-window-function' for previewing with eww."
-  (if (featurep 'eww)
+  (if (require 'eww nil t)
       (progn
         (eww-open-file file)
         (get-buffer "*eww*"))
