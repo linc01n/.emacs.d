@@ -4,7 +4,7 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter
-;; Package-Version: 20160106.721
+;; Package-Version: 20160108.1014
 ;; Version: 0.85
 ;; Package-Requires: ((cl-lib "0.5") (emacs "24"))
 
@@ -591,6 +591,8 @@ gutter information of other windows."
     (git-gutter:set-window-margin (git-gutter:window-margin))))
 
 (defun git-gutter:view-set-overlays (diffinfos)
+  (when (or git-gutter:unchanged-sign git-gutter:separator-sign)
+    (git-gutter:view-for-unchanged))
   (save-excursion
     (goto-char (point-min))
     (cl-loop with curline = 1
@@ -616,8 +618,6 @@ gutter information of other windows."
 
 (defun git-gutter:view-diff-infos (diffinfos)
   (when (or diffinfos git-gutter:always-show-separator)
-    (when (or git-gutter:unchanged-sign git-gutter:separator-sign)
-      (git-gutter:view-for-unchanged))
     (git-gutter:view-set-overlays diffinfos))
   (git-gutter:show-gutter diffinfos))
 
