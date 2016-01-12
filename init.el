@@ -87,9 +87,6 @@
   :defer t
   :config (add-hook 'occur-mode-hook 'turn-on-occur-x-mode))
 
-(req-package iedit
-  :bind ("C-;" . iedit-mode))
-
 (req-package avy
   :bind (("C-c :" . avy-goto-char)
          ("C-c '" . avy-goto-char-2)
