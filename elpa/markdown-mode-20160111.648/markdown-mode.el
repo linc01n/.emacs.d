@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160110.1918
+;; Package-Version: 20160111.648
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -95,7 +95,6 @@
 ;;    * Ubuntu Linux: [elpa-markdown-mode][elpa-ubuntu] and [emacs-goodies-el][emacs-goodies-el-ubuntu]
 ;;    * RedHat and Fedora Linux: [emacs-goodies][]
 ;;    * NetBSD: [textproc/markdown-mode][]
-;;    * Arch Linux (AUR): [emacs-markdown-mode-git][]
 ;;    * MacPorts: [markdown-mode.el][macports-package] ([pending][macports-ticket])
 ;;    * FreeBSD: [textproc/markdown-mode.el][freebsd-port]
 ;;
@@ -105,7 +104,6 @@
 ;;  [emacs-goodies-el-ubuntu]: http://packages.ubuntu.com/search?keywords=emacs-goodies-el
 ;;  [emacs-goodies]: https://apps.fedoraproject.org/packages/emacs-goodies
 ;;  [textproc/markdown-mode]: http://pkgsrc.se/textproc/markdown-mode
-;;  [emacs-markdown-mode-git]: https://aur.archlinux.org/packages/emacs-goodies-el/
 ;;  [macports-package]: https://trac.macports.org/browser/trunk/dports/editors/markdown-mode.el/Portfile
 ;;  [macports-ticket]: http://trac.macports.org/ticket/35716
 ;;  [freebsd-port]: http://svnweb.freebsd.org/ports/head/textproc/markdown-mode.el
@@ -1162,7 +1160,14 @@ Group 3 matches the closing square bracket.")
 
 (defconst markdown-regex-header
   "^\\(?:\\(.+\\)\n\\(=+\\)\\|\\(.+\\)\n\\(-+\\)\\|\\(#+\\)\\s-*\\(.*?\\)\\s-*?\\(#*\\)\\)$"
-  "Regexp identifying Markdown headers.")
+  "Regexp identifying Markdown headings.
+Group 1 matches the text of a level-1 setext heading.
+Group 2 matches the underline of a level-1 setext heading.
+Group 3 matches the text of a level-1 setext heading.
+Group 4 matches the underline of a level-1 setext heading.
+Group 5 matches the opening hash marks of an atx heading.
+Group 6 matches the text, without surrounding whitespace, of an atx heading.
+Group 7 matches the closing hash marks of an atx heading.")
 
 (defconst markdown-regex-header-1-atx
   "^\\(#\\)[ \t]*\\([^\\.].*?\\)[ \t]*\\(#*\\)$"
@@ -3049,16 +3054,17 @@ header text is determined."
   (interactive "*P")
   (let (level)
     (save-excursion
-      (when (re-search-backward markdown-regex-header nil t)
-        ;; level of previous header
+      (when (or (thing-at-point-looking-at markdown-regex-header)
+                (re-search-backward markdown-regex-header nil t))
+        ;; level of current or previous header
         (setq level (markdown-outline-level))
-        ;; match groups 1 and 2 indicate setext headers
+        ;; match groups 1 and 3 indicate setext headers
         (setq setext (or setext (match-end 1) (match-end 3)))))
     ;; check prefix argument
     (cond
-     ((and (equal arg '(4)) (> level 1)) ;; C-u
+     ((and (equal arg '(4)) level (> level 1)) ;; C-u
       (cl-decf level))
-     ((and (equal arg '(16)) (< level 6)) ;; C-u C-u
+     ((and (equal arg '(16)) level (< level 6)) ;; C-u C-u
       (cl-incf level))
      (arg ;; numeric prefix
       (setq level (prefix-numeric-value arg))))
@@ -5740,15 +5746,7 @@ This is an exact copy of `line-number-at-pos' for use in emacs21."
           '(markdown-mode-font-lock-keywords
             nil nil nil nil
             (font-lock-syntactic-face-function . markdown-syntactic-face)))
-    (when (fboundp 'font-lock-refresh-defaults)
-      ;; font-lock-refresh-defaults can set font-lock-mode to t even
-      ;; if global-font-lock-mode and font-lock-global-modes are nil.
-      ;; So save the original value of font-lock-mode and set it back
-      ;; to nil if it was nil to begin with.
-      (let ((save-font-lock-mode font-lock-mode))
-        (font-lock-refresh-defaults)
-        (when (not save-font-lock-mode)
-          (font-lock-mode -1))))))
+    (when (fboundp 'font-lock-refresh-defaults) (font-lock-refresh-defaults))))
 
 (defun markdown-enable-math (&optional arg)
   "Toggle support for inline and display LaTeX math expressions.
