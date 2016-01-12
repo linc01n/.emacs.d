@@ -62,6 +62,8 @@
 
 (global-set-key (kbd "C-a") 'smart-beginning-of-line)
 
+(when (not (window-system))
+  (xterm-mouse-mode))
 
 (require 'use-package)
 
