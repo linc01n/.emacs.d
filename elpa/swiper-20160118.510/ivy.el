@@ -238,7 +238,7 @@ Only \"./\" and \"../\" apply here. They appear in reverse order."
   dynamic-collection
   caller)
 
-(defvar ivy-last nil
+(defvar ivy-last (make-ivy-state)
   "The last parameters passed to `ivy-read'.
 
 This should eventually become a stack so that you could use
@@ -1998,7 +1998,9 @@ Prefix matches to NAME are put ahead of the list."
           (while (and tail (null idx))
             ;; Compare with eq to handle equal duplicates in cands
             (setq idx (cl-position (pop tail) cands)))
-          (or idx 0))
+          (or
+           idx
+           (1- (length cands))))
       (if ivy--old-cands
           ivy--index
         ;; already in ivy-state-buffer
