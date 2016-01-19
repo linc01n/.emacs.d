@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160115.2318
+;; Package-Version: 20160118.500
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -825,7 +825,8 @@
 ;;   * Danny McClanahan <danieldmcclanahan@gmail.com> for live preview mode,
 ;;     completion of GFM programming language names, and `cl-lib' updates.
 ;;   * Syohei Yoshida <syohex@gmail.com> for better heading detection
-;;     and movement functions, improved italic font lock.
+;;     and movement functions, improved italic font lock, and fixing adaptive
+;;     filling for hanging list items.
 
 ;;; Bugs:
 
@@ -6000,6 +6001,7 @@ before regenerating font-lock rules for extensions."
               "\\|"))
   (set (make-local-variable 'adaptive-fill-first-line-regexp)
        "\\`[ \t]*>[ \t]*?\\'")
+  (set (make-local-variable 'adaptive-fill-regexp) "\\s-*")
   (set (make-local-variable 'adaptive-fill-function)
        'markdown-adaptive-fill-function)
   (set (make-local-variable 'fill-forward-paragraph-function)
