@@ -1,4 +1,4 @@
 (req-package iedit
-  :bind
+  :bind*
   ("C-;" . iedit-mode)
   ("C-c ;" . iedit-mode))
