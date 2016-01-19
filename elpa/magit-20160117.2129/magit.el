@@ -16,7 +16,7 @@
 ;;	Rémi Vanicat      <vanicat@debian.org>
 ;;	Yann Hodique      <yann.hodique@gmail.com>
 
-;; Package-Requires: ((emacs "24.4") (async "20150909.2257") (dash "20151021.113") (with-editor "20151111") (git-commit "20151111") (magit-popup "20151221"))
+;; Package-Requires: ((emacs "24.4") (async "20150909.2257") (dash "20151021.113") (with-editor "20160117.1513") (git-commit "20160117.1513") (magit-popup "20160117.1513"))
 ;; Keywords: git tools vc
 ;; Homepage: https://github.com/magit/magit
 
@@ -158,7 +158,7 @@ use `magit-pre-refresh-hook', `magit-post-refresh-hook',
   :group 'magit-status
   :type 'boolean)
 
-(defcustom magit-status-show-hashes-in-headers t
+(defcustom magit-status-show-hashes-in-headers nil
   "Whether headers in the status buffer show hashes.
 The functions which respect this option are
 `magit-insert-head-branch-header',
@@ -544,8 +544,9 @@ detached `HEAD'."
                           (if (magit-get-boolean "branch" branch "rebase")
                               "Rebase: "
                             "Merge: "))))
-      (when magit-status-show-hashes-in-headers
-        (insert (propertize (magit-rev-format "%h" pull) 'face 'magit-hash) ?\s))
+      (--when-let (and magit-status-show-hashes-in-headers
+                       (magit-rev-format "%h" pull))
+        (insert (propertize it 'face 'magit-hash) ?\s))
       (insert (propertize pull 'face
                           (if (string= (magit-get "branch" branch "remote") ".")
                               'magit-branch-local
@@ -563,8 +564,9 @@ detached `HEAD'."
   (when push
     (magit-insert-section (branch push)
       (insert (format "%-10s" "Push: "))
-      (when magit-status-show-hashes-in-headers
-        (insert (propertize (magit-rev-format "%h" push) 'face 'magit-hash) ?\s))
+      (--when-let (and magit-status-show-hashes-in-headers
+                       (magit-rev-format "%h" push))
+        (insert (propertize it 'face 'magit-hash) ?\s))
       (insert (propertize push 'face 'magit-branch-remote) ?\s)
       (if (magit-rev-verify push)
           (insert (or (magit-rev-format "%s" push) ""))
@@ -1402,7 +1404,7 @@ of the new branch, instead of the starting-point itself."
           (magit-call-git "branch" "--set-upstream-to" it branch))
         (when (and (setq tracked (magit-get-upstream-branch current))
                    (setq base (magit-git-string "merge-base" current tracked))
-                   (not (magit-rev-equal base current)))
+                   (not (magit-rev-eq base current)))
           (magit-call-git "update-ref" "-m"
                           (format "reset: moving to %s" base)
                           (concat "refs/heads/" current) base))
