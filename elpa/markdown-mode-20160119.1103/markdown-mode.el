@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160118.500
+;; Package-Version: 20160119.1103
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -2406,7 +2406,12 @@ This includes pre blocks, tilde-fenced code blocks, and GFM
 quoted code blocks.  Return nil otherwise."
   (or (get-text-property pos 'markdown-pre)
       (get-text-property pos 'markdown-gfm-code)
-      (get-text-property pos 'markdown-fenced-code)))
+      (get-text-property pos 'markdown-fenced-code)
+      ;; polymode removes text properties set by markdown-mode, so
+      ;; check if `poly-markdown-mode' is active and whether the
+      ;; `chunkmode' property is non-nil at POS.
+      (and (bound-and-true-p poly-markdown-mode)
+           (get-text-property pos 'chunkmode))))
 
 (defun markdown-code-block-at-point ()
   "Return match data if the point is inside a code block.
