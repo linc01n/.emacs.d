@@ -4,7 +4,7 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter
-;; Package-Version: 20160115.2300
+;; Package-Version: 20160120.315
 ;; Version: 0.85
 ;; Package-Requires: ((cl-lib "0.5") (emacs "24"))
 
@@ -141,10 +141,10 @@ gutter information of other windows."
 `git', `svn', `hg', and `bzr' are supported."
   :type '(repeat symbol))
 
-(defvar git-gutter:view-diff-function 'git-gutter:view-diff-infos
+(defvar git-gutter:view-diff-function #'git-gutter:view-diff-infos
   "Function of viewing changes")
 
-(defvar git-gutter:clear-function 'git-gutter:clear-diff-infos
+(defvar git-gutter:clear-function #'git-gutter:clear-diff-infos
   "Function of clear changes")
 
 (defvar git-gutter:init-function 'nil
@@ -617,7 +617,7 @@ gutter information of other windows."
 
 (defun git-gutter:search-near-diff-index (diffinfos is-reverse)
   (cl-loop with current-line = (line-number-at-pos)
-           with cmp-fn = (if is-reverse '> '<)
+           with cmp-fn = (if is-reverse #'> #'<)
            for diffinfo in (if is-reverse (reverse diffinfos) diffinfos)
            for index = 0 then (1+ index)
            for start-line = (plist-get diffinfo :start-line)
