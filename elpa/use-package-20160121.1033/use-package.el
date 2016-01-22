@@ -7,7 +7,7 @@
 ;; Created: 17 Jun 2012
 ;; Modified: 26 Sep 2015
 ;; Version: 2.1
-;; Package-Version: 20160120.1555
+;; Package-Version: 20160121.1033
 ;; Package-Requires: ((bind-key "1.0") (diminish "0.44"))
 ;; Keywords: dotemacs startup speed config package
 ;; URL: https://github.com/jwiegley/use-package
@@ -1086,7 +1086,7 @@ this file.  Usage:
                    (if use-package-always-pin
                        (use-package-plist-maybe-put
                         args* :pin use-package-always-pin)
-                     args0))))
+                     args*))))
 
       ;; When byte-compiling, pre-load the package so all its symbols are in
       ;; scope.
