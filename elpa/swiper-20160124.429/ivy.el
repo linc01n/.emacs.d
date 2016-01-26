@@ -791,13 +791,22 @@ Call the permanent action if possible."
   (move-end-of-line 1)
   (ivy--maybe-scroll-history))
 
+(defvar ivy-ffap-url-functions nil
+  "List of functions that check if the point is on a URL.")
+
 (defun ivy--cd-maybe ()
   "Check if the current input points to a different directory.
 If so, move to that directory, while keeping only the file name."
   (when ivy--directory
     (let ((input (ivy--input))
           url)
-      (if (setq url (ffap-url-p input))
+      (if (setq url (or (ffap-url-p input)
+                        (with-ivy-window
+                          (cl-reduce
+                           (lambda (a b)
+                             (or a (funcall b)))
+                           ivy-ffap-url-functions
+                           :initial-value nil))))
           (ivy-exit-with-action
            (lambda (_)
              (funcall ffap-url-fetcher url)))
@@ -1236,6 +1245,8 @@ This is useful for recursive `ivy-read'."
                  (setq initial-input nil))))
             ((eq collection 'internal-complete-buffer)
              (setq coll (ivy--buffer-list "" ivy-use-virtual-buffers)))
+            (dynamic-collection
+             (setq coll (funcall collection ivy-text)))
             ((or (functionp collection)
                  (byte-code-function-p collection)
                  (vectorp collection)
