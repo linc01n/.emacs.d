@@ -3,8 +3,8 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "git-gutter" "git-gutter.el" (22175 47549 439880
-;;;;;;  560000))
+;;;### (autoloads nil "git-gutter" "git-gutter.el" (22183 36664 0
+;;;;;;  0))
 ;;; Generated autoloads from git-gutter.el
 
 (autoload 'git-gutter:linum-setup "git-gutter" "\
@@ -38,64 +38,13 @@ See `git-gutter-mode' for more information on Git-Gutter mode.
 
 \(fn &optional ARG)" t nil)
 
-(autoload 'git-gutter:revert-hunk "git-gutter" "\
-Revert current hunk.
-
-\(fn)" t nil)
-
-(autoload 'git-gutter:stage-hunk "git-gutter" "\
-Stage this hunk like 'git add -p'.
-
-\(fn)" t nil)
-
-(autoload 'git-gutter:popup-hunk "git-gutter" "\
-Popup current diff hunk.
-
-\(fn &optional DIFFINFO)" t nil)
-
-(autoload 'git-gutter:next-hunk "git-gutter" "\
-Move to next diff hunk
-
-\(fn ARG)" t nil)
-
-(autoload 'git-gutter:previous-hunk "git-gutter" "\
-Move to previous diff hunk
-
-\(fn ARG)" t nil)
-
 (autoload 'git-gutter "git-gutter" "\
 Show diff information in gutter
 
 \(fn)" t nil)
 
-(autoload 'git-gutter:clear "git-gutter" "\
-Clear diff information in gutter.
-
-\(fn)" t nil)
-
 (autoload 'git-gutter:toggle "git-gutter" "\
 Toggle to show diff information.
-
-\(fn)" t nil)
-
-(autoload 'git-gutter:set-start-revision "git-gutter" "\
-Set start revision. If `start-rev' is nil or empty string then reset
-start revision.
-
-\(fn START-REV)" t nil)
-
-(autoload 'git-gutter:update-all-windows "git-gutter" "\
-Update git-gutter information for all visible buffers.
-
-\(fn)" t nil)
-
-(autoload 'git-gutter:start-update-timer "git-gutter" "\
-
-
-\(fn)" t nil)
-
-(autoload 'git-gutter:cancel-update-timer "git-gutter" "\
-
 
 \(fn)" t nil)
 
