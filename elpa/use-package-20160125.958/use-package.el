@@ -7,7 +7,7 @@
 ;; Created: 17 Jun 2012
 ;; Modified: 26 Sep 2015
 ;; Version: 2.1
-;; Package-Version: 20160121.1033
+;; Package-Version: 20160125.958
 ;; Package-Requires: ((bind-key "1.0") (diminish "0.44"))
 ;; Keywords: dotemacs startup speed config package
 ;; URL: https://github.com/jwiegley/use-package
@@ -428,7 +428,8 @@ manually updated package."
         (add-to-list 'package-pinned-packages (cons package archive-name))
       (error "Archive '%s' requested for package '%s' is not available."
              archive-name package))
-    (package-initialize t)))
+    (unless (bound-and-true-p package--initialized)
+      (package-initialize t))))
 
 (defun use-package-handler/:pin (name keyword archive-name rest state)
   (let ((body (use-package-process-keywords name rest state))
