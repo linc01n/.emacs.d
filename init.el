@@ -1,15 +1,3 @@
-;; Raising garbage collection threshold to speed init time
-(setq gc-cons-threshold (* 300 1024 1024))
-
-(defun my-minibuffer-setup-hook ()
-  (setq gc-cons-threshold most-positive-fixnum))
-
-(defun my-minibuffer-exit-hook ()
-  (setq gc-cons-threshold (* 300 1024 1024)))
-
-(add-hook 'minibuffer-setup-hook #'my-minibuffer-setup-hook)
-(add-hook 'minibuffer-exit-hook #'my-minibuffer-exit-hook)
-
 (require 'package)
 (setq package-archives '(("gnu" ."http://elpa.gnu.org/packages/")
                          ("melpa" ."http://melpa.org/packages/")))
