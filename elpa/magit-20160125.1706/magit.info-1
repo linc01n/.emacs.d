@@ -989,9 +989,9 @@ i.e.  "outside Emacs", making this a rather important feature.
 
    For example, if you discard a change in the status buffer, then that
 is done by running ‘git apply --reverse ...’, and Emacs considers the
-file to have "change on disk".  If Magit did not automaticallyrevert the
-buffer, then you would have to type ‘M-x revert-buffer RET RET’ in the
-visiting buffer before you could continue making changes.
+file to have "changed on disk".  If Magit did not automatically revert
+the buffer, then you would have to type ‘M-x revert-buffer RET RET’ in
+the visiting buffer before you could continue making changes.
 
  -- User Option: magit-auto-revert-mode
 
@@ -1018,12 +1018,12 @@ visiting buffer before you could continue making changes.
      git for side-effects.
 
      If ‘auto-revert-use-notify’ is non-nil (and file notifications are
-     actually supported), then ‘magit-auto-revert-immediately’ should be
-     set to nil, because the reverts happen immediately anyway.
+     actually supported), then ‘magit-auto-revert-immediately’ does not
+     have to be non-nil, because the reverts happen immediately anyway.
 
      If ‘magit-auto-revert-immediately’ and ‘auto-revert-use-notify’ are
-     both nil, then reverts happen after ‘auto-revert-interval’ seconds
-     of user inactivity.  That is not desirable.
+     both ‘nil’, then reverts happen after ‘auto-revert-interval’
+     seconds of user inactivity.  That is not desirable.
 
  -- User Option: auto-revert-use-notify
 
@@ -1041,10 +1041,11 @@ visiting buffer before you could continue making changes.
  -- Command: auto-revert-mode
 
      The global mode ‘magit-auto-revert-mode’ works by turning on this
-     local mode in the appropriate buffers.  You can also turn it on or
-     off manually, which might be necessary if Magit does not notice
-     that a previously untracked file now is being tracked or
-     vice-versa.
+     local mode in the appropriate buffers (but
+     ‘global-auto-revert-mode’ is implemented differently).  You can
+     also turn it on or off manually, which might be necessary if Magit
+     does not notice that a previously untracked file now is being
+     tracked or vice-versa.
 
  -- User Option: auto-revert-stop-on-user-input
 
@@ -3715,6 +3716,17 @@ e.g.:
 
    *note (gitman)git-checkout:: , and *note Pushing: Pushing.
 
+ -- User Option: magit-prefer-remote-upstream
+
+     This option controls whether commands that read a branch from the
+     user and then set it as the upstream branch, offer a local or a
+     remote branch as default completion candidate, when they have the
+     choice.
+
+     This affects all commands that use ‘magit-read-upstream-branch’ or
+     ‘magit-read-starting-point’, which includes all commands that
+     change the upstream and many which create new branches.
+
 ‘b b’     (‘magit-checkout’)
 
      Checkout a revision read in the minibuffer and defaulting to the
@@ -3762,9 +3774,6 @@ e.g.:
      This command resets a branch, defaulting to the branch at point, to
      the tip of another branch or any other commit.
 
-     When resetting to another branch, then that branch is also set as
-     the upstream of the branch being reset.
-
      When the branch being reset is the current branch, then a hard
      reset is performed.  If there are any uncommitted changes, then the
      user has to confirming the reset because those changes would be
@@ -3772,6 +3781,10 @@ e.g.:
 
      This is useful when you have started work on a feature branch but
      realize it’s all crap and want to start over.
+
+     When resetting to another branch and a prefix argument is used,
+     then the target branch is set as the upstream of the branch that is
+     being reset.
 
 ‘b d’     (‘magit-branch-delete’)
 
@@ -4519,7 +4532,10 @@ File: magit.info,  Node: Fetching,  Next: Pulling,  Prev: Remotes,  Up: Transfer
 7.2 Fetching
 ============
 
-Also see *note (gitman)git-fetch:: .
+For information about the differences between the _upstream_ and the
+_push-remote_, see *note Branching: Branching.
+
+   Also see *note (gitman)git-fetch:: .
 
 ‘f’     (‘magit-fetch-popup’)
 
@@ -4557,7 +4573,10 @@ File: magit.info,  Node: Pulling,  Next: Pushing,  Prev: Fetching,  Up: Transfer
 7.3 Pulling
 ===========
 
-Also see *note (gitman)git-pull:: .
+For information about the differences between the _upstream_ and the
+_push-remote_, see *note Branching: Branching.
+
+   Also see *note (gitman)git-pull:: .
 
 ‘F’     (‘magit-pull-popup’)
 
@@ -4586,7 +4605,10 @@ File: magit.info,  Node: Pushing,  Next: Creating and sending patches,  Prev: Pu
 7.4 Pushing
 ===========
 
-Also see *note (gitman)git-push:: .
+For information about the differences between the _upstream_ and the
+_push-remote_, see *note Branching: Branching.
+
+   Also see *note (gitman)git-push:: .
 
 ‘P’     (‘magit-push-popup’)
 
@@ -5347,8 +5369,11 @@ current buffer.
      (setq magit-refresh-status-buffer nil)
 
    You should also check whether any third-party packages have added
-anything to ‘magit-refresh-buffer-hook’ and ‘magit-status-refresh-hook’,
-and if so whether those additions impacts performance significantly.
+anything to ‘magit-refresh-buffer-hook’, ‘magit-status-refresh-hook’,
+‘magit-pre-refresh-hook’, and ‘magit-post-refresh-hook’.  If so, then
+check whether those additions impacts performance significantly.
+Setting ‘magit-refresh-verbose’ and then inspecting the output in the
+‘*Messages*’ buffer, should help doing so.
 
    If you have enabled any features that are disabled by default, then
 you should check whether they impact performance significantly.  It’s
@@ -6627,18 +6652,18 @@ Appendix B Keystroke Index
 * B:                                     Bisecting.           (line   8)
 * b:                                     Branching.           (line  45)
 * B b:                                   Bisecting.           (line  31)
-* b b:                                   Branching.           (line 171)
-* b c:                                   Branching.           (line 189)
-* b d:                                   Branching.           (line 229)
+* b b:                                   Branching.           (line 182)
+* b c:                                   Branching.           (line 200)
+* b d:                                   Branching.           (line 241)
 * B g:                                   Bisecting.           (line  36)
 * B k:                                   Bisecting.           (line  41)
-* b n:                                   Branching.           (line 179)
+* b n:                                   Branching.           (line 190)
 * B r:                                   Bisecting.           (line  47)
-* b r:                                   Branching.           (line 235)
+* b r:                                   Branching.           (line 247)
 * B s:                                   Bisecting.           (line  16)
-* b s:                                   Branching.           (line 196)
+* b s:                                   Branching.           (line 207)
 * B u:                                   Bisecting.           (line  24)
-* b x:                                   Branching.           (line 213)
+* b x:                                   Branching.           (line 224)
 * c:                                     Initiating a commit. (line   8)
 * c <1>:                                 Editing rebase sequences.
                                                               (line  72)
@@ -6742,16 +6767,16 @@ Appendix B Keystroke Index
 * E w:                                   Ediffing.            (line  58)
 * f:                                     Editing rebase sequences.
                                                               (line  63)
-* f <1>:                                 Fetching.            (line   8)
-* F:                                     Pulling.             (line   8)
-* f a:                                   Fetching.            (line  25)
-* f e:                                   Fetching.            (line  21)
-* F e:                                   Pulling.             (line  21)
-* f m:                                   Fetching.            (line  29)
-* f p:                                   Fetching.            (line  13)
-* F p:                                   Pulling.             (line  13)
-* f u:                                   Fetching.            (line  17)
-* F u:                                   Pulling.             (line  17)
+* f <1>:                                 Fetching.            (line  11)
+* F:                                     Pulling.             (line  11)
+* f a:                                   Fetching.            (line  28)
+* f e:                                   Fetching.            (line  24)
+* F e:                                   Pulling.             (line  24)
+* f m:                                   Fetching.            (line  32)
+* f p:                                   Fetching.            (line  16)
+* F p:                                   Pulling.             (line  16)
+* f u:                                   Fetching.            (line  20)
+* F u:                                   Pulling.             (line  20)
 * g:                                     Automatic Refreshing of Magit Buffers.
                                                               (line  22)
 * G:                                     Automatic Refreshing of Magit Buffers.
@@ -6851,16 +6876,16 @@ Appendix B Keystroke Index
 * P:                                     Blaming.             (line  66)
 * p <2>:                                 Editing rebase sequences.
                                                               (line  35)
-* P <1>:                                 Pushing.             (line   8)
+* P <1>:                                 Pushing.             (line  11)
 * p <3>:                                 Minor mode for buffers visiting blobs.
                                                               (line  12)
-* P e:                                   Pushing.             (line  32)
-* P m:                                   Pushing.             (line  41)
-* P o:                                   Pushing.             (line  36)
-* P p:                                   Pushing.             (line  13)
-* P t:                                   Pushing.             (line  47)
-* P T:                                   Pushing.             (line  53)
-* P u:                                   Pushing.             (line  23)
+* P e:                                   Pushing.             (line  35)
+* P m:                                   Pushing.             (line  44)
+* P o:                                   Pushing.             (line  39)
+* P p:                                   Pushing.             (line  16)
+* P t:                                   Pushing.             (line  50)
+* P T:                                   Pushing.             (line  56)
+* P u:                                   Pushing.             (line  26)
 * q:                                     Quitting Windows.    (line   6)
 * q <1>:                                 Log Buffer.          (line  12)
 * q <2>:                                 Blaming.             (line  70)
@@ -7053,14 +7078,14 @@ Appendix C Command Index
                                                               (line  45)
 * magit-blob-previous <1>:               Minor mode for buffers visiting blobs.
                                                               (line  12)
-* magit-branch:                          Branching.           (line 179)
-* magit-branch-and-checkout:             Branching.           (line 189)
-* magit-branch-delete:                   Branching.           (line 229)
+* magit-branch:                          Branching.           (line 190)
+* magit-branch-and-checkout:             Branching.           (line 200)
+* magit-branch-delete:                   Branching.           (line 241)
 * magit-branch-popup:                    Branching.           (line  45)
-* magit-branch-rename:                   Branching.           (line 235)
-* magit-branch-reset:                    Branching.           (line 213)
-* magit-branch-spinoff:                  Branching.           (line 196)
-* magit-checkout:                        Branching.           (line 171)
+* magit-branch-rename:                   Branching.           (line 247)
+* magit-branch-reset:                    Branching.           (line 224)
+* magit-branch-spinoff:                  Branching.           (line 207)
+* magit-checkout:                        Branching.           (line 182)
 * magit-checkout-file:                   Resetting.           (line  37)
 * magit-cherry:                          Logging.             (line  60)
 * magit-cherry-apply:                    Cherry picking.      (line  22)
@@ -7126,11 +7151,11 @@ Appendix C Command Index
 * magit-ediff-show-unstaged:             Ediffing.            (line  50)
 * magit-ediff-show-working-tree:         Ediffing.            (line  58)
 * magit-ediff-stage:                     Ediffing.            (line  45)
-* magit-fetch:                           Fetching.            (line  21)
-* magit-fetch-all:                       Fetching.            (line  25)
-* magit-fetch-from-pushremote:           Fetching.            (line  13)
-* magit-fetch-from-upstream:             Fetching.            (line  17)
-* magit-fetch-popup:                     Fetching.            (line   8)
+* magit-fetch:                           Fetching.            (line  24)
+* magit-fetch-all:                       Fetching.            (line  28)
+* magit-fetch-from-pushremote:           Fetching.            (line  16)
+* magit-fetch-from-upstream:             Fetching.            (line  20)
+* magit-fetch-popup:                     Fetching.            (line  11)
 * magit-file-popup:                      Minor mode for buffers visiting files.
                                                               (line  19)
 * magit-find-file:                       Visiting blobs.      (line   6)
@@ -7193,20 +7218,20 @@ Appendix C Command Index
                                                               (line  63)
 * magit-process:                         Viewing Git output.  (line  11)
 * magit-process-kill:                    Viewing Git output.  (line  19)
-* magit-pull:                            Pulling.             (line  21)
-* magit-pull-from-pushremote:            Pulling.             (line  13)
-* magit-pull-from-upstream:              Pulling.             (line  17)
-* magit-pull-popup:                      Pulling.             (line   8)
-* magit-push:                            Pushing.             (line  36)
-* magit-push-current:                    Pushing.             (line  32)
-* magit-push-current-to-pushremote:      Pushing.             (line  13)
-* magit-push-current-to-upstream:        Pushing.             (line  23)
-* magit-push-implicitly args:            Pushing.             (line  61)
-* magit-push-matching:                   Pushing.             (line  41)
-* magit-push-popup:                      Pushing.             (line   8)
-* magit-push-tag:                        Pushing.             (line  53)
-* magit-push-tags:                       Pushing.             (line  47)
-* magit-push-to-remote remote args:      Pushing.             (line  72)
+* magit-pull:                            Pulling.             (line  24)
+* magit-pull-from-pushremote:            Pulling.             (line  16)
+* magit-pull-from-upstream:              Pulling.             (line  20)
+* magit-pull-popup:                      Pulling.             (line  11)
+* magit-push:                            Pushing.             (line  39)
+* magit-push-current:                    Pushing.             (line  35)
+* magit-push-current-to-pushremote:      Pushing.             (line  16)
+* magit-push-current-to-upstream:        Pushing.             (line  26)
+* magit-push-implicitly args:            Pushing.             (line  64)
+* magit-push-matching:                   Pushing.             (line  44)
+* magit-push-popup:                      Pushing.             (line  11)
+* magit-push-tag:                        Pushing.             (line  56)
+* magit-push-tags:                       Pushing.             (line  50)
+* magit-push-to-remote remote args:      Pushing.             (line  75)
 * magit-rebase:                          Rebasing.            (line  25)
 * magit-rebase-abort:                    Rebasing.            (line  84)
 * magit-rebase-autosquash:               Rebasing.            (line  57)
@@ -7321,7 +7346,7 @@ Appendix C Command Index
 * magit-stash-worktree:                  Stashing.            (line  25)
 * magit-status:                          Status buffer.       (line  22)
 * magit-submodule-add:                   Submodules.          (line  13)
-* magit-submodule-fetch:                 Fetching.            (line  29)
+* magit-submodule-fetch:                 Fetching.            (line  32)
 * magit-submodule-fetch <1>:             Submodules.          (line  37)
 * magit-submodule-init:                  Submodules.          (line  24)
 * magit-submodule-init <1>:              Submodules.          (line  41)

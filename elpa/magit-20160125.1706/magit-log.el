@@ -1304,7 +1304,7 @@ Type \\[magit-reset] to reset HEAD to the commit at point.
   (when (magit-git-success "rev-parse" "@{upstream}")
     (magit-insert-section (unpushed "@{upstream}..")
       (magit-insert-heading
-        (format (propertize "Unpushed to %s:" 'face 'magit-section-heading)
+        (format (propertize "Unmerged into %s:" 'face 'magit-section-heading)
                 (magit-get-upstream-branch)))
       (magit-insert-log "@{upstream}.." magit-log-section-arguments)
       (magit-section-cache-visibility))))
@@ -1447,9 +1447,11 @@ These sections can be expanded to show the respective commits."
 Supported modes are `magit-log-mode' and `magit-reflog-mode',
 and the respective options are `magit-log-show-margin' and
 `magit-reflog-show-margin'."
-  (pcase major-mode
-    (`magit-log-mode    (magit-set-buffer-margin magit-log-show-margin))
-    (`magit-reflog-mode (magit-set-buffer-margin magit-reflog-show-margin))))
+  (if (local-variable-p 'magit-show-margin)
+      (magit-set-buffer-margin magit-show-margin)
+    (pcase major-mode
+      (`magit-log-mode    (magit-set-buffer-margin magit-log-show-margin))
+      (`magit-reflog-mode (magit-set-buffer-margin magit-reflog-show-margin)))))
 
 (defun magit-set-buffer-margin (enable)
   (let ((width (cond ((not enable) nil)
