@@ -629,6 +629,8 @@ To add this command to the push popup add this to your init file:
   "Popup console for patch commands."
   'magit-commands
   :man-page "git-format-patch"
+  :switches '("Switches for formatting patches"
+              (?l "Add cover letter" "--cover-letter"))
   :options  '("Options for formatting patches"
               (?f "From"             "--from=")
               (?t "To"               "--to=")
@@ -661,7 +663,16 @@ HEAD but not from the specified commit)."
                  range
                (format "%s~..%s" range range))))
          (magit-patch-arguments)))
-  (magit-run-git "format-patch" range args))
+  (magit-call-git "format-patch" range args)
+  (when (member "--cover-letter" args)
+    (find-file
+     (expand-file-name
+      "0000-cover-letter.patch"
+      (let ((topdir (magit-toplevel)))
+        (or (--some (and (string-match "--output-directory=\\(.+\\)" it)
+                         (expand-file-name (match-string 1 it) topdir))
+                    args)
+            topdir))))))
 
 ;;;###autoload
 (defun magit-request-pull (url start end)
