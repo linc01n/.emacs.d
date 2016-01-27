@@ -5,5 +5,6 @@
            ("sh" . "bash")
            ("pl" . "perl")
            ("rb" . "ruby")))
+  (setq insert-shebang-track-ignored-filename nil)
   :config
-  (add-hook 'find-file-hook 'insert-shebang))
+  (add-to-list 'find-file-not-found-functions 'insert-shebang))
