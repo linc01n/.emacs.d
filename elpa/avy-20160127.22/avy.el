@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20160123.534
+;; Package-Version: 20160127.22
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -481,7 +481,12 @@ Set `avy-style' according to COMMMAND as well."
       (forward-sexp)
       (setq str (buffer-substring pt (point)))
       (kill-new str)
-      (message "Copied: %s" str))))
+      (message "Copied: %s" str)))
+  (let ((dat (ring-ref avy-ring 0)))
+    (select-frame-set-input-focus
+     (window-frame (cdr dat)))
+    (select-window (cdr dat))
+    (goto-char (car dat))))
 
 (defun avy-action-kill (pt)
   "Kill sexp at PT."
