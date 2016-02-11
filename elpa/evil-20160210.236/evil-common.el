@@ -870,16 +870,18 @@ Inhibits echo area messages, mode line updates and cursor changes."
   "Returns the number of currently visible lines."
   (- (window-height) 1))
 
-(defun evil-max-scroll-up ()
-  "Returns the maximal number of lines that can be scrolled up."
-  (1- (line-number-at-pos (window-start))))
-
-(defun evil-max-scroll-down ()
-  "Returns the maximal number of lines that can be scrolled down."
-  (if (pos-visible-in-window-p (window-end))
+(defun evil-count-lines (beg end)
+  "Return absolute line-number-difference betweeen `beg` and `end`.
+This should give the same results no matter where on the line `beg`
+and `end` are."
+  (if (= beg end)
       0
-    (1+ (- (line-number-at-pos (point-max))
-           (line-number-at-pos (window-end))))))
+    (let* ((last (max beg end))
+           (end-at-bol (save-excursion (goto-char last)
+                                       (bolp))))
+      (if end-at-bol
+          (count-lines beg end)
+        (1- (count-lines beg end))))))
 
 ;;; Movement
 
