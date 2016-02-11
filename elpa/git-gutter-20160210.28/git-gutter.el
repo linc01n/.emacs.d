@@ -4,7 +4,7 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter
-;; Package-Version: 20160126.1947
+;; Package-Version: 20160210.28
 ;; Version: 0.87
 ;; Package-Requires: ((cl-lib "0.5") (emacs "24"))
 
@@ -988,6 +988,47 @@ start revision."
 ;; for linum-user
 (when (and global-linum-mode (not (boundp 'git-gutter-fringe)))
   (git-gutter:linum-setup))
+
+(defun git-gutter:all-hunks ()
+  "Cound unstaged hunks in all buffers"
+  (let ((sum 0))
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        (when git-gutter-mode
+          (cl-incf sum (git-gutter:buffer-hunks)))))
+    sum))
+
+(defun git-gutter:buffer-hunks ()
+  "Count unstaged hunks in current buffer."
+  (length git-gutter:diffinfos))
+
+(defun git-gutter:stat-hunk (hunk)
+  (cl-case (plist-get hunk :type)
+    (modified (with-temp-buffer
+                (insert (plist-get hunk :content))
+                (goto-char (point-min))
+                (let ((added 0)
+                      (deleted 0))
+                  (while (not (eobp))
+                    (cond ((looking-at-p "\\+") (cl-incf added))
+                          ((looking-at-p "\\-") (cl-incf deleted)))
+                    (forward-line 1))
+                  (cons added deleted))))
+    (added (cons (- (plist-get hunk :end-line) (plist-get hunk :start-line)) 0))
+    (deleted (cons 0 (- (plist-get hunk :end-line) (plist-get hunk :start-line))))))
+
+(defun git-gutter:statistic ()
+  "Return statistic unstaged hunks in current buffer."
+  (interactive)
+  (cl-loop for hunk in git-gutter:diffinfos
+           for (add . del) = (git-gutter:stat-hunk hunk)
+           sum add into added
+           sum del into deleted
+           finally
+           return (progn
+                    (when (called-interactively-p 'interactive)
+                      (message "Added %d lines, Deleted %d lines" added deleted))
+                    (cons added deleted))))
 
 (provide 'git-gutter)
 
