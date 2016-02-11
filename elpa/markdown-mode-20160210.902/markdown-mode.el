@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160121.528
+;; Package-Version: 20160210.902
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -82,12 +82,8 @@
 ;;     git clone git://jblevins.org/git/markdown-mode.git
 ;;     git clone https://github.com/jrblevin/markdown-mode.git
 ;;
-;; [![Build Status][status]][travis]
-;;
 ;;  [devel.el]: http://jblevins.org/git/markdown-mode.git/plain/markdown-mode.el
 ;;  [GitHub]: https://github.com/jrblevin/markdown-mode/
-;;  [travis]: https://travis-ci.org/jrblevin/markdown-mode
-;;  [status]: https://travis-ci.org/jrblevin/markdown-mode.svg?branch=master
 ;;
 ;; markdown-mode is also available in several package managers, including:
 ;;
@@ -1084,6 +1080,12 @@ completion."
   :group 'markdown
   :type 'boolean)
 
+(defcustom markdown-use-pandoc-style-yaml-metadata nil
+  "When non-nil, allow yaml metadata anywhere in the document, and allow
+ellipses to close a metadata region."
+  :group 'markdown
+  :type 'boolean)
+
 (defcustom markdown-live-preview-window-function
   'markdown-live-preview-window-eww
   "Function to display preview of Markdown output within Emacs. Function must
@@ -1375,7 +1377,7 @@ Group 3 matches the mathematical expression contained within.")
 (defconst markdown-regex-math-display
   "^\\(\\\\\\[\\)\\(\\(?:.\\|\n\\)*\\)?\\(\\\\\\]\\)$"
   "Regular expression for itex \[..\] display mode expressions.
-Groups 1 and 3 matche the opening and closing delimiters.
+Groups 1 and 3 match the opening and closing delimiters.
 Group 2 matches the mathematical expression contained within.")
 
 (defconst markdown-regex-multimarkdown-metadata
@@ -1383,8 +1385,16 @@ Group 2 matches the mathematical expression contained within.")
   "Regular expression for matching MultiMarkdown metadata.")
 
 (defconst markdown-regex-pandoc-metadata
-  "^\\(%\\)\\([ \t]*\\)\\(.*\\)$"
+  "^\\(%\\)\\([ \t]*\\)\\(.*\\(?:\n[ \t]+.*\\)*\\)"
   "Regular expression for matching Pandoc metadata.")
+
+(defconst markdown-regex-yaml-metadata-border
+  "\\(\\-\\{3\\}\\)$"
+  "Regular expression for matching yaml metadata.")
+
+(defconst markdown-regex-yaml-pandoc-metadata-end-border
+  "\\(\\.\\{3\\}\\|\\-\\{3\\}\\)$"
+  "Regular expression for matching yaml metadata end borders.")
 
 
 ;;; Syntax ====================================================================
@@ -1497,6 +1507,17 @@ Function is called repeatedly until it returns nil. For details, see
                          'markdown-blockquote
                          (match-data t)))))
 
+ (defun markdown-syntax-propertize-yaml-metadata (start end)
+  (save-excursion
+    (goto-char start)
+    (while (markdown-match-yaml-metadata end)
+      (put-text-property (match-beginning 1) (match-end 1)
+                         'markdown-metadata-key (match-data t))
+      (put-text-property (match-beginning 2) (match-end 2)
+                         'markdown-metadata-markup (match-data t))
+      (put-text-property (match-beginning 3) (match-end 3)
+                         'markdown-metadata-value (match-data t)))))
+
 (defun markdown-syntax-propertize-headings-generic (symbol regex start end)
   "Match headings of type SYMBOL with REGEX from START to END."
   (save-excursion
@@ -1547,10 +1568,14 @@ Function is called repeatedly until it returns nil. For details, see
   (remove-text-properties start end '(markdown-heading-4-atx))
   (remove-text-properties start end '(markdown-heading-5-atx))
   (remove-text-properties start end '(markdown-heading-6-atx))
+  (remove-text-properties start end '(markdown-metadata-key))
+  (remove-text-properties start end '(markdown-metadata-value))
+  (remove-text-properties start end '(markdown-metadata-markup))
   (markdown-syntax-propertize-gfm-code-blocks start end)
   (markdown-syntax-propertize-fenced-code-blocks start end)
   (markdown-syntax-propertize-pre-blocks start end)
   (markdown-syntax-propertize-blockquotes start end)
+  (markdown-syntax-propertize-yaml-metadata start end)
   (markdown-syntax-propertize-headings-generic
    'markdown-heading-1-setext markdown-regex-header-1-setext start end)
   (markdown-syntax-propertize-headings-generic
@@ -1837,6 +1862,12 @@ See `font-lock-syntactic-face-function' for details."
 
 (defvar markdown-mode-font-lock-keywords-basic
   (list
+   (cons 'markdown-match-yaml-metadata-border
+         '((1 markdown-markup-face)
+           (2 markdown-markup-face)))
+   (cons 'markdown-match-yaml-metadata '((1 markdown-metadata-key-face)
+                                         (2 markdown-markup-face)
+                                         (3 markdown-metadata-value-face)))
    (cons 'markdown-match-gfm-code-blocks '((1 markdown-markup-face)
                                            (2 markdown-language-keyword-face nil t)
                                            (3 markdown-pre-face)
@@ -1924,8 +1955,7 @@ See `font-lock-syntactic-face-function' for details."
                                   (3 markdown-markup-face prepend)))
    (cons markdown-regex-uri 'markdown-link-face)
    (cons markdown-regex-email 'markdown-link-face)
-   (cons markdown-regex-line-break '(1 markdown-line-break-face prepend))
-   )
+   (cons markdown-regex-line-break '(1 markdown-line-break-face prepend)))
   "Syntax highlighting for Markdown files.")
 
 (defconst markdown-mode-font-lock-keywords-math
@@ -2600,30 +2630,60 @@ analysis."
         (set-match-data (list beg (point)))
         t))))
 
-(defun markdown-match-generic-metadata (regexp last)
+(defun markdown-get-match-boundaries (start-header end-header last &optional pos)
+  (save-excursion
+    (goto-char (or pos (point-min)))
+    (cl-loop
+     with cur-result = nil
+     and st-hdr = (or start-header "\\`")
+     and end-hdr = (or end-header "\n\n\\|\n\\'\\|\\'")
+     while (and (< (point) last)
+                (re-search-forward st-hdr last t)
+                (progn
+                  (setq cur-result (match-data))
+                  (re-search-forward end-hdr nil t)))
+     collect (list cur-result (match-data)))))
+
+(defvar markdown-conditional-search-function #'re-search-forward
+  "Conditional search function used in `markdown-search-until-condition'. Made
+into a variable to allow for dynamic let-binding.")
+(defun markdown-search-until-condition (condition &rest args)
+  (let (ret)
+    (while (and (not ret) (apply markdown-conditional-search-function args))
+      (setq ret (funcall condition)))
+    ret))
+
+(defun markdown-match-generic-metadata
+    (regexp last &optional start-header end-header)
   "Match generic metadata specified by REGEXP from the point to LAST."
-  (let ((header-end (save-excursion
-                      (goto-char (point-min))
-                      (if (re-search-forward "\n\n" (point-max) t)
-                          (match-beginning 0)
-                        (point-max)))))
-    (cond ((>= (point) header-end)
-           ;; Don't match anything outside of the header.
+  ;; if start-header is nil, we assume metadata can only occur at the very top
+  ;; of a file ("\\`"). if end-header is nil, we assume it is "\n\n"
+  (let* ((header-bounds
+          (markdown-get-match-boundaries start-header end-header last))
+         (enclosing-header
+          (cl-find-if                   ; just take first if multiple
+           (lambda (match-bounds)
+             (cl-destructuring-bind (start-match end-match) match-bounds
+               (and
+                (< (point) (cl-first end-match))
+                (save-excursion
+                  (re-search-forward regexp (cl-second end-match) t)))))
+           header-bounds))
+         (header-begin
+          (when enclosing-header (cl-second (cl-first enclosing-header))))
+         (header-end
+          (when enclosing-header (cl-first (cl-second enclosing-header)))))
+    (cond ((null enclosing-header)
+           ;; Don't match anything outside of a header.
            nil)
-          ((re-search-forward regexp (min last header-end) t)
+          ((markdown-search-until-condition
+            (lambda () (> (point) header-begin)) regexp (min last header-end) t)
            ;; If a metadata item is found, it may span several lines.
            (let ((key-beginning (match-beginning 1))
                  (key-end (match-end 1))
                  (markup-begin (match-beginning 2))
                  (markup-end (match-end 2))
                  (value-beginning (match-beginning 3)))
-             (while (and (not (looking-at regexp))
-                         (not (> (point) (min last header-end)))
-                         (not (eobp)))
-               (forward-line))
-             (unless (eobp)
-               (forward-line -1)
-               (end-of-line))
              (set-match-data (list key-beginning (point) ; complete metadata
                                    key-beginning key-end ; key
                                    markup-begin markup-end ; markup
@@ -2638,6 +2698,49 @@ analysis."
 (defun markdown-match-pandoc-metadata (last)
   "Match Pandoc metadata from the point to LAST."
   (markdown-match-generic-metadata markdown-regex-pandoc-metadata last))
+
+(defun markdown-match-yaml-metadata (last)
+  "Match yaml metadata from the point to LAST."
+  (markdown-match-generic-metadata
+   markdown-regex-multimarkdown-metadata last
+   (concat
+    (if markdown-use-pandoc-style-yaml-metadata "^" "\\`")
+    markdown-regex-yaml-metadata-border)
+   (concat
+    "^"
+    (if markdown-use-pandoc-style-yaml-metadata
+        markdown-regex-yaml-pandoc-metadata-end-border
+      markdown-regex-yaml-metadata-border))))
+
+(defun markdown-match-yaml-metadata-border (last)
+  (let ((res
+         (cl-first
+          (markdown-get-match-boundaries
+           (concat
+            (if markdown-use-pandoc-style-yaml-metadata "^" "\\`")
+            markdown-regex-yaml-metadata-border)
+           (concat
+            "^"
+            (if markdown-use-pandoc-style-yaml-metadata
+                markdown-regex-yaml-pandoc-metadata-end-border
+              markdown-regex-yaml-metadata-border))
+           last (point)))))
+    (when res
+      (cl-destructuring-bind (start-header end-header) res
+        (set-match-data
+         (list (cl-third start-header) (cl-fourth end-header)
+               (cl-third start-header) (cl-fourth start-header)
+               (cl-third end-header) (cl-fourth end-header)))
+        t))))
+
+(defun markdown-match-yaml-metadata-key (last)
+  (markdown-match-propertized-text 'markdown-metadata-key last))
+
+(defun markdown-match-yaml-metadata-markup (last)
+  (markdown-match-propertized-text 'markdown-metadata-markup last))
+
+(defun markdown-match-yaml-metadata-value (last)
+  (markdown-match-propertized-text 'markdown-metadata-value last))
 
 
 ;;; Syntax Table ==============================================================
@@ -2910,7 +3013,7 @@ be used to populate the title attribute when converted to XHTML."
         (insert url)
       ;; When no URL is given, leave cursor at END following the colon
       (setq end (point)))
-    (when title
+    (when (> (length title) 0)
       (insert " \"" title "\""))
     (unless (looking-at "\n")
       (insert "\n"))
@@ -5271,8 +5374,13 @@ Return the name of the output buffer used."
                          output-buffer-name)))
        ;; Pass region to `markdown-command' via stdin
        (t
-        (shell-command-on-region begin-region end-region markdown-command
-                                 output-buffer-name))))
+        (let ((buf (get-buffer-create output-buffer-name)))
+          (with-current-buffer buf
+            (setq buffer-read-only nil)
+            (erase-buffer))
+          (call-process-region begin-region end-region
+                               shell-file-name nil buf nil
+                               shell-command-switch markdown-command)))))
     output-buffer-name))
 
 (defun markdown-standalone (&optional output-buffer-name)
