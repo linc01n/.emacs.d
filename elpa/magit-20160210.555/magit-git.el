@@ -317,13 +317,11 @@ call function WASHER with no argument."
                 (= (point) (1+ beg)))
         (magit-cancel-section)))))
 
-(defun magit-git-version (&optional numeric)
+(defun magit-git-version (&optional raw)
   (--when-let (let (magit-git-global-arguments)
                 (ignore-errors (substring (magit-git-string "version") 12)))
-    (if numeric
-        (and (string-match "^\\([0-9]+\\.[0-9]+\\.[0-9]+\\)" it)
-             (match-string 1 it))
-      it)))
+    (if raw it (and (string-match "^\\([0-9]+\\.[0-9]+\\.[0-9]+\\)" it)
+                    (match-string 1 it)))))
 
 ;;; Files
 
@@ -564,7 +562,12 @@ range.  Otherwise, it can be any revision or range accepted by
                               (file-name-as-directory (match-string 1 it)))
                       (lwarn '(magit) :error
                              "Failed to parse Cygwin mount: %S" it))
-                    (ignore-errors (process-lines "mount")))
+                    ;; If --exec-path is not a native Windows path,
+                    ;; then we probably have a cygwin git.
+                    (and (not (string-match-p
+                               "\\`[a-zA-Z]:"
+                               (car (process-lines "git" "--exec-path"))))
+                         (ignore-errors (process-lines "mount"))))
              #'> :key (-lambda ((cyg . _win)) (length cyg))))
   "Alist of (CYGWIN . WIN32) directory names.
 Sorted from longest to shortest CYGWIN name."
