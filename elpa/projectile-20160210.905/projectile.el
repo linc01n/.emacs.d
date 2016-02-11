@@ -4,7 +4,7 @@
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
-;; Package-Version: 20160124.940
+;; Package-Version: 20160210.905
 ;; Keywords: project, convenience
 ;; Version: 0.13.0
 ;; Package-Requires: ((dash "2.11.0") (pkg-info "0.4"))
@@ -869,7 +869,7 @@ Files are returned as relative paths to the project root."
   :group 'projectile
   :type 'string)
 
-(defcustom projectile-fossil-command "fossil ls"
+(defcustom projectile-fossil-command "fossil ls | tr '\\n' '\\0'"
   "Command used by projectile to get the files in a fossil project."
   :group 'projectile
   :type 'string)
@@ -913,15 +913,10 @@ Files are returned as relative paths to the project root."
      (t ""))))
 
 (defun projectile-get-all-sub-projects (project)
-  "Get all sub-projects for a given projects.
-PROJECT is base directory to start search recursively."
-  (let* ((default-directory project)
-         ;; search for sub-projects under current project `project'
-         (submodules (mapcar
-                      (lambda (s)
-                        (file-name-as-directory (expand-file-name s default-directory)))
-                      (projectile-files-via-ext-command (projectile-get-sub-projects-command)))))
+  "Get all sub-projects for a given project.
 
+PROJECT is base directory to start search recursively."
+  (let ((submodules (projectile-get-immediate-sub-projects project)))
     (cond
      ((null submodules)
       nil)
@@ -930,6 +925,33 @@ PROJECT is base directory to start search recursively."
                          ;; recursively get sub-projects of each sub-project
                          (mapcar (lambda (s)
                                    (projectile-get-all-sub-projects s)) submodules)))))))
+
+(defun projectile-get-immediate-sub-projects (path)
+  "Get immediate sub-projects for a given project without recursing.
+
+PATH is the vcs root or project root from which to start
+searching, and should end with an appropriate path delimiter, such as
+'/' or a '\\'.
+
+If the vcs get-sub-projects query returns results outside of path,
+they are excluded from the results of this function."
+  (let* ((default-directory path)
+         ;; search for sub-projects under current project `project'
+         (submodules (mapcar
+                      (lambda (s)
+                        (file-name-as-directory (expand-file-name s default-directory)))
+                      (projectile-files-via-ext-command (projectile-get-sub-projects-command))))
+         (project-child-folder-regex
+          (concat "\\`"
+                  (regexp-quote path))))
+
+    ;; If project root is inside of an VCS folder, but not actually an
+    ;; VCS root itself, submodules external to the project will be
+    ;; included in the VCS get sub-projects result. Let's remove them.
+    (-filter (lambda (submodule)
+               (string-match-p project-child-folder-regex
+                               submodule))
+             submodules)))
 
 (defun projectile-get-sub-projects-files ()
   "Get files from sub-projects recursively."
@@ -1796,8 +1818,8 @@ It assumes the test/ folder is at the same level as src/."
 
 (defun projectile-dirname-matching-count (a b)
   "Count matching dirnames ascending file paths."
-  (setq a (reverse (split-string (file-name-directory a) "/" t))
-        b (reverse (split-string (file-name-directory b) "/" t)))
+  (setq a (reverse (split-string (or (file-name-directory a) "") "/" t))
+        b (reverse (split-string (or (file-name-directory b) "") "/" t)))
   (let ((common 0))
     (while (and a b (string-equal (pop a) (pop b)))
       (setq common (1+ common)))
@@ -1811,8 +1833,8 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-find-matching-test (file)
   "Compute the name of the test matching FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension file)))
-         (test-prefix (projectile-test-prefix (projectile-project-type)))
-         (test-suffix (projectile-test-suffix (projectile-project-type)))
+         (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
+         (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
           (-filter (lambda (current-file)
                      (let ((name (file-name-nondirectory
@@ -1833,8 +1855,8 @@ It assumes the test/ folder is at the same level as src/."
 (defun projectile-find-matching-file (test-file)
   "Compute the name of a file matching TEST-FILE."
   (let* ((basename (file-name-nondirectory (file-name-sans-extension test-file)))
-         (test-prefix (projectile-test-prefix (projectile-project-type)))
-         (test-suffix (projectile-test-suffix (projectile-project-type)))
+         (test-prefix (funcall projectile-test-prefix-function (projectile-project-type)))
+         (test-suffix (funcall projectile-test-suffix-function (projectile-project-type)))
          (candidates
           (-filter (lambda (current-file)
                      (let ((name (file-name-nondirectory
