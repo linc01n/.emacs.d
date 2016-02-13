@@ -6,7 +6,7 @@
 ;; Extracted from basic-toolkit.el by Andy Stewart.
 ;; Copyright (C) 2009, Andy Stewart, all rights reserved.
 ;; Keywords: edit
-;; Package-Version: 20160209.303
+;; Package-Version: 20160211.1847
 ;; Compatibility: GNU Emacs 23.0.60.1
 ;; Version: 1.0
 ;;
@@ -51,7 +51,7 @@
 
 ;;; Acknowledgements:
 ;;
-;;  Feature extracted from basid-edit-toolkit.el - by Andy Stewart. (LazyCat)
+;;  Feature extracted from basic-edit-toolkit.el - by Andy Stewart (LazyCat)
 ;;
 
 ;;; Code:
@@ -75,7 +75,14 @@
       (when (or (> arg 0) (not (bobp)))
         (forward-line)
         (when (or (< arg 0) (not (eobp)))
-          (transpose-lines arg))
+          (transpose-lines arg)
+          ;; Account for changes to transpose-lines in Emacs 24.3
+          (when (and (eval-when-compile
+                       (not (version-list-<
+                             (version-to-list emacs-version)
+                             '(24 3 50 0))))
+                     (< arg 0))
+            (forward-line -1)))
         (forward-line -1))
       (move-to-column column t)))))
 
