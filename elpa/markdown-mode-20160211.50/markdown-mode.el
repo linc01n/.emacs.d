@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160210.902
+;; Package-Version: 20160211.50
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -5066,11 +5066,11 @@ Stop at the first and last headings of a superior heading."
   (markdown-back-to-heading-over-code-block)
   (while (> arg 0)
     (let ((point-to-move-to (save-excursion
-			      (outline-get-last-sibling))))
+                              (outline-get-last-sibling))))
       (if point-to-move-to
-	  (progn
-	    (goto-char point-to-move-to)
-	    (setq arg (1- arg)))
+          (progn
+            (goto-char point-to-move-to)
+            (setq arg (1- arg)))
         (error "No previous same-level heading")))))
 
 (defun markdown-up-heading (arg)
@@ -6034,8 +6034,8 @@ before regenerating font-lock rules for extensions."
     (goto-char start)
     (let ((case-fold-search t))
       (save-excursion
-	(while (re-search-forward markdown-regex-gfm-checkbox end t)
-	  (make-button (match-beginning 1) (match-end 1)
+        (while (re-search-forward markdown-regex-gfm-checkbox end t)
+          (make-button (match-beginning 1) (match-end 1)
                        :type 'markdown-gfm-checkbox-button))))))
 
 ;; Called when any modification is made to buffer text.
