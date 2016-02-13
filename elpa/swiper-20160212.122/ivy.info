@@ -69,6 +69,7 @@ through powerful regular expressions.
 * Commands::
 * API::
 * Variable Index::
+* Keystroke Index::
 
 — The Detailed Node Listing —
 
@@ -89,8 +90,8 @@ Key bindings
 Minibuffer key bindings
 
 * Key bindings for navigation::
-* Key bindings for single selection, action, then exit minibuffer: Key bindings for single selection action then exit minibuffer.
-* Key bindings for multiple selections and actions, keep minibuffer open: Key bindings for multiple selections and actions keep minibuffer open.
+* Key bindings for single selection, action, then exit minibuffer: Key bindings for single selection action then exit minibuffer. 
+* Key bindings for multiple selections and actions, keep minibuffer open: Key bindings for multiple selections and actions keep minibuffer open. 
 * Key bindings that alter the minibuffer input::
 * Other key bindings::
 * Hydra in the minibuffer::
@@ -369,8 +370,8 @@ buffer.
 * Menu:
 
 * Key bindings for navigation::
-* Key bindings for single selection, action, then exit minibuffer: Key bindings for single selection action then exit minibuffer.
-* Key bindings for multiple selections and actions, keep minibuffer open: Key bindings for multiple selections and actions keep minibuffer open.
+* Key bindings for single selection, action, then exit minibuffer: Key bindings for single selection action then exit minibuffer. 
+* Key bindings for multiple selections and actions, keep minibuffer open: Key bindings for multiple selections and actions keep minibuffer open. 
 * Key bindings that alter the minibuffer input::
 * Other key bindings::
 * Hydra in the minibuffer::
@@ -1607,7 +1608,7 @@ order that they appear:
    • ‘caller’ argument identifies this command for easier customization.
 
 
-File: ivy.info,  Node: Variable Index,  Prev: API,  Up: Top
+File: ivy.info,  Node: Variable Index,  Next: Keystroke Index,  Prev: API,  Up: Top
 
 Variable Index
 **************
@@ -1615,64 +1616,228 @@ Variable Index
  [index ]
 * Menu:
 
+* ivy-alt-done:                          Key bindings for single selection action then exit minibuffer.
+                                                               (line 31)
+* ivy-alt-done <1>:                      File Name Completion. (line 12)
+* ivy-avy:                               Key bindings for single selection action then exit minibuffer.
+                                                               (line 65)
+* ivy-backward-delete-char:              File Name Completion. (line 19)
+* ivy-call:                              Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 16)
+* ivy-confirm-face:                      Faces.                (line 34)
 * ivy-count-format:                      Defcustoms.           (line  6)
+* ivy-current-match:                     Faces.                (line  9)
+* ivy-dispatching-call:                  Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 26)
+* ivy-dispatching-done:                  Key bindings for single selection action then exit minibuffer.
+                                                               (line 24)
 * ivy-display-style:                     Defcustoms.           (line 25)
+* ivy-done:                              Key bindings for single selection action then exit minibuffer.
+                                                               (line 19)
 * ivy-extra-directories:                 File Name Completion. (line 45)
 * ivy-height:                            Key bindings for navigation.
                                                                (line 22)
+* ivy-immediate-done:                    Key bindings for single selection action then exit minibuffer.
+                                                               (line 54)
+* ivy-insert-current:                    Key bindings that alter the minibuffer input.
+                                                               (line 23)
+* ivy-kill-ring-save:                    Other key bindings.   (line  9)
+* ivy-match-required-face:               Faces.                (line 54)
+* ivy-minibuffer-grow:                   Hydra in the minibuffer.
+                                                               (line 46)
+* ivy-minibuffer-map:                    Minibuffer key bindings.
+                                                               (line  6)
+* ivy-minibuffer-match-face-1:           Faces.                (line 14)
+* ivy-minibuffer-match-face-2:           Faces.                (line 19)
+* ivy-minibuffer-match-face-3:           Faces.                (line 24)
+* ivy-minibuffer-match-face-4:           Faces.                (line 29)
+* ivy-minibuffer-shrink:                 Hydra in the minibuffer.
+                                                               (line 51)
+* ivy-next-action:                       Hydra in the minibuffer.
+                                                               (line 61)
+* ivy-next-history-element:              Key bindings that alter the minibuffer input.
+                                                               (line  9)
+* ivy-next-line-and-call:                Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 36)
+* ivy-occur:                             Saving the current completion session to a buffer.
+                                                               (line  9)
+* ivy-occur-click:                       Saving the current completion session to a buffer.
+                                                               (line 21)
+* ivy-occur-dispatch:                    Saving the current completion session to a buffer.
+                                                               (line 41)
+* ivy-occur-press:                       Saving the current completion session to a buffer.
+                                                               (line 16)
+* ivy-occur-read-action:                 Saving the current completion session to a buffer.
+                                                               (line 36)
 * ivy-on-del-error-function:             Defcustoms.           (line 33)
+* ivy-partial-or-done:                   Key bindings for single selection action then exit minibuffer.
+                                                               (line 38)
+* ivy-prev-action:                       Hydra in the minibuffer.
+                                                               (line 56)
+* ivy-previous-history-element:          Key bindings that alter the minibuffer input.
+                                                               (line 18)
+* ivy-previous-line-and-call:            Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 47)
+* ivy-read-action:                       Hydra in the minibuffer.
+                                                               (line 66)
+* ivy-remote:                            Faces.                (line 73)
+* ivy-restrict-to-matches:               Key bindings that alter the minibuffer input.
+                                                               (line 40)
+* ivy-resume:                            Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 55)
+* ivy-reverse-i-search:                  Key bindings that alter the minibuffer input.
+                                                               (line 48)
+* ivy-subdir:                            Faces.                (line 68)
+* ivy-toggle-calling:                    Hydra in the minibuffer.
+                                                               (line 35)
+* ivy-toggle-case-fold:                  Hydra in the minibuffer.
+                                                               (line 71)
+* ivy-toggle-fuzzy:                      Hydra in the minibuffer.
+                                                               (line 41)
+* ivy-toggle-regexp-quote:               File Name Completion. (line 41)
 * ivy-use-virtual-buffers:               Buffer Name Completion.
                                                                (line  6)
+* ivy-virtual:                           Faces.                (line 78)
 * ivy-wrap:                              Key bindings for navigation.
                                                                (line 14)
+* ivy-yank-word:                         Key bindings that alter the minibuffer input.
+                                                               (line 32)
+
+
+File: ivy.info,  Node: Keystroke Index,  Prev: Variable Index,  Up: Top
+
+Keystroke Index
+***************
+
+ [index ]
+* Menu:
+
+* /:                                     File Name Completion. (line 35)
+* //:                                    File Name Completion. (line 25)
+* <:                                     Hydra in the minibuffer.
+                                                               (line 51)
+* >:                                     Hydra in the minibuffer.
+                                                               (line 46)
+* ~:                                     File Name Completion. (line 30)
+* a:                                     Hydra in the minibuffer.
+                                                               (line 66)
+* a <1>:                                 Saving the current completion session to a buffer.
+                                                               (line 36)
+* c:                                     Hydra in the minibuffer.
+                                                               (line 35)
+* C:                                     Hydra in the minibuffer.
+                                                               (line 71)
+* C-':                                   Key bindings for single selection action then exit minibuffer.
+                                                               (line 65)
+* C-c C-o:                               Saving the current completion session to a buffer.
+                                                               (line  9)
+* C-j:                                   Key bindings for single selection action then exit minibuffer.
+                                                               (line 31)
+* C-j <1>:                               File Name Completion. (line 12)
+* C-m:                                   Key bindings for single selection action then exit minibuffer.
+                                                               (line 19)
+* C-M-j:                                 Key bindings for single selection action then exit minibuffer.
+                                                               (line 54)
+* C-M-m:                                 Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 16)
+* C-M-n:                                 Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 36)
+* C-M-o:                                 Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 26)
+* C-M-p:                                 Key bindings for multiple selections and actions keep minibuffer open.
+                                                               (line 47)
+* C-o:                                   Hydra in the minibuffer.
+                                                               (line  9)
+* C-r:                                   Key bindings that alter the minibuffer input.
+                                                               (line 48)
+* DEL:                                   File Name Completion. (line 19)
+* j:                                     Saving the current completion session to a buffer.
+                                                               (line 16)
+* j <1>:                                 Saving the current completion session to a buffer.
+                                                               (line 26)
+* k:                                     Saving the current completion session to a buffer.
+                                                               (line 31)
+* m:                                     Hydra in the minibuffer.
+                                                               (line 41)
+* M-i:                                   Key bindings that alter the minibuffer input.
+                                                               (line 23)
+* M-j:                                   Key bindings that alter the minibuffer input.
+                                                               (line 32)
+* M-n:                                   Key bindings that alter the minibuffer input.
+                                                               (line  9)
+* M-o:                                   Key bindings for single selection action then exit minibuffer.
+                                                               (line 24)
+* M-p:                                   Key bindings that alter the minibuffer input.
+                                                               (line 18)
+* M-q:                                   File Name Completion. (line 41)
+* M-w:                                   Other key bindings.   (line  9)
+* mouse-1:                               Saving the current completion session to a buffer.
+                                                               (line 21)
+* o:                                     Saving the current completion session to a buffer.
+                                                               (line 41)
+* q:                                     Saving the current completion session to a buffer.
+                                                               (line 46)
+* RET:                                   Key bindings for single selection action then exit minibuffer.
+                                                               (line 19)
+* RET <1>:                               Saving the current completion session to a buffer.
+                                                               (line 16)
+* s:                                     Hydra in the minibuffer.
+                                                               (line 61)
+* S-SPC:                                 Key bindings that alter the minibuffer input.
+                                                               (line 40)
+* TAB:                                   Key bindings for single selection action then exit minibuffer.
+                                                               (line 38)
+* w:                                     Hydra in the minibuffer.
+                                                               (line 56)
 
 
 
 Tag Table:
 Node: Top1355
-Node: Introduction4376
-Node: Installation6856
-Node: Installing from Emacs Package Manager7406
-Node: Installing from the Git repository8364
-Node: Getting started9152
-Node: Basic customization9459
-Node: Key bindings9874
-Node: Global key bindings10066
-Node: Minibuffer key bindings11384
-Node: Key bindings for navigation12683
-Node: Key bindings for single selection action then exit minibuffer13825
-Node: Key bindings for multiple selections and actions keep minibuffer open16507
-Node: Key bindings that alter the minibuffer input18881
-Node: Other key bindings20769
-Node: Hydra in the minibuffer21161
-Node: Saving the current completion session to a buffer23318
-Node: Completion styles24735
-Node: ivy--regex-plus26500
-Node: ivy--regex-ignore-order27992
-Node: ivy--regex-fuzzy28360
-Node: Customization28927
-Node: Faces29113
-Node: Defcustoms31527
-Node: Actions32749
-Node: What are actions?33080
-Node: How can different actions be called?33914
-Node: How can the action list be modified?34425
-Node: Example - add two actions to each command35100
-Node: How to undo adding the two actions36069
-Node: How to add actions to a specific command36516
-Node: Example - define a new command with several actions36932
-Node: Testing out the above function with ‘ivy-occur’37899
-Node: Packages38655
-Node: Commands39587
-Node: File Name Completion39772
-Node: Buffer Name Completion42407
-Node: Counsel commands43030
-Node: API43799
-Node: Required arguments for ‘ivy-read’44476
-Node: Optional arguments for ‘ivy-read’45153
-Node: Example - ‘counsel-describe-function’48272
-Node: Example - ‘counsel-locate’51796
-Node: Variable Index55447
+Node: Introduction4398
+Node: Installation6878
+Node: Installing from Emacs Package Manager7428
+Node: Installing from the Git repository8386
+Node: Getting started9174
+Node: Basic customization9481
+Node: Key bindings9896
+Node: Global key bindings10088
+Node: Minibuffer key bindings11406
+Node: Key bindings for navigation12707
+Node: Key bindings for single selection action then exit minibuffer13849
+Node: Key bindings for multiple selections and actions keep minibuffer open16531
+Node: Key bindings that alter the minibuffer input18905
+Node: Other key bindings20793
+Node: Hydra in the minibuffer21185
+Node: Saving the current completion session to a buffer23342
+Node: Completion styles24759
+Node: ivy--regex-plus26524
+Node: ivy--regex-ignore-order28016
+Node: ivy--regex-fuzzy28384
+Node: Customization28951
+Node: Faces29137
+Node: Defcustoms31551
+Node: Actions32773
+Node: What are actions?33104
+Node: How can different actions be called?33938
+Node: How can the action list be modified?34449
+Node: Example - add two actions to each command35124
+Node: How to undo adding the two actions36093
+Node: How to add actions to a specific command36540
+Node: Example - define a new command with several actions36956
+Node: Testing out the above function with ‘ivy-occur’37923
+Node: Packages38679
+Node: Commands39611
+Node: File Name Completion39796
+Node: Buffer Name Completion42431
+Node: Counsel commands43054
+Node: API43823
+Node: Required arguments for ‘ivy-read’44500
+Node: Optional arguments for ‘ivy-read’45177
+Node: Example - ‘counsel-describe-function’48296
+Node: Example - ‘counsel-locate’51820
+Node: Variable Index55471
+Node: Keystroke Index62372
 
 End Tag Table
 
