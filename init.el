@@ -32,9 +32,7 @@
                   'save-buffer)
   (global-set-key (kbd "s-k")
                   'kill-this-buffer)
-  (global-set-key (kbd "s-1")
-                  'delete-other-windows)
-  (global-set-key (kbd "s-c")
+    (global-set-key (kbd "s-c")
                   'kill-ring-save)
   (global-set-key (kbd "s-x")
                   'kill-region)
@@ -53,7 +51,21 @@
   (global-set-key (kbd "s-a")
                   'mark-whole-buffer)
   (global-set-key [s-down]
-                  'duplicate-current-line-or-region))
+                  'duplicate-current-line-or-region)
+  (global-set-key (kbd "<s-right>")
+                  'next-buffer)
+  (global-set-key (kbd "<s-left>")
+                  'previous-buffer)
+
+  ;; window-splitting
+  (global-set-key (kbd "s-1")
+                  'delete-other-windows)
+  (global-set-key (kbd "s-2")
+                  'split-window-vertically)
+  (global-set-key (kbd "s-3")
+                  'split-window-horizontally)
+  (global-set-key (kbd "s-4")
+                  'delete-other-windows-vertically))
 
 (global-set-key (kbd "C-a") 'smart-beginning-of-line)
 
