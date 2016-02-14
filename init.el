@@ -96,12 +96,6 @@
   :defer t
   :config (add-hook 'occur-mode-hook 'turn-on-occur-x-mode))
 
-(req-package avy
-  :bind (("C-c :" . avy-goto-char)
-         ("C-c '" . avy-goto-char-2)
-         ("M-g g" . avy-goto-line))
-  :config (avy-setup-default))
-
 (req-package js2-mode :mode "\\.js\\'")
 
 (req-package coffee-mode :mode "\\.coffee\\'")
