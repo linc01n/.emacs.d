@@ -30,6 +30,7 @@
 (require 'evil-ex)
 (require 'evil-types)
 (require 'evil-command-window)
+(require 'evil-jumps)
 
 ;;; Compatibility for Emacs 23
 (unless (fboundp 'window-body-width)
@@ -697,39 +698,13 @@ Columns are counted from zero."
   "Go to older position in jump list.
 To go the other way, press \
 \\<evil-motion-state-map>\\[evil-jump-forward]."
-  (let ((current-pos (make-marker))
-        (count (or count 1)) i)
-    (unless evil-jump-list
-      (move-marker current-pos (point))
-      (add-to-list 'evil-jump-list current-pos))
-    (evil-motion-loop (nil count)
-      (setq current-pos (make-marker))
-      ;; skip past duplicate entries in the mark ring
-      (setq i (length mark-ring))
-      (while (progn (move-marker current-pos (point))
-                    (set-mark-command 0)
-                    (setq i (1- i))
-                    (and (= (point) current-pos) (> i 0))))
-      ;; Already there?
-      (move-marker current-pos (point))
-      (unless (= current-pos (car-safe evil-jump-list))
-        (add-to-list 'evil-jump-list current-pos)))))
+  (evil--jump-backward count))
 
 (evil-define-motion evil-jump-forward (count)
   "Go to newer position in jump list.
 To go the other way, press \
 \\<evil-motion-state-map>\\[evil-jump-backward]."
-  (let ((count (or count 1))
-        current-pos next-pos)
-    (evil-motion-loop (nil count)
-      (setq current-pos (car-safe evil-jump-list)
-            next-pos (car (cdr-safe evil-jump-list)))
-      (when next-pos
-        (push-mark current-pos t nil)
-        (unless (eq (marker-buffer next-pos) (current-buffer))
-          (switch-to-buffer (marker-buffer next-pos)))
-        (goto-char next-pos)
-        (pop evil-jump-list)))))
+  (evil--jump-forward count))
 
 (evil-define-motion evil-jump-to-tag (arg)
   "Jump to tag under point.
