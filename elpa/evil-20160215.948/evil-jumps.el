@@ -169,21 +169,26 @@
 (evil-define-command evil-show-jumps ()
   "Display the contents of the jump list."
   :repeat nil
-  (evil-with-view-list "evil-jumps"
-    (require 'tabulated-list)
-    (setq tabulated-list-format [("Jump" 5 t)
-                                 ("Marker" 8 t)
-                                 ("File/text" 1000 t)])
-    (tabulated-list-init-header)
-    (setq tabulated-list-entries
-          (lambda ()
-            (let* ((jumps (evil--jumps-savehist-sync))
-                   (count 0))
-              (cl-loop for jump in jumps
-                       collect `(,(incf count) [,(number-to-string count)
-                                                ,(number-to-string (car jump))
-                                                ,(cdr jump)])))))
-    (tabulated-list-print)))
+  (evil-with-view-list
+    :name "evil-jumps"
+    :mode "Evil Jump List"
+    :format [("Jump" 5 nil)
+             ("Marker" 8 nil)
+             ("File/text" 1000 t)]
+    :entries (let* ((jumps (evil--jumps-savehist-sync))
+                    (count 0))
+               (cl-loop for jump in jumps
+                        collect `(nil [,(number-to-string (incf count))
+                                       ,(number-to-string (car jump))
+                                       (,(cadr jump))])))
+    :select-action #'evil--show-jumps-select-action))
+
+(defun evil--show-jumps-select-action (jump)
+  (let ((position (string-to-number (elt jump 1)))
+        (file (car (elt jump 2))))
+    (kill-buffer)
+    (switch-to-buffer (find-file file))
+    (goto-char position)))
 
 (defun evil-set-jump (&optional pos)
   "Set jump point at POS.
