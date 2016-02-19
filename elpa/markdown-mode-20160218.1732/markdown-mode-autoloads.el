@@ -1,10 +1,10 @@
 ;;; markdown-mode-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "markdown-mode" "markdown-mode.el" (22212 23483
-;;;;;;  414106 218000))
+;;;### (autoloads nil "markdown-mode" "markdown-mode.el" (22214 44512
+;;;;;;  0 0))
 ;;; Generated autoloads from markdown-mode.el
 
 (autoload 'markdown-mode "markdown-mode" "\
