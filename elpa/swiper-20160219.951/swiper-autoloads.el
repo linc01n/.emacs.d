@@ -1,9 +1,9 @@
 ;;; swiper-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
+(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "ivy" "ivy.el" (22214 44495 0 0))
+;;;### (autoloads nil "ivy" "ivy.el" (22215 55500 72941 424000))
 ;;; Generated autoloads from ivy.el
 
 (autoload 'ivy-resume "ivy" "\
@@ -68,7 +68,7 @@ Find a file on `recentf-list'.
 
 ;;;***
 
-;;;### (autoloads nil "swiper" "swiper.el" (22214 44495 0 0))
+;;;### (autoloads nil "swiper" "swiper.el" (22215 55500 35875 147000))
 ;;; Generated autoloads from swiper.el
 
 (autoload 'swiper-avy "swiper" "\
@@ -90,7 +90,7 @@ When non-nil, INITIAL-INPUT is the initial search pattern.
 ;;;***
 
 ;;;### (autoloads nil nil ("colir.el" "ivy-hydra.el" "swiper-pkg.el")
-;;;;;;  (22214 44495 0 0))
+;;;;;;  (22215 55500 93563 315000))
 
 ;;;***
 
