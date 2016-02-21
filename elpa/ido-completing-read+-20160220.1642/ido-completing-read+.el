@@ -5,8 +5,8 @@
 ;; Filename: ido-completing-read+.el
 ;; Author: Ryan Thompson
 ;; Created: Sat Apr  4 13:41:20 2015 (-0700)
-;; Version: 3.11
-;; Package-Version: 20160217.1053
+;; Version: 3.12
+;; Package-Version: 20160220.1642
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; URL: https://github.com/DarwinAwardWinner/ido-ubiquitous
 ;; Keywords: ido, completion, convenience
@@ -42,7 +42,7 @@
 ;;
 ;;; Code:
 
-(defconst ido-completing-read+-version "3.11"
+(defconst ido-completing-read+-version "3.12"
   "Currently running version of ido-ubiquitous.
 
 Note that when you update ido-completing-read+, this variable may
@@ -297,7 +297,7 @@ sets up C-j to be equivalent to TAB in the same situation."
        ;; Require-match is non-nil
        (with-no-warnings ido-require-match)
        ;; A default was provided, or ido-text is non-empty
-       (or ido-default-item
+       (or (with-no-warnings ido-default-item)
            (not (string= ido-text "")))
        ;; Only if current text is not a complete choice
        (not (member ido-text (with-no-warnings ido-cur-list))))
