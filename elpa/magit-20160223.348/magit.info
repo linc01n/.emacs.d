@@ -27,7 +27,7 @@ END-INFO-DIR-ENTRY
 
 Indirect:
 magit.info-1: 1222
-magit.info-2: 314831
+magit.info-2: 316256
 
 Tag Table:
 (Indirect)
@@ -119,41 +119,42 @@ Node: Per-repository configuration197161
 Node: Essential settings198795
 Node: Safety199119
 Node: Performance200952
-Node: Plumbing207181
-Node: Calling Git207809
-Node: Getting a value from Git209332
-Node: Calling Git for effect212436
-Node: Section plumbing218940
-Node: Creating sections219168
-Node: Section selection222971
-Node: Matching sections224651
-Node: Refreshing buffers229853
-Node: Conventions232988
-Node: Confirmation and completion233165
-Node: Theming Faces234063
-Node: FAQ242214
-Node: Magit is slow243547
-Node: I changed several thousand files at once and now Magit is unusable243748
-Node: I am having problems committing244464
-Node: I don't understand how branching and pushing work244922
-Node: I don't like the key binding in v24245291
-Node: I cannot install the pre-requisites for Magit v2245630
-Node: I am using an Emacs release older than v244246095
-Node: I am using a Git release older than v194247708
-Node: I am using MS Windows and cannot push with Magit248695
-Node: How to install the gitman info manual?249274
-Node: How can I show Git's output?251802
-Node: Expanding a file to show the diff causes it to disappear252614
-Node: Point is wrong in the COMMIT_EDITMSG buffer253140
-Node: Can Magit be used as ediff-version-control-package?254158
-Node: How to show diffs for gpg-encrypted files?256182
-Node: Emacs 245 hangs when loading Magit256773
-Node: Symbol's value as function is void --some257342
-Node: Where is the branch manager257662
-Node: Keystroke Index257947
-Node: Command Index285293
-Node: Function Index314831
-Node: Variable Index326614
+Node: Committing Performance207625
+Node: Plumbing208606
+Node: Calling Git209234
+Node: Getting a value from Git210757
+Node: Calling Git for effect213861
+Node: Section plumbing220365
+Node: Creating sections220593
+Node: Section selection224396
+Node: Matching sections226076
+Node: Refreshing buffers231278
+Node: Conventions234413
+Node: Confirmation and completion234590
+Node: Theming Faces235488
+Node: FAQ243639
+Node: Magit is slow244972
+Node: I changed several thousand files at once and now Magit is unusable245173
+Node: I am having problems committing245889
+Node: I don't understand how branching and pushing work246347
+Node: I don't like the key binding in v24246716
+Node: I cannot install the pre-requisites for Magit v2247055
+Node: I am using an Emacs release older than v244247520
+Node: I am using a Git release older than v194249133
+Node: I am using MS Windows and cannot push with Magit250120
+Node: How to install the gitman info manual?250699
+Node: How can I show Git's output?253227
+Node: Expanding a file to show the diff causes it to disappear254039
+Node: Point is wrong in the COMMIT_EDITMSG buffer254565
+Node: Can Magit be used as ediff-version-control-package?255583
+Node: How to show diffs for gpg-encrypted files?257607
+Node: Emacs 245 hangs when loading Magit258198
+Node: Symbol's value as function is void --some258767
+Node: Where is the branch manager259087
+Node: Keystroke Index259372
+Node: Command Index286718
+Node: Function Index316256
+Node: Variable Index328039
 
 End Tag Table
 
