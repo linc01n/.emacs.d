@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160219.913
+;; Package-Version: 20160222.2117
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -519,6 +519,11 @@
 ;;     automatically indent new lines when the enter key is pressed
 ;;     (default: `t')
 ;;
+;;   * `markdown-enable-wiki-links' - syntax highlighting for wiki
+;;     links (default: `nil').  Set this to a non-nil value to turn on
+;;     wiki link support by default.  Wiki link support can be toggled
+;;     later using the function `markdown-toggle-wiki-links'."
+;;
 ;;   * `markdown-wiki-link-alias-first' - set to a non-nil value to
 ;;     treat aliased wiki links like `[[link text|PageName]]`
 ;;     (default: `t').  When set to nil, they will be treated as
@@ -529,8 +534,8 @@
 ;;
 ;;   * `markdown-enable-math' - syntax highlighting for LaTeX
 ;;     fragments (default: `nil').  Set this to `t' to turn on math
-;;     support by default.  Math support can be toggled later using
-;;     the function `markdown-enable-math'."
+;;     support by default.  Math support can be enabled, disabled, or
+;;     toggled later using the function `markdown-toggle-math'."
 ;;
 ;;   * `markdown-css-paths' - CSS files to link to in XHTML output
 ;;     (default: `nil`).
@@ -617,18 +622,22 @@
 
 ;;; Extensions:
 
-;; Besides supporting the basic Markdown syntax, markdown-mode also
-;; includes syntax highlighting for `[[Wiki Links]]` by default.  Wiki
-;; links may be followed by pressing `C-c C-o` when the point
+;; Besides supporting the basic Markdown syntax, Markdown Mode also
+;; includes syntax highlighting for `[[Wiki Links]]`.  This can be
+;; enabled by setting `markdown-enable-wiki-links' to a non-nil value.
+;; Wiki links may be followed by pressing `C-c C-o` when the point
 ;; is at a wiki link.  Use `M-p` and `M-n` to quickly jump to the
 ;; previous and next links (including links of other types).
 ;; Aliased or piped wiki links of the form `[[link text|PageName]]`
 ;; are also supported.  Since some wikis reverse these components, set
 ;; `markdown-wiki-link-alias-first' to nil to treat them as
-;; `[[PageName|link text]]`.  By default, Markdown Mode only searches
-;; for target files in the current directory.  Sequential parent
-;; directory search (as in [Ikiwiki][]) can be enabled by setting
-;; `markdown-wiki-link-search-parent-directories' to a non-nil value.
+;; `[[PageName|link text]]`.  If `markdown-wiki-link-fontify-missing'
+;; is also non-nil, Markdown Mode will highlight wiki links with
+;; missing target file in a different color.  By default, Markdown
+;; Mode only searches for target files in the current directory.
+;; Sequential parent directory search (as in [Ikiwiki][]) can be
+;; enabled by setting `markdown-wiki-link-search-parent-directories'
+;; to a non-nil value.
 ;;
 ;; [Ikiwiki]: https://ikiwiki.info
 ;;
@@ -984,6 +993,15 @@ auto-indentation by pressing \\[newline-and-indent]."
   :group 'markdown
   :type 'boolean)
 
+(defcustom markdown-enable-wiki-links nil
+  "Syntax highlighting for wiki links.
+Set this to a non-nil value to turn on wiki link support by default.
+Support can be toggled later using the `markdown-toggle-wiki-links'
+function or \\[markdown-toggle-wiki-links]."
+  :group 'markdown
+  :type 'boolean
+  :safe 'booleanp)
+
 (defcustom markdown-wiki-link-alias-first t
   "When non-nil, treat aliased wiki links like [[alias text|PageName]].
 Otherwise, they will be treated as [[PageName|alias text]]."
@@ -994,6 +1012,15 @@ Otherwise, they will be treated as [[PageName|alias text]]."
 (defcustom markdown-wiki-link-search-parent-directories nil
   "When non-nil, search for wiki link targets in parent directories.
 This is the default search behavior of Ikiwiki."
+  :group 'markdown
+  :type 'boolean
+  :safe 'booleanp)
+
+(defcustom markdown-wiki-link-fontify-missing nil
+  "When non-nil, change wiki link face according to existence of target files.
+This is expensive because it requires checking for the file each time the buffer
+changes or the user switches windows.  It is disabled by default because it may
+cause lag when typing on slower machines."
   :group 'markdown
   :type 'boolean
   :safe 'booleanp)
@@ -1009,8 +1036,8 @@ This is the default search behavior of Ikiwiki."
 (defcustom markdown-enable-math nil
   "Syntax highlighting for inline LaTeX and itex expressions.
 Set this to a non-nil value to turn on math support by default.
-Math support can be toggled later using `markdown-enable-math'
-or \\[markdown-enable-math]."
+Math support can be enabled, disabled, or toggled later using
+`markdown-toggle-math' or \\[markdown-toggle-math]."
   :group 'markdown
   :type 'boolean
   :safe 'booleanp)
@@ -1348,12 +1375,13 @@ Group 6 matches the closing square brackets.")
   "<\\(\\(\\sw\\|\\s_\\|\\s.\\)+@\\(\\sw\\|\\s_\\|\\s.\\)+\\)>"
   "Regular expression for matching inline email addresses.")
 
-(defconst markdown-regex-link-generic
-  (concat "\\(?:" markdown-regex-wiki-link
-          "\\|" markdown-regex-link-inline
+(defsubst markdown-make-regex-link-generic ()
+  "Make regular expression for matching any recognized link."
+  (concat "\\(?:" markdown-regex-link-inline
+          (when markdown-enable-wiki-links
+            (concat "\\|" markdown-regex-wiki-link))
           "\\|" markdown-regex-link-reference
-          "\\|" markdown-regex-angle-uri "\\)")
-  "Regular expression for matching any recognized link.")
+          "\\|" markdown-regex-angle-uri "\\)"))
 
 (defconst markdown-regex-gfm-checkbox
   " \\(\\[[ xX]\\]\\) "
@@ -2291,22 +2319,6 @@ See `font-lock-syntactic-face-function' for details."
    (cons markdown-regex-line-break '(1 markdown-line-break-face prepend)))
   "Syntax highlighting for Markdown files.")
 
-(defconst markdown-mode-font-lock-keywords-math
-  (list
-   ;; Display mode equations with brackets: \[ \]
-   (cons markdown-regex-math-display '((1 markdown-markup-face prepend)
-                                       (2 markdown-math-face append)
-                                       (3 markdown-markup-face prepend)))
-   ;; Equation reference (eq:foo)
-   (cons "\\((eq:\\)\\([[:alnum:]:_]+\\)\\()\\)" '((1 markdown-markup-face)
-                                                   (2 markdown-reference-face)
-                                                   (3 markdown-markup-face)))
-   ;; Equation reference \eqref{foo}
-   (cons "\\(\\\\eqref{\\)\\([[:alnum:]:_]+\\)\\(}\\)" '((1 markdown-markup-face)
-                                                         (2 markdown-reference-face)
-                                                         (3 markdown-markup-face))))
-  "Syntax highlighting for LaTeX and itex fragments.")
-
 (defvar markdown-mode-font-lock-keywords nil
   "Default highlighting expressions for Markdown mode.
 This variable is defined as a buffer-local variable for dynamic
@@ -2784,9 +2796,9 @@ GFM quoted code blocks.  Calls `markdown-code-block-at-pos'."
 
 ;;; Markdown Font Lock Matching Functions =====================================
 
-(defun markdown-range-property-any (begin end prop values)
-  "Return t if PROP from BEGIN to END is equal to one of the given VALUES.
-Also returns t if PROP is a list containing one of the VALUES.
+(defun markdown-range-property-any (begin end prop prop-values)
+  "Return t if PROP from BEGIN to END is equal to one of the given PROP-VALUES.
+Also returns t if PROP is a list containing one of the PROP-VALUES.
 Return nil otherwise."
   (let (props)
     (catch 'found
@@ -2794,11 +2806,11 @@ Return nil otherwise."
         (when (setq props (get-char-property loc prop))
           (cond ((listp props)
                  ;; props is a list, check for membership
-                 (dolist (val values)
+                 (dolist (val prop-values)
                    (when (memq val props) (throw 'found loc))))
                 (t
                  ;; props is a scalar, check for equality
-                 (dolist (val values)
+                 (dolist (val prop-values)
                    (when (eq val props) (throw 'found loc))))))))))
 
 (defun markdown-range-properties-exist (begin end props)
@@ -4093,7 +4105,8 @@ text to kill ring), and list items."
       (kill-new (match-string 1))
       (delete-region (match-beginning 0) (match-end 0)))
      ;; Wiki link (add alias text to kill ring)
-     ((thing-at-point-looking-at markdown-regex-wiki-link)
+     ((and markdown-enable-wiki-links
+           (thing-at-point-looking-at markdown-regex-wiki-link))
       (kill-new (markdown-wiki-link-alias))
       (delete-region (match-beginning 1) (match-end 1)))
      ;; Bold
@@ -5298,7 +5311,7 @@ See `markdown-wiki-link-p' and `markdown-previous-wiki-link'."
       ;; At a link already, move past it.
       (goto-char (+ (match-end 0) 1)))
     ;; Search for the next wiki link and move to the beginning.
-    (while (and (re-search-forward markdown-regex-link-generic nil t)
+    (while (and (re-search-forward (markdown-make-regex-link-generic) nil t)
                 (markdown-code-block-at-point)
                 (< (point) (point-max))))
     (if (and (not (eq (point) opoint))
@@ -5315,7 +5328,7 @@ If successful, return point.  Otherwise, return nil.
 See `markdown-wiki-link-p' and `markdown-next-wiki-link'."
   (interactive)
   (let ((opoint (point)))
-    (while (and (re-search-backward markdown-regex-link-generic nil t)
+    (while (and (re-search-backward (markdown-make-regex-link-generic) nil t)
                 (markdown-code-block-at-point)
                 (> (point) (point-min))))
     (if (and (not (eq (point) opoint))
@@ -6028,18 +6041,19 @@ not at a link or the link reference is not defined returns nil."
 ;;; WikiLink Following/Markup =================================================
 
 (defun markdown-wiki-link-p ()
-  "Return non-nil when `point' is at a true wiki link.
-A true wiki link name matches `markdown-regex-wiki-link' but does not
-match the current file name after conversion.  This modifies the data
-returned by `match-data'.  Note that the potential wiki link name must
-be available via `match-string'."
-  (let ((case-fold-search nil))
-    (and (thing-at-point-looking-at markdown-regex-wiki-link)
-         (not (markdown-code-block-at-point))
-         (or (not buffer-file-name)
-             (not (string-equal (buffer-file-name)
-                                (markdown-convert-wiki-link-to-filename
-                                 (markdown-wiki-link-link))))))))
+  "Return non-nil when wiki links are enabled and `point' is at a true wiki link.
+A true wiki link name matches `markdown-regex-wiki-link' but does
+not match the current file name after conversion.  This modifies
+the data returned by `match-data'.  Note that the potential wiki
+link name must be available via `match-string'."
+  (when markdown-enable-wiki-links
+    (let ((case-fold-search nil))
+      (and (thing-at-point-looking-at markdown-regex-wiki-link)
+           (not (markdown-code-block-at-point))
+           (or (not buffer-file-name)
+               (not (string-equal (buffer-file-name)
+                                  (markdown-convert-wiki-link-to-filename
+                                   (markdown-wiki-link-link)))))))))
 
 (defun markdown-wiki-link-link ()
   "Return the link part of the wiki link using current match data.
@@ -6299,24 +6313,90 @@ This is an exact copy of `line-number-at-pos' for use in emacs21."
     paragraphs-remaining))
 
 
-;;; Extensions ================================================================
+;;; Extension Framework =======================================================
 
 (defun markdown-reload-extensions ()
-  "Check settings, update font-lock keywords, and re-fontify buffer."
+  "Check settings, update font-lock keywords and hooks, and re-fontify buffer."
   (interactive)
   (when (eq major-mode 'markdown-mode)
+    ;; Update font lock keywords with extensions
     (setq markdown-mode-font-lock-keywords
           (append
            markdown-mode-font-lock-keywords-basic
-           (when markdown-enable-math
-             markdown-mode-font-lock-keywords-math)))
+           (markdown-mode-font-lock-keywords-wiki-links)
+           (markdown-mode-font-lock-keywords-math)))
+    ;; Update font lock defaults
     (setq font-lock-defaults
           '(markdown-mode-font-lock-keywords
             nil nil nil nil
             (font-lock-syntactic-face-function . markdown-syntactic-face)))
-    (when (fboundp 'font-lock-refresh-defaults) (font-lock-refresh-defaults))))
+    ;; Refontify buffer
+    (when (fboundp 'font-lock-refresh-defaults) (font-lock-refresh-defaults))
+    ;; Add or remove hooks related to extensions
+    (markdown-setup-wiki-link-hooks)))
 
-(defun markdown-enable-math (&optional arg)
+(defun markdown-handle-local-variables ()
+  "Runs as a `hack-local-variables-hook' to update font lock rules.
+Checks to see if there is actually a markdown-mode file local variable
+before regenerating font-lock rules for extensions."
+  (when (and (boundp 'file-local-variables-alist)
+             (assoc 'markdown-enable-wiki-links file-local-variables-alist)
+             (assoc 'markdown-enable-math file-local-variables-alist))
+    (markdown-reload-extensions)))
+
+;;; Wiki Links ================================================================
+
+(defun markdown-toggle-wiki-links (&optional arg)
+  "Toggle support for wiki links.
+With a prefix argument ARG, enable wiki link support if ARG is positive,
+and disable it otherwise."
+  (interactive (list (or current-prefix-arg 'toggle)))
+  (setq markdown-enable-wiki-links
+        (if (eq arg 'toggle)
+            (not markdown-enable-wiki-links)
+          (> (prefix-numeric-value arg) 0)))
+  (if markdown-enable-wiki-links
+      (message "markdown-mode wiki link support enabled")
+    (message "markdown-mode wiki link support disabled"))
+  (markdown-reload-extensions))
+
+(defun markdown-setup-wiki-link-hooks ()
+  "Add or remove hooks for fontifying wiki links.
+These are only enabled when `markdown-wiki-link-fontify-missing' is non-nil."
+  ;; Anytime text changes make sure it gets fontified correctly
+  (if (and markdown-enable-wiki-links
+           markdown-wiki-link-fontify-missing)
+      (add-hook 'after-change-functions
+                'markdown-check-change-for-wiki-link-after-change t t)
+    (remove-hook 'after-change-functions
+                 'markdown-check-change-for-wiki-link-after-change t))
+  ;; If we left the buffer there is a really good chance we were
+  ;; creating one of the wiki link documents. Make sure we get
+  ;; refontified when we come back.
+  (if (and markdown-enable-wiki-links
+           markdown-wiki-link-fontify-missing)
+      (progn
+        (add-hook 'window-configuration-change-hook
+                  'markdown-fontify-buffer-wiki-links t t)
+        (markdown-fontify-buffer-wiki-links))
+    (remove-hook 'window-configuration-change-hook
+                 'markdown-fontify-buffer-wiki-links t)
+  (markdown-unfontify-region-wiki-links (point-min) (point-max))))
+
+(defun markdown-mode-font-lock-keywords-wiki-links ()
+  "Return wiki-link lock keywords if support is enabled.
+If `markdown-wiki-link-fontify-missing' is also enabled, we use
+hooks in `markdown-setup-wiki-link-hooks' for fontification instead."
+  (when (and markdown-enable-wiki-links
+             (not markdown-wiki-link-fontify-missing))
+    (list
+     (cons markdown-regex-wiki-link '((1 markdown-link-face prepend))))))
+
+;;; Math Support ==============================================================
+
+(make-obsolete 'markdown-enable-math 'markdown-toggle-math "v2.1")
+
+(defun markdown-toggle-math (&optional arg)
   "Toggle support for inline and display LaTeX math expressions.
 With a prefix argument ARG, enable math mode if ARG is positive,
 and disable it otherwise.  If called from Lisp, enable the mode
@@ -6331,13 +6411,22 @@ if ARG is omitted or nil."
     (message "markdown-mode math support disabled"))
   (markdown-reload-extensions))
 
-(defun markdown-handle-local-variables ()
-  "Runs as a `hack-local-variables-hook' to update font lock rules.
-Checks to see if there is actually a markdown-mode file local variable
-before regenerating font-lock rules for extensions."
-  (when (and (boundp 'file-local-variables-alist)
-             (assoc 'markdown-enable-math file-local-variables-alist))
-    (markdown-reload-extensions)))
+(defun markdown-mode-font-lock-keywords-math ()
+  "Return math font lock keywords if support is enabled."
+  (when markdown-enable-math
+    (list
+     ;; Display mode equations with brackets: \[ \]
+     (cons markdown-regex-math-display '((1 markdown-markup-face prepend)
+                                         (2 markdown-math-face append)
+                                         (3 markdown-markup-face prepend)))
+     ;; Equation reference (eq:foo)
+     (cons "\\((eq:\\)\\([[:alnum:]:_]+\\)\\()\\)" '((1 markdown-markup-face)
+                                                     (2 markdown-reference-face)
+                                                     (3 markdown-markup-face)))
+     ;; Equation reference \eqref{foo}
+     (cons "\\(\\\\eqref{\\)\\([[:alnum:]:_]+\\)\\(}\\)" '((1 markdown-markup-face)
+                                                           (2 markdown-reference-face)
+                                                           (3 markdown-markup-face))))))
 
 
 ;;; GFM Checkboxes as Buttons =================================================
@@ -6495,27 +6584,14 @@ before regenerating font-lock rules for extensions."
     (make-local-hook 'font-lock-extend-region-functions)
     (make-local-hook 'window-configuration-change-hook))
 
-  ;; Anytime text changes make sure it gets fontified correctly
-  (add-hook 'after-change-functions
-            'markdown-check-change-for-wiki-link-after-change t t)
-
   ;; Make checkboxes buttons
   (when markdown-make-gfm-checkboxes-buttons
     (markdown-make-gfm-checkboxes-buttons (point-min) (point-max))
     (add-hook 'after-change-functions 'markdown-gfm-checkbox-after-change-function t t))
 
-  ;; If we left the buffer there is a really good chance we were
-  ;; creating one of the wiki link documents. Make sure we get
-  ;; refontified when we come back.
-  (add-hook 'window-configuration-change-hook
-            'markdown-fontify-buffer-wiki-links t t)
-
   ;; add live preview export hook
   (add-hook 'after-save-hook #'markdown-live-preview-if-markdown t t)
-  (add-hook 'kill-buffer-hook #'markdown-live-preview-remove-on-kill t t)
-
-  ;; do the initial link fontification
-  (markdown-fontify-buffer-wiki-links))
+  (add-hook 'kill-buffer-hook #'markdown-live-preview-remove-on-kill t t))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
@@ -6548,7 +6624,6 @@ before regenerating font-lock rules for extensions."
   (set (make-local-variable 'font-lock-defaults)
        '(gfm-font-lock-keywords))
   ;; do the initial link fontification
-  (markdown-fontify-buffer-wiki-links)
   (markdown-gfm-parse-buffer-for-languages))
 
 
