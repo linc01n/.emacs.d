@@ -1,2 +1,2 @@
 (req-package org
-  :mode "\\.org\\'")
+  :mode ("\\.org\\'" . org-mode))
