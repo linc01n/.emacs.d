@@ -280,6 +280,20 @@ This should eventually become a stack so that you could use
 (defsubst ivy-set-action (action)
   (setf (ivy-state-action ivy-last) action))
 
+(defun ivy-thing-at-point ()
+  "Return a string that corresponds to the current thing at point."
+  (or
+   (thing-at-point 'url)
+   (let (s)
+     (cond ((stringp (setq s (thing-at-point 'symbol)))
+            (if (string-match "\\`[`']?\\(.*?\\)'?\\'" s)
+                (match-string 1 s)
+              s))
+           ((looking-at "(+\\(\\(?:\\sw\\|\\s_\\)+\\)\\_>")
+            (match-string-no-properties 1))
+           (t
+            "")))))
+
 (defvar ivy-history nil
   "History list of candidates entered in the minibuffer.
 
@@ -1062,12 +1076,12 @@ See also `ivy-sort-max-size'."
   :type
   '(alist
     :key-type (choice
-               (const :tag "All other functions" t)
-               (symbol :tag "Function"))
+               (const :tag "Fall-through" t)
+               (symbol :tag "Collection"))
     :value-type (choice
-                 (const :tag "plain sort" string-lessp)
-                 (const :tag "file sort" ivy-sort-file-function-default)
-                 (const :tag "no sort" nil)))
+                 (const :tag "Plain sort" string-lessp)
+                 (const :tag "File sort" ivy-sort-file-function-default)
+                 (const :tag "No sort" nil)))
   :group 'ivy)
 
 (defvar ivy-index-functions-alist
@@ -1401,10 +1415,7 @@ This is useful for recursive `ivy-read'."
               (buffer-substring
                (region-beginning)
                (region-end))
-            (or
-             (thing-at-point 'url)
-             (thing-at-point 'symbol)
-             "")))
+            (ivy-thing-at-point)))
     (setq ivy--prompt
           (cond ((string-match "%.*d" prompt)
                  prompt)
@@ -1581,7 +1592,7 @@ Minibuffer bindings:
          preselect)
         ((cl-position preselect candidates :test #'equal))
         ((stringp preselect)
-         (let ((re (regexp-quote preselect)))
+         (let ((re preselect))
            (cl-position-if
             (lambda (x)
               (string-match re x))
@@ -1644,7 +1655,7 @@ When GREEDY is non-nil, join words in a greedy way."
                          (setq ivy--subexps (length subs))
                          (mapconcat
                           (lambda (x)
-                            (if (string-match "\\`\\\\(.*\\\\)\\'" x)
+                            (if (string-match "\\`\\\\([^?].*\\\\)\\'" x)
                                 x
                               (format "\\(%s\\)" x)))
                           subs
@@ -2051,7 +2062,16 @@ The alist KEY is either a collection function or t to match
 previously unmatched collection functions.
 
 The alist VAL is a sorting function with the signature of
-`ivy--prefix-sort'.")
+`ivy--prefix-sort'."
+  :type '(alist
+          :key-type (choice
+                     (const :tag "Fall-through" t)
+                     (symbol :tag "Collection"))
+          :value-type
+          (choice
+           (const :tag "Don't sort" nil)
+           (const :tag "Put prefix matches ahead" 'ivy--prefix-sort)
+           (function :tag "Custom sort function"))))
 
 (defun ivy--sort-files-by-date (_name candidates)
   "Re-soft CANDIDATES according to file modification date."
@@ -2171,7 +2191,14 @@ Prefix matches to NAME are put ahead of the list."
     ivy-minibuffer-match-face-2
     ivy-minibuffer-match-face-3
     ivy-minibuffer-match-face-4)
-  "List of `ivy' faces for minibuffer group matches.")
+  "List of `ivy' faces for minibuffer group matches."
+  :type '(repeat :tag "Faces"
+          (choice
+           (const ivy-minibuffer-match-face-1)
+           (const ivy-minibuffer-match-face-2)
+           (const ivy-minibuffer-match-face-3)
+           (const ivy-minibuffer-match-face-4)
+           (face :tag "Other face"))))
 
 (defvar ivy-flx-limit 200
   "Used to conditionally turn off flx sorting.
