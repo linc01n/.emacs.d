@@ -1,6 +1,9 @@
 ;;; with-editor.el --- Use the Emacsclient as $EDITOR -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2016  The Magit Project Contributors
+;;
+;; You should have received a copy of the AUTHORS.md file.  If not,
+;; see https://github.com/magit/with-editor/blob/master/AUTHORS.md.
 
 ;; Author: Jonas Bernoulli <jonas@bernoul.li>
 ;; Maintainer: Jonas Bernoulli <jonas@bernoul.li>
@@ -22,7 +25,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this file.  If not, see <http://www.gnu.org/licenses/>.
+;; along with Magit.  If not, see http://www.gnu.org/licenses.
 
 ;;; Commentary:
 
@@ -321,12 +324,14 @@ not a good idea to change such entries.")
 
 (defvar with-editor-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "\C-c\C-c"                   'with-editor-finish)
-    (define-key map [remap server-edit]          'with-editor-finish)
-    (define-key map "\C-c\C-k"                   'with-editor-cancel)
-    (define-key map [remap kill-buffer]          'with-editor-cancel)
-    (define-key map [remap ido-kill-buffer]      'with-editor-cancel)
-    (define-key map [remap iswitchb-kill-buffer] 'with-editor-cancel)
+    (define-key map "\C-c\C-c"                           'with-editor-finish)
+    (define-key map [remap server-edit]                  'with-editor-finish)
+    (define-key map [remap evil-save-modified-and-close] 'with-editor-finish)
+    (define-key map "\C-c\C-k"                           'with-editor-cancel)
+    (define-key map [remap kill-buffer]                  'with-editor-cancel)
+    (define-key map [remap ido-kill-buffer]              'with-editor-cancel)
+    (define-key map [remap iswitchb-kill-buffer]         'with-editor-cancel)
+    (define-key map [remap evil-quit]                    'with-editor-cancel)
     map))
 
 (define-minor-mode with-editor-mode
