@@ -3,13 +3,19 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "switch-window" "switch-window.el" (22148 3962
+;;;### (autoloads nil "switch-window" "switch-window.el" (22223 60072
 ;;;;;;  0 0))
 ;;; Generated autoloads from switch-window.el
 
-(autoload 'delete-other-window "switch-window" "\
+(autoload 'switch-window-then-delete "switch-window" "\
 Display an overlay in each window showing a unique key, then
 ask user which window to delete
+
+\(fn)" t nil)
+
+(autoload 'switch-window-then-maximize "switch-window" "\
+Display an overlay in each window showing a unique key, then
+ask user which window to maximize
 
 \(fn)" t nil)
 
