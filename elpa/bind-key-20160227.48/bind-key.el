@@ -6,7 +6,7 @@
 ;; Maintainer: John Wiegley <jwiegley@gmail.com>
 ;; Created: 16 Jun 2012
 ;; Version: 1.0
-;; Package-Version: 20160225.1637
+;; Package-Version: 20160227.48
 ;; Keywords: keys keybinding config dotemacs
 ;; URL: https://github.com/jwiegley/use-package
 
@@ -206,8 +206,12 @@ Accepts keyword arguments:
 
 The rest of the arguments are conses of keybinding string and a
 function symbol (unquoted)."
+  ;; jww (2016-02-26): This is a hack; this whole function needs to be
+  ;; rewritten to normalize arguments the way that use-package.el does.
+  (if (and (eq (car args) :package)
+           (not (eq (car (cdr (cdr args))) :map)))
+      (setq args (cons :map (cons 'global-map args))))
   (let* ((map (plist-get args :map))
-         (maps (if (listp map) map (list map)))
          (doc (plist-get args :prefix-docstring))
          (prefix-map (plist-get args :prefix-map))
          (prefix (plist-get args :prefix))
@@ -225,7 +229,7 @@ function symbol (unquoted)."
     (when (and menu-name (not prefix))
       (error "If :menu-name is supplied, :prefix must be too"))
     (let ((args key-bindings)
-          first next)
+          saw-map first next)
       (while args
         (if (keywordp (car args))
             (progn
@@ -235,12 +239,15 @@ function symbol (unquoted)."
               (nconc first (list (car args)))
             (setq first (list (car args))))
           (setq args (cdr args))))
-      (cl-flet ((wrap (maps bindings)
-                      (if (and maps pkg)
-                          `((eval-after-load
-                                ,(if (symbolp pkg) `',pkg pkg)
-                              '(progn ,@bindings)))
-                        bindings)))
+      (cl-flet
+          ((wrap (map bindings)
+                 (if (and map pkg (not (eq map 'global-map)))
+                     (if (boundp map)
+                         bindings
+                       `((eval-after-load
+                             ,(if (symbolp pkg) `',pkg pkg)
+                           '(progn ,@bindings))))
+                   bindings)))
         (append
          (when prefix-map
            `((defvar ,prefix-map)
@@ -248,23 +255,16 @@ function symbol (unquoted)."
              ,@(if menu-name
                    `((define-prefix-command ',prefix-map nil ,menu-name))
                  `((define-prefix-command ',prefix-map)))
-             ,@(if maps
-                   (wrap maps
-                         (mapcar
-                          #'(lambda (m)
-                              `(bind-key ,prefix ',prefix-map ,m ,filter))
-                          maps))
+             ,@(if (and map (not (eq map 'global-map)))
+                   (wrap map `((bind-key ,prefix ',prefix-map ,map ,filter)))
                  `((bind-key ,prefix ',prefix-map nil ,filter)))))
-         (wrap maps
+         (wrap map
                (cl-mapcan
                 (lambda (form)
                   (if prefix-map
                       `((bind-key ,(car form) ',(cdr form) ,prefix-map ,filter))
-                    (if maps
-                        (mapcar
-                         #'(lambda (m)
-                             `(bind-key ,(car form) ',(cdr form) ,m ,filter))
-                         maps)
+                    (if (and map (not (eq map 'global-map)))
+                        `((bind-key ,(car form) ',(cdr form) ,map ,filter))
                       `((bind-key ,(car form) ',(cdr form) nil ,filter)))))
                 first))
          (when next
@@ -294,7 +294,7 @@ function symbol (unquoted)."
 ;;;###autoload
 (defmacro bind-keys* (&rest args)
   (macroexp-progn
-   (bind-keys-form (cons :map (cons override-global-map args)))))
+   (bind-keys-form `(:map override-global-map ,@args))))
 
 (defun get-binding-description (elem)
   (cond
