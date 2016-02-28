@@ -3,9 +3,23 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "smooth-scrolling" "smooth-scrolling.el" (22156
-;;;;;;  41068 0 0))
+;;;### (autoloads nil "smooth-scrolling" "smooth-scrolling.el" (22226
+;;;;;;  59423 0 0))
 ;;; Generated autoloads from smooth-scrolling.el
+
+(defvar smooth-scrolling-mode nil "\
+Non-nil if Smooth-Scrolling mode is enabled.
+See the command `smooth-scrolling-mode' for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `smooth-scrolling-mode'.")
+
+(custom-autoload 'smooth-scrolling-mode "smooth-scrolling" nil)
+
+(autoload 'smooth-scrolling-mode "smooth-scrolling" "\
+Make emacs scroll smoothly
+
+\(fn &optional ARG)" t nil)
 
 (defvar smooth-scroll-margin 10 "\
 Number of lines of visible margin at the top and bottom of a window.
@@ -49,43 +63,15 @@ the point will be allowed to stray into the margin.")
 
 (custom-autoload 'smooth-scroll-strict-margins "smooth-scrolling" t)
 
-(autoload 'smooth-scroll-lines-from-window-top "smooth-scrolling" "\
-Work out, using the function indicated by
-`smooth-scroll-strict-margins', what the current screen line is,
-relative to the top of the window.  Counting starts with 1 referring
-to the top line in the window.
+(autoload 'enable-smooth-scroll-for-function "smooth-scrolling" "\
+Define advice on FUNC to do smooth scrolling.
 
-\(fn)" t nil)
+This adds after advice with name `smooth-scroll' to FUNC.
 
-(autoload 'smooth-scroll-lines-from-window-bottom "smooth-scrolling" "\
-Work out, using the function indicated by
-`smooth-scroll-strict-margins', how many screen lines there are
-between the point and the bottom of the window.  Counting starts
-with 1 referring to the bottom line in the window.
+Note that the advice will not have an effect unless
+`smooth-scrolling-mode' is enabled.
 
-\(fn)" t nil)
-
-(autoload 'smooth-scroll-down "smooth-scrolling" "\
-Scroll down smoothly if cursor is within `smooth-scroll-margin'
-lines of the top of the window.
-
-\(fn)" nil nil)
-
-(autoload 'smooth-scroll-up "smooth-scrolling" "\
-Scroll up smoothly if cursor is within `smooth-scroll-margin'
-lines of the bottom of the window.
-
-\(fn)" nil nil)
-
-(defadvice previous-line (after smooth-scroll-down (&optional arg try-vscroll) activate) (smooth-scroll-down))
-
-(defadvice next-line (after smooth-scroll-up (&optional arg try-vscroll) activate) (smooth-scroll-up))
-
-(defadvice isearch-repeat (after isearch-smooth-scroll (direction) activate) (if (eq direction 'forward) (smooth-scroll-up) (smooth-scroll-down)))
-
-(setq scroll-margin 0)
-
-(setq redisplay-dont-pause t)
+\(fn FUNC)" nil t)
 
 ;;;***
 
