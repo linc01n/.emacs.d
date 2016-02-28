@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160225.928
+;; Package-Version: 20160226.918
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -1603,7 +1603,7 @@ of (pos . property). pos is point if point contains non-nil PROP."
            (previous-single-property-change
             (point) prop nil (or lim (point-min))))))
     (when (and (not (get-text-property res prop))
-               (> res 1)
+               (> res (point-min))
                (get-text-property (1- res) prop))
       (cl-decf res))
     (when (and res (get-text-property res prop)) (cons res prop))))
@@ -5898,8 +5898,6 @@ live."
                                    (t pt)))
                   (diff (markdown-visual-lines-between-points
                          start pt)))
-             (message "serialize: start=%d, pt=%d, pt-or-sym=%S, diff=%d"
-                      start pt pt-or-sym diff)
              (list win pt-or-sym diff))))
        (get-buffer-window-list buf)))))
 
@@ -5925,9 +5923,6 @@ live."
               (min (list (point-min) 0))
               (max (list (point-max) diff))
               (t (list pt-or-sym diff)))
-          (message "deserialize: pt-or-sym=%S, diff=%d" pt-or-sym actual-diff)
-          (message "point-back-lines: %d"
-                   (markdown-get-point-back-lines actual-pt actual-diff))
           (set-window-start
            win (markdown-get-point-back-lines actual-pt actual-diff))
           (set-window-point win actual-pt))))))
