@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20160202.2357
+;; Package-Version: 20160226.1154
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -229,16 +229,16 @@ self-inserting keys and thus aren't read as characters.")
          (a (make-list (* n k) 0))
          sequence)
     (cl-labels ((db (T p)
-                    (if (> T n)
-                        (if (eq (% n p) 0)
-                            (setq sequence
-                                  (append sequence
-                                          (cl-subseq a 1 (1+ p)))))
-                      (setf (nth T a) (nth (- T p) a))
-                      (db (1+ T) p)
-                      (cl-loop for j from (1+ (nth (- T p) a)) to (1- k) do
-                               (setf (nth T a) j)
-                               (db (1+ T) T)))))
+                  (if (> T n)
+                      (if (eq (% n p) 0)
+                          (setq sequence
+                                (append sequence
+                                        (cl-subseq a 1 (1+ p)))))
+                    (setf (nth T a) (nth (- T p) a))
+                    (db (1+ T) p)
+                    (cl-loop for j from (1+ (nth (- T p) a)) to (1- k) do
+                         (setf (nth T a) j)
+                         (db (1+ T) T)))))
       (db 1 1)
       (mapcar (lambda (n)
                 (nth n keys))
@@ -272,9 +272,10 @@ SEQ-LEN is how many elements of KEYS it takes to identify a match."
                            (when (and (> diff 0) (< diff seq-len))
                              (while (and (nth (1- seq-len) db-seq)
                                          (not
-                                          (eq 0 (cl-search
-                                                 (cl-subseq prev-seq diff)
-                                                 (cl-subseq db-seq 0 seq-len)))))
+                                          (eq 0
+                                              (cl-search
+                                               (cl-subseq prev-seq diff)
+                                               (cl-subseq db-seq 0 seq-len)))))
                                (pop db-seq)))
                            (subseq-and-pop))
                        (subseq-and-pop))))
@@ -1273,8 +1274,10 @@ This function obeys `avy-all-windows' setting."
                                       (match-end 0))))
                              (setq found t)
                              (push ov overlays)
-                             (overlay-put ov 'window (selected-window))
-                             (overlay-put ov 'face 'avy-goto-char-timer-face)))))))
+                             (overlay-put
+                              ov 'window (selected-window))
+                             (overlay-put
+                              ov 'face 'avy-goto-char-timer-face)))))))
                  ;; No matches at all, so there's surely a typo in the input.
                  (unless found (beep)))))
            (nreverse (mapcar (lambda (ov)
@@ -1322,13 +1325,6 @@ The window scope is determined by `avy-all-windows' (ARG negates it)."
             (goto-char (car res))))
       (error
        (set-mark-command 4)))))
-
-(define-obsolete-function-alias
-    'avy--goto 'identity "0.3.0"
-    "Don't use this function any more.
-`avy--process' will do the jump all by itself.")
-
-(define-obsolete-function-alias 'avy--with-avy-keys 'avy-with "0.3.0")
 
 (provide 'avy)
 
