@@ -556,6 +556,24 @@ and https://debbugs.gnu.org/cgi/bugreport.cgi?bug=7847."
            (default-value 'magit-diff-arguments))))
     (magit-invoke-popup 'magit-diff-popup nil arg)))
 
+(defun magit-diff-buffer-file-popup (arg)
+  "Popup console for diff commans.
+
+This is a variant of `magit-diff-popup' which shows the same popup
+but which limits the diff to the file being visited in the current
+buffer."
+  (interactive "P")
+  (-if-let (file (magit-file-relative-name))
+      (let ((magit-diff-arguments
+             (magit-popup-import-file-args
+              (-if-let (buffer (magit-mode-get-buffer 'magit-diff-mode))
+                  (with-current-buffer buffer
+                    (nth 2 magit-refresh-args))
+                (default-value 'magit-diff-arguments))
+              (list file))))
+        (magit-invoke-popup 'magit-diff-popup nil arg))
+    (user-error "Buffer isn't visiting a file")))
+
 (defun magit-diff-refresh-popup (arg)
   "Popup console for changing diff arguments in the current buffer."
   (interactive "P")
@@ -1490,9 +1508,15 @@ Staging and applying changes is documented in info node
   :group 'magit-revision
   (hack-dir-local-variables-non-file-buffer))
 
-(defun magit-revision-refresh-buffer (rev __const _args _files)
+(defun magit-revision-refresh-buffer (rev __const _args files)
   (setq header-line-format
-        (propertize (format " %s %s" (capitalize (magit-object-type rev)) rev)
+        (propertize (concat " " (capitalize (magit-object-type rev))
+                            " " rev
+                            (pcase (length files)
+                              (0)
+                              (1 (concat " in file " (car files)))
+                              (_ (concat " in files "
+                                         (mapconcat #'identity files ", ")))))
                     'face 'magit-header-line))
   (magit-insert-section (commitbuf)
     (run-hook-with-args 'magit-revision-sections-hook rev)))
