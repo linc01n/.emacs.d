@@ -7,7 +7,7 @@
 ;; Created: 17 Jun 2012
 ;; Modified: 26 Sep 2015
 ;; Version: 2.1
-;; Package-Version: 20160225.1724
+;; Package-Version: 20160226.1618
 ;; Package-Requires: ((bind-key "1.0") (diminish "0.44"))
 ;; Keywords: dotemacs startup speed config package
 ;; URL: https://github.com/jwiegley/use-package
@@ -59,7 +59,8 @@ If you customize this, then you should require the `use-package'
 feature in files that use `use-package', even if these files only
 contain compiled expansions of the macros.  If you don't do so,
 then the expanded macros do their job silently."
-  :type 'boolean
+  :type '(choice (const :tag "Quiet" nil) (const :tag "Verbose" t)
+                 (const :tag "Debug" debug))
   :group 'use-package)
 
 (defcustom use-package-debug nil
@@ -740,7 +741,7 @@ function for a particular keymap.  The keymap is expected to be
 defined by the package.  In this way, loading the package is
 deferred until the prefix key sequence is pressed."
   (if (not (require package nil t))
-      (use-package-error (format "Could not load package.el: %s" package))
+      (use-package-error (format "Cannot load package.el: %s" package))
     (if (and (boundp keymap-symbol)
              (keymapp (symbol-value keymap-symbol)))
         (let* ((kv (this-command-keys-vector))
@@ -986,7 +987,7 @@ deferred until the prefix key sequence is pressed."
              config-body)
           `((if (not ,(use-package-load-name name t))
                 (ignore
-                 (message (format "Could not load %s" ',name)))
+                 (message (format "Cannot load %s" ',name)))
               ,@config-body)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1137,7 +1138,7 @@ this file.  Usage:
                               (plist-get args* :defines))
                     (with-demoted-errors
                         ,(format "Cannot load %s: %%S" name)
-                      ,(if use-package-verbose
+                      ,(if (eq use-package-verbose 'debug)
                            `(message "Compiling package %s" ',name-symbol))
                       ,(unless (plist-get args* :no-require)
                          (use-package-load-name name)))))))
