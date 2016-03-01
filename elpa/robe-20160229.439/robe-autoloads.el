@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "ac-robe" "ac-robe.el" (22215 56054 0 0))
+;;;### (autoloads nil "ac-robe" "ac-robe.el" (22228 65167 0 0))
 ;;; Generated autoloads from ac-robe.el
 
 (autoload 'ac-robe-available "ac-robe" "\
@@ -16,12 +16,12 @@ Return t if `robe-mode' completions are available, otherwise nil.
 
 \(fn)" nil nil)
 
-(defconst ac-source-robe '((available . ac-robe-available) (candidates . ac-robe-candidates) (document . ac-robe-doc) (symbol . "r")) "\
+(defconst ac-source-robe '((available . ac-robe-available) (prefix . ac-robe-prefix) (candidates . ac-robe-candidates) (document . ac-robe-doc) (symbol . "r")) "\
 `auto-complete' completion source for Ruby using `robe-mode'.")
 
 ;;;***
 
-;;;### (autoloads nil "company-robe" "company-robe.el" (22215 56054
+;;;### (autoloads nil "company-robe" "company-robe.el" (22228 65167
 ;;;;;;  0 0))
 ;;; Generated autoloads from company-robe.el
 
@@ -32,7 +32,7 @@ A `company-mode' completion back-end for `robe-mode'.
 
 ;;;***
 
-;;;### (autoloads nil "robe" "robe.el" (22215 56054 0 0))
+;;;### (autoloads nil "robe" "robe.el" (22228 65167 0 0))
 ;;; Generated autoloads from robe.el
 
 (autoload 'robe-mode "robe" "\
@@ -46,7 +46,7 @@ The following commands are available:
 
 ;;;***
 
-;;;### (autoloads nil nil ("robe-pkg.el") (22215 56054 465369 0))
+;;;### (autoloads nil nil ("robe-pkg.el") (22228 65167 29005 0))
 
 ;;;***
 
