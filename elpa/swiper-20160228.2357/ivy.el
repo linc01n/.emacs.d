@@ -520,8 +520,7 @@ When ARG is t, exit with current text, ignoring the candidates."
         (ivy--directory
          (ivy--directory-done))
         ((eq (ivy-state-collection ivy-last) 'Info-read-node-name-1)
-         (if (or (equal ivy--current "(./)")
-                 (equal ivy--current "(../)"))
+         (if (member ivy--current '("(./)" "(../)"))
              (ivy-quit-and-run
               (ivy-read "Go to file: " 'read-file-name-internal
                         :action (lambda (x)
@@ -542,21 +541,12 @@ When ARG is t, exit with current text, ignoring the candidates."
        (ivy--exhibit))
       ((or
         (and
-         (not (equal ivy-text ""))
-         (ignore-errors
-           (file-directory-p
-            (setq dir
-                  (file-name-as-directory
-                   (expand-file-name
-                    ivy-text ivy--directory))))))
+         (not (string= ivy-text ""))
+         (setq dir (ivy-expand-file-if-directory ivy-text)))
         (and
+         (> ivy--length 0)
          (not (string= ivy--current "./"))
-         (cl-plusp ivy--length)
-         (ignore-errors
-           (file-directory-p
-            (setq dir (file-name-as-directory
-                       (expand-file-name
-                        ivy--current ivy--directory)))))))
+         (setq dir (ivy-expand-file-if-directory ivy--current))))
        (ivy--cd dir)
        (ivy--exhibit))
       ((or (and (equal ivy--directory "/")
@@ -598,6 +588,16 @@ When ARG is t, exit with current text, ignoring the candidates."
       (t
        (ivy-done)))))
 
+(defun ivy-expand-file-if-directory (file-name)
+  "Expand FILE-NAME as directory.
+When this directory doesn't exist, return nil."
+  (when (stringp file-name)
+    (let ((full-name
+           (file-name-as-directory
+            (expand-file-name file-name ivy--directory))))
+      (when (file-directory-p full-name)
+        full-name))))
+
 (defcustom ivy-tab-space nil
   "When non-nil, `ivy-partial-or-done' should insert a space."
   :type 'boolean)
@@ -610,13 +610,12 @@ If the text hasn't changed as a result, forward to `ivy-alt-done'."
            (or (and (equal ivy--directory "/")
                     (string-match "\\`[^/]+:.*\\'" ivy-text))
                (string-match "\\`/" ivy-text)))
-      (let ((default-directory ivy--directory))
+      (let ((default-directory ivy--directory)
+            dir)
         (minibuffer-complete)
         (setq ivy-text (ivy--input))
-        (when (file-directory-p
-               (expand-file-name ivy-text ivy--directory))
-          (ivy--cd (file-name-as-directory
-                    (expand-file-name ivy-text ivy--directory)))))
+        (when (setq dir (ivy-expand-file-if-directory ivy-text))
+          (ivy--cd dir)))
     (or (ivy-partial)
         (when (or (eq this-command last-command)
                   (eq ivy--length 1))
@@ -2568,15 +2567,13 @@ Skip buffers that match `ivy-ignore-buffers'."
 (defun ivy-switch-buffer ()
   "Switch to another buffer."
   (interactive)
-  (if (not ivy-mode)
-      (call-interactively 'switch-to-buffer)
-    (let ((this-command 'ivy-switch-buffer))
-      (ivy-read "Switch to buffer: " 'internal-complete-buffer
-                :matcher #'ivy--switch-buffer-matcher
-                :preselect (buffer-name (other-buffer (current-buffer)))
-                :action #'ivy--switch-buffer-action
-                :keymap ivy-switch-buffer-map
-                :caller 'ivy-switch-buffer))))
+  (let ((this-command 'ivy-switch-buffer))
+    (ivy-read "Switch to buffer: " 'internal-complete-buffer
+              :matcher #'ivy--switch-buffer-matcher
+              :preselect (buffer-name (other-buffer (current-buffer)))
+              :action #'ivy--switch-buffer-action
+              :keymap ivy-switch-buffer-map
+              :caller 'ivy-switch-buffer)))
 
 ;;;###autoload
 (defun ivy-switch-buffer-other-window ()
