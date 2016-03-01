@@ -4,7 +4,7 @@
 ;;
 ;; Author: Dimitri Fontaine <dim@tapoueh.org>
 ;; URL: https://github.com/dimitri/switch-window
-;; Package-Version: 20160227.19
+;; Package-Version: 20160229.334
 ;;      http://tapoueh.org/emacs/switch-window.html
 ;; Git-URL: https://github.com/dimitri/switch-window.git
 ;; Version: 0.11
@@ -107,6 +107,11 @@ Default to no customisation (nil), which will make the minibuffer take whatever 
 If a character is specified it will always use that key for the minibuffer shortcut."
   :type '(choice (const :tag "Off" nil)
                  (character "m"))
+  :group 'switch-window)
+
+(defcustom switch-window-configuration-change-hook-inhibit nil
+  "Whether inhibit `window-configuration-change-hook' during switch-window."
+  :type 'boolean
   :group 'switch-window)
 
 (defun switch-window--list-keyboard-keys ()
@@ -312,7 +317,9 @@ ask user for the window to select"
         (minibuffer-num nil)
         (original-cursor (default-value 'cursor-type))
         (eobps (switch-window--list-eobp))
-        (window-configuration-change-hook nil)
+        (window-configuration-change-hook
+         (unless switch-window-configuration-change-hook-inhibit
+           window-configuration-change-hook))
         key buffers
         window-points
         dedicated-windows)
