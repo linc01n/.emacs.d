@@ -96,7 +96,7 @@
 
 (spaceline-define-segment process
   "The process associated with this buffer, if any."
-  (powerline-raw mode-line-process)
+  (s-trim (powerline-raw mode-line-process))
   :when (spaceline--mode-line-nonempty mode-line-process))
 
 (spaceline-define-segment version-control
@@ -279,6 +279,7 @@ a function that returns a name to use.")
 (defvar erc-modified-channels-alist)
 (defvar fancy-battery-last-status)
 (defvar fancy-battery-show-percentage)
+(defvar mu4e-alert-mode-line)
 (defvar org-pomodoro-mode-line)
 (defvar pyvenv-virtual-env)
 (defvar pyvenv-virtual-env-name)
@@ -529,6 +530,13 @@ mouse-2: toggle rest visibility\n\
 mouse-3: go to end"))
   :when (and active
              (bound-and-true-p which-function-mode)))
+
+(spaceline-define-segment mu4e-alert-segment
+  "Show the number of unread mails using mu. Requires mu4e-alert"
+  mu4e-alert-mode-line
+  :when (and active
+             (featurep 'mu4e-alert))
+  :global-override ((:eval mu4e-alert-mode-line)))
 
 (provide 'spaceline-segments)
 
