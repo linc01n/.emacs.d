@@ -1007,14 +1007,19 @@ where COMMITS is the number of commits in TAG but not in REV."
   (--map (substring it 6) (magit-list-refnames "refs/notes")))
 
 (defun magit-remote-list-tags (remote)
-  (--map (substring it 51)
-         (--filter (not (string-match-p "\\^{}$" it))
-                   (magit-git-lines "ls-remote" "--tags" remote))))
+  (--keep (and (not (string-match-p "\\^{}$" it))
+               (substring it 51))
+          (magit-git-lines "ls-remote" "--tags" remote)))
 
 (defun magit-remote-list-branches (remote)
-  (--map (substring it 52)
-         (--filter (not (string-match-p "\\^{}$" it))
-                   (magit-git-lines "ls-remote" "--heads" remote))))
+  (--keep (and (not (string-match-p "\\^{}$" it))
+               (substring it 52))
+          (magit-git-lines "ls-remote" "--heads" remote)))
+
+(defun magit-remote-list-refs (remote)
+  (--keep (and (not (string-match-p "\\^{}$" it))
+               (substring it 41))
+          (magit-git-lines "ls-remote" remote)))
 
 (defun magit-get-submodules ()
   (--mapcat (and (string-match "^160000 [0-9a-z]\\{40\\} 0\t\\(.+\\)$" it)
@@ -1271,6 +1276,12 @@ Return a list of two integers: (A>B B>A)."
         choice
       (user-error "`%s' doesn't have the form REMOTE/BRANCH" choice))))
 
+(defun magit-read-refspec (prompt remote)
+  (magit-completing-read prompt
+                         (prog2 (message "Determining available refs...")
+                             (magit-remote-list-refs remote)
+                           (message "Determining available refs...done"))))
+
 (defun magit-read-local-branch (prompt &optional secondary-default)
   (magit-completing-read prompt (magit-list-local-branch-names)
                          nil t nil 'magit-revision-history
@@ -1375,6 +1386,15 @@ Return a list of two integers: (A>B B>A)."
                              (or default
                                  (magit-remote-at-point)
                                  (magit-get-remote))))))
+
+(defun magit-read-remote-or-url (prompt &optional default)
+  (magit-completing-read prompt
+                         (nconc (magit-list-remotes)
+                                (list "https://" "git://" "git@"))
+                         nil nil nil nil
+                         (or default
+                             (magit-remote-at-point)
+                             (magit-get-remote))))
 
 ;;; Variables
 
