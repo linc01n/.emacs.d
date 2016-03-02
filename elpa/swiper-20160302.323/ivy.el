@@ -686,7 +686,7 @@ If the text hasn't changed as a result, forward to `ivy-alt-done'."
      :dynamic-collection (ivy-state-dynamic-collection ivy-last)
      :caller (ivy-state-caller ivy-last))))
 
-(defvar ivy-calling nil
+(defvar-local ivy-calling nil
   "When non-nil, call the current action when `ivy--index' changes.")
 
 (defun ivy-set-index (index)
@@ -895,6 +895,7 @@ Call the permanent action if possible."
         (insert ivy--default)
         (when (and (with-ivy-window (derived-mode-p 'prog-mode))
                    (not (file-exists-p ivy--default))
+                   (not (ivy-state-dynamic-collection ivy-last))
                    (> (point) (minibuffer-prompt-end)))
           (undo-boundary)
           (insert "\\_>")
@@ -1317,6 +1318,8 @@ customizations apply to the current completion session."
             (when recursive-ivy-last
               (ivy--reset-state (setq ivy-last recursive-ivy-last)))))
       (ivy-call)
+      (when (numberp (car-safe (ivy-state-action ivy-last)))
+        (setcar (ivy-state-action ivy-last) 1))
       (when (and recursive-ivy-last
                  ivy-recursive-restore)
         (ivy--reset-state (setq ivy-last recursive-ivy-last))))))
@@ -2674,16 +2677,43 @@ buffer would modify `ivy-last'.")
   (let ((map (make-sparse-keymap)))
     (define-key map [mouse-1] 'ivy-occur-click)
     (define-key map (kbd "RET") 'ivy-occur-press)
-    (define-key map (kbd "j") 'next-line)
-    (define-key map (kbd "k") 'previous-line)
+    (define-key map (kbd "j") 'ivy-occur-next-line)
+    (define-key map (kbd "k") 'ivy-occur-previous-line)
     (define-key map (kbd "h") 'backward-char)
     (define-key map (kbd "l") 'forward-char)
     (define-key map (kbd "g") 'ivy-occur-press)
     (define-key map (kbd "a") 'ivy-occur-read-action)
     (define-key map (kbd "o") 'ivy-occur-dispatch)
+    (define-key map (kbd "c") 'ivy-occur-toggle-calling)
     (define-key map (kbd "q") 'quit-window)
     map)
   "Keymap for Ivy Occur mode.")
+
+(defun ivy-occur-toggle-calling ()
+  "Toggle `ivy-calling'."
+  (interactive)
+  (if (setq ivy-calling (not ivy-calling))
+      (progn
+        (setq mode-name "Ivy-Occur [calling]")
+        (ivy-occur-press))
+    (setq mode-name "Ivy-Occur"))
+  (force-mode-line-update))
+
+(defun ivy-occur-next-line (&optional arg)
+  "Move the cursor down ARG lines.
+When `ivy-calling' isn't nil, call `ivy-occur-press'."
+  (interactive "p")
+  (forward-line arg)
+  (when ivy-calling
+    (ivy-occur-press)))
+
+(defun ivy-occur-previous-line (&optional arg)
+  "Move the cursor up ARG lines.
+When `ivy-calling' isn't nil, call `ivy-occur-press'."
+  (interactive "p")
+  (forward-line (- arg))
+  (when ivy-calling
+    (ivy-occur-press)))
 
 (define-derived-mode ivy-occur-mode fundamental-mode "Ivy-Occur"
   "Major mode for output from \\[ivy-occur].
@@ -2801,7 +2831,6 @@ EVENT gives the mouse position."
 (defun ivy-occur-press ()
   "Execute action for the current candidate."
   (interactive)
-  (require 'pulse)
   (when (save-excursion
           (beginning-of-line)
           (looking-at "\\(?:./\\|    \\)\\(.*\\)$"))
@@ -2828,8 +2857,7 @@ EVENT gives the mouse position."
                (line-beginning-position)
                (line-end-position)
                (selected-window))
-              (run-at-time 0.5 nil 'swiper--cleanup))
-          (pulse-momentary-highlight-one-line (point)))))))
+              (run-at-time 0.5 nil 'swiper--cleanup)))))))
 
 (defvar ivy-help-file (let ((default-directory
                              (if load-file-name
