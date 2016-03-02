@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160226.918
+;; Package-Version: 20160226.1644
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -2892,13 +2892,17 @@ Return nil otherwise."
 (defun markdown-match-propertized-text (property last)
   "Match text with PROPERTY from point to LAST.
 Restore match data previously stored in PROPERTY."
-  (let (saved pos)
-    (unless (setq saved (get-text-property (point) property))
+  (let ((saved (get-text-property (point) property))
+        pos)
+    (unless saved
       (setq pos (next-single-char-property-change (point) property nil last))
       (setq saved (get-text-property pos property)))
     (when saved
       (set-match-data saved)
-      (goto-char (min (1+ (match-end 0)) (point-max)))
+      ;; Step at least one character beyond point. Otherwise
+      ;; `font-lock-fontify-keywords-region' infloops.
+      (goto-char (min (1+ (max (match-end 0) (point)))
+                      (point-max)))
       saved)))
 
 (defun markdown-match-pre-blocks (last)
