@@ -1308,10 +1308,10 @@ File: ivy.info,  Node: API,  Next: Variable Index,  Prev: Commands,  Up: Top
 8 API
 *****
 
-The main (and only) entry point is ‘ivy-read’ function.  It takes two
-required arguments and many optional arguments that can be passed by
-key.  The optional ‘:action’ argument is highly recommended for features
-such as multi-actions, non-exiting actions, ‘ivy-occur’ and
+The main (and only) entry point is the ‘ivy-read’ function.  It takes
+two required arguments and many optional arguments that can be passed by
+a key.  The optional ‘:action’ argument is highly recommended for
+features such as multi-actions, non-exiting actions, ‘ivy-occur’ and
 ‘ivy-resume’.
 * Menu:
 
@@ -1453,7 +1453,7 @@ File: ivy.info,  Node: Example - ‘counsel-describe-function’,  Next: Example
 =========================================
 
 This is a typical example of a function with a non-async collection,
-which is a collection where the strings in the collection are known
+which is a collection where all the strings in the collection are known
 prior to any input from the user.
 
    Only the first two arguments (along with ‘action’) are essential -
@@ -1819,12 +1819,12 @@ Node: File Name Completion39573
 Node: Buffer Name Completion41674
 Node: Counsel commands42293
 Node: API42940
-Node: Required arguments for ‘ivy-read’43510
-Node: Optional arguments for ‘ivy-read’44175
-Node: Example - ‘counsel-describe-function’47239
-Node: Example - ‘counsel-locate’50639
-Node: Variable Index54487
-Node: Keystroke Index61388
+Node: Required arguments for ‘ivy-read’43516
+Node: Optional arguments for ‘ivy-read’44181
+Node: Example - ‘counsel-describe-function’47245
+Node: Example - ‘counsel-locate’50649
+Node: Variable Index54497
+Node: Keystroke Index61398
 
 End Tag Table
 
