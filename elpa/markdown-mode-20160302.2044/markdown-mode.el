@@ -32,7 +32,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160302.658
+;; Package-Version: 20160302.2044
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -1207,15 +1207,14 @@ Group 2 matches only the label, without the surrounding markup.
 Group 3 matches the closing square bracket.")
 
 (defconst markdown-regex-header
-  "^\\(?:\\(.+\\)\n\\(=+\\)\\|\\(.+\\)\n\\(-+\\)\\|\\(#+\\)[ \t]*\\(.+?\\)[ \t]*\\(#*\\)\\)$"
+  "^\\(?:\\(.+?\\)\n\\(?:\\(=+\\)\\|\\(-+\\)\\)\\|\\(#+\\)[ \t]*\\(.+?\\)[ \t]*\\(#*\\)\\)$"
   "Regexp identifying Markdown headings.
-Group 1 matches the text of a level-1 setext heading.
+Group 1 matches the text of a setext heading.
 Group 2 matches the underline of a level-1 setext heading.
-Group 3 matches the text of a level-2 setext heading.
-Group 4 matches the underline of a level-2 setext heading.
-Group 5 matches the opening hash marks of an atx heading.
-Group 6 matches the text, without surrounding whitespace, of an atx heading.
-Group 7 matches the closing hash marks of an atx heading.")
+Group 3 matches the underline of a level-2 setext heading.
+Group 4 matches the opening hash marks of an atx heading.
+Group 5 matches the text, without surrounding whitespace, of an atx heading.
+Group 6 matches the closing hash marks of an atx heading.")
 
 (defconst markdown-regex-header-1-atx
   "^\\(#\\)[ \t]*\\([^\\.].*?\\)[ \t]*\\(#*\\)$"
@@ -1878,9 +1877,9 @@ start which was previously propertized."
        (match-beginning 0) (match-end 0) 'markdown-heading t)
       (put-text-property
        (match-beginning 0) (match-end 0)
-       (cond ((match-string-no-properties 1) 'markdown-heading-1-setext)
+       (cond ((match-string-no-properties 2) 'markdown-heading-1-setext)
              ((match-string-no-properties 3) 'markdown-heading-2-setext)
-             (t (let ((atx-level (length (match-string-no-properties 5))))
+             (t (let ((atx-level (length (match-string-no-properties 4))))
                   (cond ((= atx-level 1) 'markdown-heading-1-atx)
                         ((= atx-level 2) 'markdown-heading-2-atx)
                         ((= atx-level 3) 'markdown-heading-3-atx)
@@ -2233,26 +2232,26 @@ See `font-lock-syntactic-face-function' for details."
                                        (2 markdown-blockquote-face)))
    (cons 'markdown-match-heading-1-setext '((1 markdown-header-face-1)
                                             (2 markdown-header-rule-face)))
-   (cons 'markdown-match-heading-2-setext '((3 markdown-header-face-2)
-                                            (4 markdown-header-rule-face)))
-   (cons 'markdown-match-heading-6-atx '((5 markdown-header-delimiter-face)
-                                         (6 markdown-header-face-6)
-                                         (7 markdown-header-delimiter-face)))
-   (cons 'markdown-match-heading-5-atx '((5 markdown-header-delimiter-face)
-                                         (6 markdown-header-face-5)
-                                         (7 markdown-header-delimiter-face)))
-   (cons 'markdown-match-heading-4-atx '((5 markdown-header-delimiter-face)
-                                         (6 markdown-header-face-4)
-                                         (7 markdown-header-delimiter-face)))
-   (cons 'markdown-match-heading-3-atx '((5 markdown-header-delimiter-face)
-                                         (6 markdown-header-face-3)
-                                         (7 markdown-header-delimiter-face)))
-   (cons 'markdown-match-heading-2-atx '((5 markdown-header-delimiter-face)
-                                         (6 markdown-header-face-2)
-                                         (7 markdown-header-delimiter-face)))
-   (cons 'markdown-match-heading-1-atx '((5 markdown-header-delimiter-face)
-                                         (6 markdown-header-face-1)
-                                         (7 markdown-header-delimiter-face)))
+   (cons 'markdown-match-heading-2-setext '((1 markdown-header-face-2)
+                                            (3 markdown-header-rule-face)))
+   (cons 'markdown-match-heading-6-atx '((4 markdown-header-delimiter-face)
+                                         (5 markdown-header-face-6)
+                                         (6 markdown-header-delimiter-face)))
+   (cons 'markdown-match-heading-5-atx '((4 markdown-header-delimiter-face)
+                                         (5 markdown-header-face-5)
+                                         (6 markdown-header-delimiter-face)))
+   (cons 'markdown-match-heading-4-atx '((4 markdown-header-delimiter-face)
+                                         (5 markdown-header-face-4)
+                                         (6 markdown-header-delimiter-face)))
+   (cons 'markdown-match-heading-3-atx '((4 markdown-header-delimiter-face)
+                                         (5 markdown-header-face-3)
+                                         (6 markdown-header-delimiter-face)))
+   (cons 'markdown-match-heading-2-atx '((4 markdown-header-delimiter-face)
+                                         (5 markdown-header-face-2)
+                                         (6 markdown-header-delimiter-face)))
+   (cons 'markdown-match-heading-1-atx '((4 markdown-header-delimiter-face)
+                                         (5 markdown-header-face-1)
+                                         (6 markdown-header-delimiter-face)))
    (cons 'markdown-match-multimarkdown-metadata '((1 markdown-metadata-key-face)
                                                   (2 markdown-markup-face)
                                                   (3 markdown-metadata-value-face)))
@@ -2346,14 +2345,9 @@ in XEmacs 21."
 ;; for an active region, with fallbacks for older Emacsen and XEmacs.
 (eval-and-compile
   (cond
-   ;; Emacs 23 and newer
+   ;; Emacs 24 and newer
    ((fboundp 'use-region-p)
     (defalias 'markdown-use-region-p 'use-region-p))
-   ;; Older Emacsen
-   ((and (boundp 'transient-mark-mode) (boundp 'mark-active))
-    (defun markdown-use-region-p ()
-      "Compatibility wrapper to provide `use-region-p'."
-      (and transient-mark-mode mark-active)))
    ;; XEmacs
    ((fboundp 'region-active-p)
     (defalias 'markdown-use-region-p 'region-active-p))))
@@ -2413,15 +2407,6 @@ If we are at the last line, then consider the next line to be blank."
       (save-excursion
         (forward-line 1)
         (markdown-cur-line-blank-p))))
-
-(defun markdown-prev-line-indent-p ()
-  "Return t if the previous line is indented and nil otherwise."
-  (save-excursion
-    (if (= (line-beginning-position) (point-min))
-        nil
-      (forward-line -1)
-      (goto-char (line-beginning-position))
-      (if (re-search-forward "^\\s " (line-end-position) t) t))))
 
 (defun markdown-prev-line-indent ()
   "Return the number of leading whitespace characters in the previous line.
@@ -3529,8 +3514,8 @@ header text is determined."
                 (re-search-backward markdown-regex-header nil t))
         ;; level of current or previous header
         (setq level (markdown-outline-level))
-        ;; match groups 1 and 3 indicate setext headers
-        (setq setext (or setext (match-end 1) (match-end 3)))))
+        ;; match group 1 indicates a setext header
+        (setq setext (match-end 1))))
     ;; check prefix argument
     (cond
      ((and (equal arg '(4)) level (> level 1)) ;; C-u
@@ -4689,15 +4674,17 @@ See `imenu-create-index-function' and `imenu--index-alist' for details."
       (while (re-search-forward markdown-regex-header (point-max) t)
         (unless (markdown-code-block-at-point)
           (cond
-           ((setq heading (match-string-no-properties 1))
+           ((match-string-no-properties 2) ;; level 1 setext
+            (setq heading (match-string-no-properties 1))
             (setq pos (match-beginning 1)
                   level 1))
-           ((setq heading (match-string-no-properties 3))
-            (setq pos (match-beginning 3)
+           ((match-string-no-properties 3) ;; level 2 setext
+            (setq heading (match-string-no-properties 1))
+            (setq pos (match-beginning 1)
                   level 2))
-           ((setq hashes (match-string-no-properties 5))
-            (setq heading (match-string-no-properties 6)
-                  pos (match-beginning 5)
+           ((setq hashes (match-string-no-properties 4))
+            (setq heading (match-string-no-properties 5)
+                  pos (match-beginning 4)
                   level (length hashes))))
           (let ((alist (list (cons heading pos))))
             (cond
@@ -4733,10 +4720,8 @@ See `imenu-create-index-function' and `imenu--index-alist' for details."
         (cond
          ((setq heading (match-string-no-properties 1))
           (setq pos (match-beginning 1)))
-         ((setq heading (match-string-no-properties 3))
-          (setq pos (match-beginning 3)))
-         ((setq heading (match-string-no-properties 6))
-          (setq pos (match-beginning 5))))
+         ((setq heading (match-string-no-properties 5))
+          (setq pos (match-beginning 4))))
         (or (> (length heading) 0)
             (setq heading empty-heading))
         (setq index (append index (list (cons heading pos)))))
@@ -5565,9 +5550,9 @@ Calls `markdown-cycle' with argument t."
   "Return the depth to which a statement is nested in the outline."
   (cond
    ((markdown-code-block-at-point) 7)
-   ((match-end 1) 1)
+   ((match-end 2) 1)
    ((match-end 3) 2)
-   ((- (match-end 5) (match-beginning 5)))))
+   ((- (match-end 4) (match-beginning 4)))))
 
 (defun markdown-promote-subtree (&optional arg)
   "Promote the current subtree of ATX headings.
