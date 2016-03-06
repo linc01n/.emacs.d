@@ -2695,7 +2695,8 @@ buffer would modify `ivy-last'.")
     (define-key map (kbd "k") 'ivy-occur-previous-line)
     (define-key map (kbd "h") 'backward-char)
     (define-key map (kbd "l") 'forward-char)
-    (define-key map (kbd "g") 'ivy-occur-press)
+    (define-key map (kbd "f") 'ivy-occur-press)
+    (define-key map (kbd "g") 'ivy-occur-revert-buffer)
     (define-key map (kbd "a") 'ivy-occur-read-action)
     (define-key map (kbd "o") 'ivy-occur-dispatch)
     (define-key map (kbd "c") 'ivy-occur-toggle-calling)
@@ -2801,6 +2802,26 @@ There is no limit on the number of *ivy-occur* buffers."
       (ivy-exit-with-action
        `(lambda (_) (pop-to-buffer ,buffer))))))
 
+(defun ivy-occur-revert-buffer ()
+  "Refresh the buffer making it up-to date with the collection.
+
+Currently only works for `swiper'. In that specific case, the
+*ivy-occur* buffer becomes nearly useless as the orignal buffer
+is updated, since the line numbers no longer match.
+
+Calling this function is as if you called `ivy-occur' on the
+updated original buffer."
+  (interactive)
+  (let ((caller (ivy-state-caller ivy-occur-last))
+        (ivy-last ivy-occur-last))
+    (when (eq caller 'swiper)
+      (let ((buffer (ivy-state-buffer ivy-occur-last)))
+        (unless (buffer-live-p buffer)
+          (error "buffer was killed"))
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (funcall (plist-get ivy--occurs-list caller) t))))))
+
 (declare-function wgrep-change-to-wgrep-mode "ext:wgrep")
 
 (defun ivy-wgrep-change-to-wgrep-mode ()
@@ -2848,6 +2869,15 @@ EVENT gives the mouse position."
   (when (save-excursion
           (beginning-of-line)
           (looking-at "\\(?:./\\|    \\)\\(.*\\)$"))
+    (when (memq (ivy-state-caller ivy-occur-last)
+                '(swiper counsel-git-grep counsel-grep counsel-ag))
+      (let ((window (ivy-state-window ivy-occur-last)))
+        (when (or (null (window-live-p window))
+                  (equal window (selected-window)))
+          (save-selected-window
+            (setf (ivy-state-window ivy-occur-last)
+                  (display-buffer (ivy-state-buffer ivy-occur-last)
+                                  'display-buffer-pop-up-window))))))
     (let* ((ivy-last ivy-occur-last)
            (ivy-text (ivy-state-text ivy-last))
            (str (buffer-substring

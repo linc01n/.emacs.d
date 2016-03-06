@@ -69,7 +69,9 @@
                           swiper-match-face-2
                           swiper-match-face-3
                           swiper-match-face-4)
-  "List of `swiper' faces for group matches.")
+  "List of `swiper' faces for group matches."
+  :group 'ivy-faces
+  :type 'list)
 
 (defcustom swiper-min-highlight 2
   "Only highlight matches for regexps at least this long."
@@ -314,14 +316,16 @@ When non-nil, INITIAL-INPUT is the initial search pattern."
 
 (declare-function string-trim-right "subr-x")
 
-(defun swiper-occur ()
-  "Generate a custom occur buffer for `swiper'."
-  (ivy-occur-grep-mode)
-  (font-lock-mode -1)
-  (let* ((fname (propertize
+(defun swiper-occur (&optional revert)
+  "Generate a custom occur buffer for `swiper'.
+When REVERT is non-nil, regenerate the current *ivy-occur* buffer."
+  (let* ((buffer (ivy-state-buffer ivy-last))
+         (fname (propertize
                  (with-ivy-window
-                   (file-name-nondirectory
-                    (buffer-file-name)))
+                   (if (buffer-file-name buffer)
+                       (file-name-nondirectory
+                        (buffer-file-name buffer))
+                     (buffer-name buffer)))
                  'face
                  'compilation-info))
          (cands (mapcar
@@ -333,14 +337,27 @@ When non-nil, INITIAL-INPUT is the initial search pattern."
                              (get-text-property 0 'display s))
                             'face 'compilation-line-number)
                            (substring s 1)))
-                 ivy--old-cands)))
+                 (if (null revert)
+                     ivy--old-cands
+                   (setq ivy--old-re nil)
+                   (let ((ivy--regex-function 'swiper--re-builder))
+                     (ivy--filter
+                      (progn (string-match "\"\\(.*\\)\"" (buffer-name))
+                             (match-string 1 (buffer-name)))
+                      (with-current-buffer buffer
+                        (swiper--candidates))))))))
+    (unless (eq major-mode 'ivy-occur-grep-mode)
+      (ivy-occur-grep-mode)
+      (font-lock-mode -1))
     (insert (format "-*- mode:grep; default-directory: %S -*-\n\n\n"
                     default-directory))
     (insert (format "%d candidates:\n" (length cands)))
     (ivy--occur-insert-lines
      (mapcar
       (lambda (cand) (concat "./" cand))
-      cands))))
+      cands))
+    (goto-char (point-min))
+    (forward-line 4)))
 
 (ivy-set-occur 'swiper 'swiper-occur)
 
@@ -559,10 +576,9 @@ WND, when specified is the window."
 
 (defun swiper--action (x)
   "Goto line X."
-  (let ((ln (1- (read (if (memq this-command '(ivy-occur-press))
-                          (when (string-match ":\\([0-9]+\\):.*\\'" x)
-                            (match-string-no-properties 1 x))
-                        (get-text-property 0 'display x)))))
+  (let ((ln (1- (read (or (get-text-property 0 'display x)
+                          (and (string-match ":\\([0-9]+\\):.*\\'" x)
+                               (match-string-no-properties 1 x))))))
         (re (ivy--regex ivy-text)))
     (if (null x)
         (user-error "No candidates")
