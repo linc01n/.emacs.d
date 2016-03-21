@@ -3,7 +3,7 @@
 ;; Author: Vegard Øye <vegard_oye at hotmail.com>
 ;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
 
-;; Version: 1.2.10
+;; Version: 1.2.11
 
 ;;
 ;; This file is NOT part of GNU Emacs.
@@ -457,6 +457,7 @@ included in `evil-insert-state-bindings' by default."
 (evil-ex-define-cmd "sp[lit]" 'evil-window-split)
 (evil-ex-define-cmd "vs[plit]" 'evil-window-vsplit)
 (evil-ex-define-cmd "new" 'evil-window-new)
+(evil-ex-define-cmd "ene[w]" 'evil-buffer-new)
 (evil-ex-define-cmd "vne[w]" 'evil-window-vnew)
 (evil-ex-define-cmd "clo[se]" 'evil-window-delete)
 (evil-ex-define-cmd "on[ly]" 'delete-other-windows)
@@ -464,6 +465,7 @@ included in `evil-insert-state-bindings' by default."
 (evil-ex-define-cmd "wq" 'evil-save-and-close)
 (evil-ex-define-cmd "quita[ll]" 'evil-quit-all)
 (evil-ex-define-cmd "qa[ll]" "quitall")
+(evil-ex-define-cmd "cq[uit]" 'evil-quit-all-with-error-code)
 (evil-ex-define-cmd "wqa[ll]" 'evil-save-and-quit)
 (evil-ex-define-cmd "xa[ll]" "wqall")
 (evil-ex-define-cmd "x[it]" 'evil-save-modified-and-close)

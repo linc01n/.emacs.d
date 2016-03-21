@@ -2,7 +2,7 @@
 ;; Author: Vegard Øye <vegard_oye at hotmail.com>
 ;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
 
-;; Version: 1.2.10
+;; Version: 1.2.11
 
 ;;
 ;; This file is NOT part of GNU Emacs.
@@ -270,7 +270,7 @@ By default the last line."
   :jump t
   :type line
   (if (null count)
-      (goto-char (point-max))
+      (with-no-warnings (end-of-buffer))
     (goto-char (point-min))
     (forward-line (1- count)))
   (evil-first-non-blank))
@@ -705,6 +705,13 @@ To go the other way, press \
 To go the other way, press \
 \\<evil-motion-state-map>\\[evil-jump-backward]."
   (evil--jump-forward count))
+
+(evil-define-motion evil-jump-backward-swap (count)
+  "Go to the previous position in jump list.
+The current position is placed in the jump list."
+  (let ((pnt (point)))
+    (evil--jump-backward 1)
+    (evil-set-jump pnt)))
 
 (evil-define-motion evil-jump-to-tag (arg)
   "Jump to tag under point.
@@ -1419,8 +1426,12 @@ of the block."
     (when (or (zerop len) (/= (aref txt (1- len)) ?\n))
       (setq txt (concat txt "\n")))
     (when (and (eobp) (not (bolp))) (newline)) ; incomplete last line
+    (when (evil-visual-state-p)
+      (move-marker evil-visual-mark (point)))
     (insert txt)
-    (forward-line -1)))
+    (forward-line -1)
+    (when (evil-visual-state-p)
+      (move-marker evil-visual-point (point)))))
 
 (evil-define-operator evil-substitute (beg end type register)
   "Change a character."
@@ -2155,10 +2166,13 @@ the lines."
 
 (defun evil-insert-resume (count)
   "Switch to Insert state at previous insertion point.
-The insertion will be repeated COUNT times."
+The insertion will be repeated COUNT times. If called from visual
+state, only place point at the previous insertion position but do not
+switch to insert state."
   (interactive "p")
   (evil-goto-mark ?^ t)
-  (evil-insert count))
+  (unless (evil-visual-state-p)
+    (evil-insert count)))
 
 (defun evil-maybe-remove-spaces ()
   "Remove space from newly opened empty line.
@@ -2802,6 +2816,19 @@ is closed."
         (dolist (process (process-list))
           (set-process-query-on-exit-flag process nil))
         (kill-emacs)))))
+
+(evil-define-command evil-quit-all-with-error-code (&optional force)
+  "Exits Emacs without saving, returning an non-zero error code.
+The FORCE argument is only there for compatibility and is ignored.
+This function fails with an error if Emacs is run in server mode."
+  :repeat nil
+  (interactive "<!>")
+  (if (and (boundp 'server-buffer-clients)
+           (fboundp 'server-edit)
+           (fboundp 'server-buffer-done)
+           server-buffer-clients)
+      (user-error "Cannot exit client process with error code.")
+    (kill-emacs 1)))
 
 (evil-define-command evil-save-and-quit ()
   "Exits Emacs, without saving."
@@ -3696,6 +3723,18 @@ and opens a new buffer name or edits a certain FILE."
         (select-window new-window)
         (with-current-buffer buffer
           (funcall (default-value 'major-mode)))))))
+
+(evil-define-command evil-buffer-new (count file)
+  "Creates a new buffer replacing the current window, optionaly
+   editing a certain FILE"
+  :repeat nil
+  (interactive "P<f>")
+  (if file
+      (evil-edit file)
+    (let ((buffer (generate-new-buffer "*new*")))
+      (set-window-buffer nil buffer)
+      (with-current-buffer buffer
+        (funcall (default-value 'major-mode))))))
 
 (evil-define-command evil-window-increase-height (count)
   "Increase current window height by COUNT."
