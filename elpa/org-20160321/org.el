@@ -11678,21 +11678,20 @@ order.")
 		      (let ((re (format org-complex-heading-regexp-format
 					(regexp-quote heading)))
 			    (target
-			     (org-link-display-format
-			      (if (not org-refile-use-outline-path) heading
-				(mapconcat
-				 #'org-protect-slash
-				 (append
-				  (case org-refile-use-outline-path
-				    (file (list (file-name-nondirectory
-						 (buffer-file-name
-						  (buffer-base-buffer)))))
-				    (full-file-path
-				     (list (buffer-file-name
-					    (buffer-base-buffer))))
-				    (t nil))
-				  (org-get-outline-path t))
-				 "/")))))
+			     (if (not org-refile-use-outline-path) heading
+			       (mapconcat
+				#'org-protect-slash
+				(append
+				 (case org-refile-use-outline-path
+				   (file (list (file-name-nondirectory
+						(buffer-file-name
+						 (buffer-base-buffer)))))
+				   (full-file-path
+				    (list (buffer-file-name
+					   (buffer-base-buffer))))
+				   (t nil))
+				 (org-get-outline-path t t))
+				"/"))))
 			(push (list target f re (org-refile-marker (point)))
 			      tgs)))
 		    (when (= (point) begin)
@@ -11714,18 +11713,20 @@ order.")
 
 Outline path is a list of strings, in reverse order.  When
 optional argument USE-CACHE is non-nil, make use of a cache.  See
-`org-get-outline-path' for delails.
+`org-get-outline-path' for details.
 
-Assume buffer is widened."
-  (org-back-to-heading t)
+Assume buffer is widened and point is on a headline."
   (or (and use-cache (cdr (assq (point) org-outline-path-cache)))
       (let ((p (point))
-	    (heading (progn (looking-at org-complex-heading-regexp)
-			    (org-trim
-			     ;; Remove statistical/checkboxes cookies.
-			     (replace-regexp-in-string
-			      "\\[[0-9]+%\\]\\|\\[[0-9]+/[0-9]+\\]" ""
-			      (org-match-string-no-properties 4))))))
+	    (heading (progn
+		       (looking-at org-complex-heading-regexp)
+		       (if (not (match-end 4)) ""
+			 ;; Remove statistics cookies.
+			 (org-trim
+			  (org-link-display-format
+			   (replace-regexp-in-string
+			    "\\[[0-9]+%\\]\\|\\[[0-9]+/[0-9]+\\]" ""
+			    (org-match-string-no-properties 4))))))))
 	(if (org-up-heading-safe)
 	    (let ((path (cons heading (org--get-outline-path-1 use-cache))))
 	      (when use-cache
@@ -11738,8 +11739,15 @@ Assume buffer is widened."
 	    (when use-cache (setq org-outline-path-cache (list (cons p path))))
 	    path)))))
 
-(defun org-get-outline-path (&optional use-cache)
+(defun org-get-outline-path (&optional with-self use-cache)
   "Return the outline path to the current entry.
+
+An outline path is a list of ancestors for current headline, as
+a list of strings.  Statistics cookies are removed and links are
+replaced with their description, if any, or their path otherwise.
+
+When optional argument WITH-SELF is non-nil, the path also
+includes the current headline.
 
 When optional argument USE-CACHE is non-nil, cache outline paths
 between calls to this function so as to avoid backtracking.  This
@@ -11748,10 +11756,11 @@ path in the same document.  In that case, there are two
 conditions to satisfy:
   - `org-outline-path-cache' is set to nil before starting the
     process;
-  - outline paths are computed by increasing buffer positions.
-
-Return value is a list of strings."
-  (org-with-wide-buffer (reverse (org--get-outline-path-1 use-cache))))
+  - outline paths are computed by increasing buffer positions."
+  (org-with-wide-buffer
+   (and (or (and with-self (org-back-to-heading t))
+	    (org-up-heading-safe))
+	(reverse (org--get-outline-path-1 use-cache)))))
 
 (defun org-format-outline-path (path &optional width prefix separator)
   "Format the outline path PATH for display.
@@ -14971,7 +14980,7 @@ If DATA is nil or the empty string, any tags will be removed."
 	  (delete-region (match-beginning 1) (match-end 1))))))
 
 (defun org-align-all-tags ()
-  "Align the tags i all headings."
+  "Align the tags in all headings."
   (interactive)
   (save-excursion
     (or (ignore-errors (org-back-to-heading t))
@@ -17324,8 +17333,7 @@ user function argument order change dependent on argument order."
 
 (defun org-eval-in-calendar (form &optional keepdate)
   "Eval FORM in the calendar window and return to current window.
-When KEEPDATE is non-nil, update `org-ans2' from the cursor date,
-otherwise stick to the current value of `org-ans2'."
+Unless KEEPDATE is non-nil, update `org-ans2' to the cursor date."
   (let ((sf (selected-frame))
 	(sw (selected-window)))
     (select-window (get-buffer-window "*Calendar*" t))
@@ -23001,11 +23009,7 @@ ELEMENT."
 		(let ((cend (org-element-property :contents-end element)))
 		  (and cend (<= cend pos))))
 	   (if (memq type '(footnote-definition item plain-list))
-	       (let ((last (org-element-at-point)))
-		 (org--get-expected-indentation
-		  last
-		  (memq (org-element-type last)
-			'(footnote-definition item plain-list))))
+	       (org--get-expected-indentation (org-element-at-point) nil)
 	     (goto-char start)
 	     (org-get-indentation)))
 	  ;; In any other case, indent like the current line.

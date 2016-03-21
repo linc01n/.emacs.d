@@ -9917,8 +9917,15 @@ The prefix arg is passed through to the command if possible."
 		     nil nil nil
 		     (if (eq action ?s) "(Re)Schedule to" "(Re)Set Deadline to")
 		     org-overriding-default-time)))
-		 (c1 (if (eq action ?s) 'org-agenda-schedule 'org-agenda-deadline)))
-	    (setq cmd `(eval '(,c1 arg ,time)))))
+		 (c1 (if (eq action ?s) 'org-agenda-schedule
+		       'org-agenda-deadline)))
+	    ;; Make sure to not prompt for a note when bulk
+	    ;; rescheduling as Org cannot cope with simultaneous Org.
+	    ;; Besides, it could be annoying depending on the number
+	    ;; of items re-scheduled.
+	    (setq cmd `(eval '(let ((org-log-reschedule
+				     (and org-log-reschedule 'time)))
+				(,c1 arg ,time))))))
 
 	 ((equal action ?S)
 	  (if (not (org-agenda-check-type nil 'agenda 'timeline 'todo))
@@ -10083,8 +10090,9 @@ tag and (if present) the flagging note."
 	(replace-match "\n" t t))
       (goto-char (point-min))
       (select-window win)
-      (message (substitute-command-keys "Flagging note pushed to kill ring.  \
-Press \\[org-agenda-show-the-flagging-note] again to remove tag and note")))))
+      (message "%s" (substitute-command-keys "Flagging note pushed to \
+kill ring.  Press \\[org-agenda-show-the-flagging-note] again to remove \
+tag and note")))))
 
 (defun org-agenda-remove-flag (marker)
   "Remove the FLAGGED tag and any flagging note in the entry."
