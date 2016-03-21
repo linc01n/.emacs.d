@@ -301,6 +301,7 @@ This should eventually become a stack so that you could use
   "Return a string that corresponds to the current thing at point."
   (or
    (thing-at-point 'url)
+   (ffap-file-at-point)
    (let (s)
      (cond ((stringp (setq s (thing-at-point 'symbol)))
             (if (string-match "\\`[`']?\\(.*?\\)'?\\'" s)
@@ -551,14 +552,10 @@ When ARG is t, exit with current text, ignoring the candidates."
        (setq dir (concat ivy-text ivy--directory))
        (ivy--cd dir)
        (ivy--exhibit))
-      ((or
-        (and
-         (not (string= ivy-text ""))
-         (setq dir (ivy-expand-file-if-directory ivy-text)))
-        (and
-         (> ivy--length 0)
-         (not (string= ivy--current "./"))
-         (setq dir (ivy-expand-file-if-directory ivy--current))))
+      ((and
+        (> ivy--length 0)
+        (not (string= ivy--current "./"))
+        (setq dir (ivy-expand-file-if-directory ivy--current)))
        (ivy--cd dir)
        (ivy--exhibit))
       ((or (and (equal ivy--directory "/")
@@ -605,9 +602,11 @@ When ARG is t, exit with current text, ignoring the candidates."
 When this directory doesn't exist, return nil."
   (when (stringp file-name)
     (let ((full-name
-           (file-name-as-directory
-            (expand-file-name file-name ivy--directory))))
-      (when (file-directory-p full-name)
+           ;; Ignore host name must not match method "ssh"
+           (ignore-errors
+             (file-name-as-directory
+              (expand-file-name file-name ivy--directory)))))
+      (when (and full-name (file-directory-p full-name))
         full-name))))
 
 (defcustom ivy-tab-space nil
@@ -1332,8 +1331,6 @@ customizations apply to the current completion session."
             (when recursive-ivy-last
               (ivy--reset-state (setq ivy-last recursive-ivy-last)))))
       (ivy-call)
-      (when (numberp (car-safe (ivy-state-action ivy-last)))
-        (setcar (ivy-state-action ivy-last) 1))
       (when (and recursive-ivy-last
                  ivy-recursive-restore)
         (ivy--reset-state (setq ivy-last recursive-ivy-last))))))
@@ -1484,7 +1481,7 @@ This is useful for recursive `ivy-read'."
                 (ivy--directory
                  prompt)
                 (t
-                 nil)))
+                 prompt)))
     (setf (ivy-state-initial-input ivy-last) initial-input)))
 
 ;;;###autoload
@@ -2318,7 +2315,7 @@ This string is inserted into the minibuffer."
 
 (defun ivy--format-function-generic (selected-fn other-fn strs separator)
   "Transform CAND-PAIRS into a string for minibuffer.
-SELECTED-FN and OTHER-FN each take two string arguments.
+SELECTED-FN and OTHER-FN each take one string argument.
 SEPARATOR is used to join the candidates."
   (let ((i -1))
     (mapconcat
@@ -2484,9 +2481,9 @@ CANDS is a list of strings."
       (setq ivy--virtual-buffers (nreverse virtual-buffers))
       (mapcar #'car ivy--virtual-buffers))))
 
-(defcustom ivy-ignore-buffers nil
-  "List of regexps matching buffer names to ignore."
-  :type '(repeat regexp))
+(defcustom ivy-ignore-buffers '("\\` ")
+  "List of regexps or functions matching buffer names to ignore."
+  :type '(repeat (choice regexp function)))
 
 (defun ivy--buffer-list (str &optional virtual)
   "Return the buffers that match STR.
@@ -2561,8 +2558,10 @@ Skip buffers that match `ivy-ignore-buffers'."
       (or (cl-remove-if
            (lambda (buf)
              (cl-find-if
-              (lambda (regexp)
-                (string-match regexp buf))
+              (lambda (f-or-r)
+                (if (functionp f-or-r)
+                    (funcall f-or-r buf)
+                  (string-match-p f-or-r buf)))
               ivy-ignore-buffers))
            res)
           res))))
@@ -2579,6 +2578,13 @@ Skip buffers that match `ivy-ignore-buffers'."
              (buffer-modified-p b))
         (propertize str 'face 'ivy-modified-buffer)
       str)))
+
+(defun ivy-switch-buffer-occur ()
+  "Occur function for `ivy-switch-buffer' that uses `ibuffer'."
+  (let* ((cand-regexp
+          (concat "\\(" (mapconcat #'regexp-quote ivy--old-cands "\\|") "\\)"))
+         (new-qualifier `((name . ,cand-regexp))))
+    (ibuffer nil (buffer-name) new-qualifier)))
 
 ;;;###autoload
 (defun ivy-switch-buffer ()
@@ -2754,6 +2760,9 @@ When `ivy-calling' isn't nil, call `ivy-occur-press'."
   (setq ivy--occurs-list
         (plist-put ivy--occurs-list cmd occur)))
 
+(ivy-set-occur 'ivy-switch-buffer 'ivy-switch-buffer-occur)
+(ivy-set-occur 'ivy-switch-buffer-other-window 'ivy-switch-buffer-occur)
+
 (defun ivy--occur-insert-lines (cands)
   (dolist (str cands)
     (add-text-properties
@@ -2870,7 +2879,8 @@ EVENT gives the mouse position."
           (beginning-of-line)
           (looking-at "\\(?:./\\|    \\)\\(.*\\)$"))
     (when (memq (ivy-state-caller ivy-occur-last)
-                '(swiper counsel-git-grep counsel-grep counsel-ag))
+                '(swiper counsel-git-grep counsel-grep counsel-ag
+                  counsel-describe-function counsel-describe-variable))
       (let ((window (ivy-state-window ivy-occur-last)))
         (when (or (null (window-live-p window))
                   (equal window (selected-window)))
