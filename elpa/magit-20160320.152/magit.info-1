@@ -2593,6 +2593,10 @@ File: magit.info,  Node: Diff options,  Next: Revision buffer,  Prev: Diff buffe
      value is an integer, highlight indentation with at least that many
      spaces.  Otherwise, highlight neither.
 
+ -- User Option: magit-diff-hide-trailing-cr-characters
+
+     Whether to hide ^M characters at the end of a line in diffs.
+
 
 File: magit.info,  Node: Revision buffer,  Prev: Diff options,  Up: Diffing
 
@@ -2685,6 +2689,10 @@ File: magit.info,  Node: Ediffing,  Next: References buffer,  Prev: Diffing,  Up
 
      Show changes to a file introduced by a commit using Ediff.
 
+‘E z’     (‘magit-ediff-show-stash’)
+
+     Show changes to a file introduced by a stash using Ediff.
+
  -- User Option: magit-ediff-dwim-show-on-hunks
 
      This option controls what command ‘magit-ediff-dwim’ calls when
@@ -2692,6 +2700,13 @@ File: magit.info,  Node: Ediffing,  Next: References buffer,  Prev: Diffing,  Up
      ‘magit-ediff-stage’.  Otherwise, use ‘magit-ediff-show-staged’ and
      ‘magit-ediff-show-unstaged’ to show staged and unstaged changes,
      respectively.
+
+ -- User Option: magit-ediff-show-stash-with-index
+
+     This option controls whether ‘magit-ediff-show-stash’ includes a
+     buffer containing the file’s state in the index at the time the
+     stash was created.  This makes it possible to tell which changes in
+     the stash were staged.
 
  -- User Option: magit-ediff-quit-hook
 
@@ -6918,6 +6933,7 @@ Appendix B Keystroke Index
 * E s:                                   Ediffing.            (line  45)
 * E u:                                   Ediffing.            (line  50)
 * E w:                                   Ediffing.            (line  58)
+* E z:                                   Ediffing.            (line  66)
 * f:                                     Editing rebase sequences.
                                                               (line  63)
 * f <1>:                                 Fetching.            (line  11)
@@ -7308,6 +7324,7 @@ Appendix C Command Index
 * magit-ediff-resolve:                   Ediffing.            (line  32)
 * magit-ediff-show-commit:               Ediffing.            (line  62)
 * magit-ediff-show-staged:               Ediffing.            (line  54)
+* magit-ediff-show-stash:                Ediffing.            (line  66)
 * magit-ediff-show-unstaged:             Ediffing.            (line  50)
 * magit-ediff-show-working-tree:         Ediffing.            (line  58)
 * magit-ediff-stage:                     Ediffing.            (line  45)
