@@ -33,7 +33,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160303.751
+;; Package-Version: 20160313.1318
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -838,6 +838,8 @@
 ;;     and numerous other improvements.
 ;;   * Vitalie Spinu <spinuvit@gmail.com> for improvements to font
 ;;     lock and source code aesthetics.
+;;   * Kévin Le Gouguec <kevin.legouguec@gmail.com> for improvements
+;;     related to ATX headings and Pandoc fancy lists.
 
 ;;; Bugs:
 
@@ -1216,7 +1218,7 @@ Group 2 matches only the label, without the surrounding markup.
 Group 3 matches the closing square bracket.")
 
 (defconst markdown-regex-header
-  "^\\(?:\\(.+?\\)\n\\(?:\\(=+\\)\\|\\(-+\\)\\)\\|\\(#+\\)[ \t]*\\(.+?\\)[ \t]*\\(#*\\)\\)$"
+  "^\\(?:\\(.+?\\)\n\\(?:\\(=+\\)\\|\\(-+\\)\\)\\|\\(#+\\)[ \t]+\\(.*?\\)[ \t]*\\(#*\\)\\)$"
   "Regexp identifying Markdown headings.
 Group 1 matches the text of a setext heading.
 Group 2 matches the underline of a level-1 setext heading.
@@ -1226,27 +1228,27 @@ Group 5 matches the text, without surrounding whitespace, of an atx heading.
 Group 6 matches the closing hash marks of an atx heading.")
 
 (defconst markdown-regex-header-1-atx
-  "^\\(#\\)[ \t]*\\([^\\.].*?\\)[ \t]*\\(#*\\)$"
+  "^\\(#\\)[ \t]+\\(.*?\\)[ \t]*\\(#*\\)$"
   "Regular expression for level 1 atx-style (hash mark) headers.")
 
 (defconst markdown-regex-header-2-atx
-  "^\\(##\\)[ \t]*\\(.+?\\)[ \t]*\\(#*\\)$"
+  "^\\(##\\)[ \t]+\\(.*?\\)[ \t]*\\(#*\\)$"
   "Regular expression for level 2 atx-style (hash mark) headers.")
 
 (defconst markdown-regex-header-3-atx
-  "^\\(###\\)[ \t]*\\(.+?\\)[ \t]*\\(#*\\)$"
+  "^\\(###\\)[ \t]+\\(.*?\\)[ \t]*\\(#*\\)$"
   "Regular expression for level 3 atx-style (hash mark) headers.")
 
 (defconst markdown-regex-header-4-atx
-  "^\\(####\\)[ \t]*\\(.+?\\)[ \t]*\\(#*\\)$"
+  "^\\(####\\)[ \t]+\\(.*?\\)[ \t]*\\(#*\\)$"
   "Regular expression for level 4 atx-style (hash mark) headers.")
 
 (defconst markdown-regex-header-5-atx
-  "^\\(#####\\)[ \t]*\\(.+?\\)[ \t]*\\(#*\\)$"
+  "^\\(#####\\)[ \t]+\\(.*?\\)[ \t]*\\(#*\\)$"
   "Regular expression for level 5 atx-style (hash mark) headers.")
 
 (defconst markdown-regex-header-6-atx
-  "^\\(######\\)[ \t]*\\(.+?\\)[ \t]*\\(#*\\)$"
+  "^\\(######\\)[ \t]+\\(.*?\\)[ \t]*\\(#*\\)$"
   "Regular expression for level 6 atx-style (hash mark) headers.")
 
 (defconst markdown-regex-header-1-setext
@@ -1262,7 +1264,7 @@ Group 6 matches the closing hash marks of an atx heading.")
   "Regular expression for generic setext-style (underline) headers.")
 
 (defconst markdown-regex-header-atx
-  "^\\(#+\\)[ \t]*\\(.*?\\)[ \t]*\\(#*\\)$"
+  "^\\(#+\\)[ \t]+\\(.*?\\)[ \t]*\\(#*\\)$"
   "Regular expression for generic atx-style (hash mark) headers.")
 
 (defconst markdown-regex-hr
@@ -1911,13 +1913,15 @@ start which was previously propertized."
       (let ((open-beg (match-beginning 0)))
         (put-text-property open-beg (1+ open-beg)
                            'syntax-table (string-to-syntax "<"))
-        (markdown-syntax-propertize-comments (1+ open-beg) end)))
+        (markdown-syntax-propertize-comments
+         (min (1+ (match-end 0)) end (point-max)) end)))
      ;; Comment end
      ((and in-comment
            (re-search-forward markdown-regex-comment-end end t))
       (put-text-property (1- (match-end 0)) (match-end 0)
                          'syntax-table (string-to-syntax ">"))
-      (markdown-syntax-propertize-comments (match-end 0) end))
+      (markdown-syntax-propertize-comments
+       (min (1+ (match-end 0)) end (point-max)) end))
      ;; Nothing found
      (t nil))))
 
@@ -2806,7 +2810,7 @@ Return nil otherwise."
 (defun markdown-match-inline-generic (regex last)
   "Match inline REGEX from the point to LAST."
   (when (re-search-forward regex last t)
-    (let ((bounds (markdown-code-block-at-pos (match-beginning 0))))
+    (let ((bounds (markdown-code-block-at-pos (match-beginning 1))))
       (if (null bounds)
           ;; Not in a code block: keep match data and return t when in bounds
           (<= (match-end 0) last)
@@ -3358,8 +3362,7 @@ label is not defined, additionally prompt for the URL
 and (optional) title.  The reference definition is placed at the
 location determined by `markdown-reference-location'."
   (interactive)
-  (let* ((defined-labels (mapcar (lambda (x) (substring x 1 -1))
-                                 (markdown-get-defined-references)))
+  (let* ((defined-labels (markdown-get-defined-references))
          (switch (thing-at-point-looking-at markdown-regex-link-inline))
          (bounds (cond ((markdown-use-region-p)
                         (cons (region-beginning) (region-end)))
@@ -3494,9 +3497,10 @@ header will be inserted."
            (when (null markdown-asymmetric-header) (insert " " hdr)))))
   (markdown-ensure-blank-line-after)
   ;; Leave point at end of text
-  (if setext
-      (backward-char (1+ (string-width text)))
-    (backward-char (1+ level))))
+  (cond (setext
+         (backward-char (1+ (string-width text))))
+        ((null markdown-asymmetric-header)
+         (backward-char (1+ level)))))
 
 (defun markdown-insert-header-dwim (&optional arg setext)
   "Insert or replace header markup.
@@ -5079,8 +5083,8 @@ increase the indentation by one level."
                                     (substring (match-string 2) 0 space-adjust)
                                   (or old-spacing ". "))))
               (insert (concat new-indent new-prefix new-spacing)))))
-         ;; Unordered list
-         ((string-match-p "[\\*\\+-]" marker)
+         ;; Unordered list, or ordered list with hash mark
+         ((string-match-p "[\\*\\+-]\\|#\\." marker)
           (insert new-indent marker)))))))
 
 (defun markdown-move-list-item-up ()
@@ -6630,8 +6634,6 @@ BEG and END are the limits of scanned region."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
-;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.text\\'" . markdown-mode))
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 
