@@ -4,7 +4,7 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20160303.1343
+;; Package-Version: 20160317.1006
 ;; Version: 0.9
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
@@ -42,8 +42,12 @@
 (require 'cl-lib)
 (require 'button)
 
-(eval-when-compile
-  (defvar golden-ratio-mode))
+;; For compiler
+(defvar evil-operator-shortcut-map)
+(defvar evil-operator-state-map)
+(defvar evil-motion-state-map)
+(defvar golden-ratio-mode)
+(declare-function evil-get-command-property "ext:evil-common.el")
 
 (defgroup which-key nil
   "Customization options for which-key-mode"
@@ -147,9 +151,12 @@ the element is a cons cell, it should take the form (regexp .
 face to apply)."
   :group 'which-key)
 
-(defcustom which-key-special-keys '("SPC" "TAB" "RET" "ESC" "DEL")
+(defcustom which-key-special-keys '()
   "These keys will automatically be truncated to one character
-and have `which-key-special-key-face' applied to them."
+and have `which-key-special-key-face' applied to them. This is
+disabled by default. Try this to see the effect.
+
+\(setq which-key-special-keys '(\"SPC\" \"TAB\" \"RET\" \"ESC\" \"DEL\")\)"
   :group 'which-key
   :type '(repeat string))
 
@@ -418,6 +425,11 @@ ignored."
   :group 'which-key
   :type 'function)
 
+(defcustom which-key-lighter " WK"
+  "Minor mode lighter to use in the mode-line."
+  :group 'which-key
+  :type 'string)
+
 (defvar which-key-inhibit nil
   "Prevent which-key from popping up momentarily by setting this
 to a non-nil value for the execution of a command. Like this
@@ -490,7 +502,7 @@ alongside the actual current key sequence when
 (define-minor-mode which-key-mode
   "Toggle which-key-mode."
   :global t
-  :lighter " WK"
+  :lighter which-key-lighter
   :keymap (let ((map (make-sparse-keymap)))
             (mapc
              (lambda (prefix)
@@ -1769,7 +1781,13 @@ Usually this is `describe-prefix-bindings'."
   (interactive)
   (let ((which-key-inhibit t))
     (which-key--hide-popup-ignore-command)
-    (funcall which-key--prefix-help-cmd-backup)))
+    (cond ((eq which-key--prefix-help-cmd-backup
+               'describe-prefix-bindings)
+           ;; This is essentially what `describe-prefix-bindings' does
+           (describe-bindings
+            (kbd (which-key--current-key-string))))
+          ((functionp which-key--prefix-help-cmd-backup)
+           (funcall which-key--prefix-help-cmd-backup)))))
 
 ;;;###autoload
 (defun which-key-show-next-page-no-cycle ()
