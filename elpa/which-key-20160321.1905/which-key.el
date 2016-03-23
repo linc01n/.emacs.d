@@ -4,8 +4,8 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20160317.1006
-;; Version: 0.9
+;; Package-Version: 20160321.1905
+;; Version: 1.0
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
 
@@ -1011,20 +1011,6 @@ call signature in different emacs versions"
       (set-frame-size (window-frame window) frame-width frame-height)
       window)))
 
-;; Keep for popwin maybe (Used to work)
-;; (defun which-key-show-buffer-popwin (height width)
-;;   "Using popwin popup buffer with dimensions HEIGHT and WIDTH."
-;;   (popwin:popup-buffer which-key-buffer-name
-;;                        :height height
-;;                        :width width
-;;                        :noselect t
-;;                        :position which-key-side-window-location))
-
-;; (defun which-key-hide-buffer-popwin ()
-;;   "Hide popwin buffer."
-;;   (when (eq popwin:popup-buffer (get-buffer which-key--buffer))
-;;     (popwin:close-popup-window)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Max dimension of available window functions
 
@@ -1534,7 +1520,7 @@ metadata."
 
 (defun which-key--create-pages-1
     (keys available-lines available-width &optional min-lines vertical)
-  "Create page strings using `popalist-list-to-page'.
+  "Create page strings using `which-key--list-to-pages'.
 Will try to find the best number of rows and columns using the
 given dimensions and the length and widths of ITEMS. Use VERTICAL
 if the ITEMS are laid out vertically and the number of columns
