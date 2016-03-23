@@ -4,7 +4,7 @@
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
-;; Package-Version: 20160320.2
+;; Package-Version: 20160321.2307
 ;; Keywords: project, convenience
 ;; Version: 0.14.0-cvs
 ;; Package-Requires: ((dash "2.11.0") (pkg-info "0.4"))
@@ -94,7 +94,7 @@ attention to case differences."
     '(when (< emacs-major-version 25)
        (defvar etags--table-line-limit 500)
        (defun etags-tags-completion-table ()
-         (let (table
+         (let ((table (make-vector 511 0))
                (progress-reporter
                 (make-progress-reporter
                  (format "Making tags completion table for %s..." buffer-file-name)
@@ -106,15 +106,15 @@ attention to case differences."
                          "[\f\t\n\r()=,; ]?\177\\\(?:\\([^\n\001]+\\)\001\\)?"
                          (+ (point) etags--table-line-limit) t))
                    (forward-line 1)
-                 (push (prog1 (if (match-beginning 1)
-                                  (buffer-substring (match-beginning 1) (match-end 1))
-                                (goto-char (match-beginning 0))
-                                (skip-chars-backward "^\f\t\n\r()=,; ")
-                                (prog1
-                                    (buffer-substring (point) (match-beginning 0))
-                                  (goto-char (match-end 0))))
-                         (progress-reporter-update progress-reporter (point)))
-                       table))))
+                 (intern (prog1 (if (match-beginning 1)
+                                    (buffer-substring (match-beginning 1) (match-end 1))
+                                  (goto-char (match-beginning 0))
+                                  (skip-chars-backward "^\f\t\n\r()=,; ")
+                                  (prog1
+                                      (buffer-substring (point) (match-beginning 0))
+                                    (goto-char (match-end 0))))
+                           (progress-reporter-update progress-reporter (point)))
+                         table))))
            table))))
 
   )
