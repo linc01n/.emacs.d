@@ -24,6 +24,9 @@
 (fset 'yes-or-no-p 'y-or-n-p)
 
 (show-paren-mode 1)
+(delete-selection-mode 1)
+(setq vc-follow-symlinks t)
+(setq truncate-lines t)
 
 (when (eq system-type 'darwin) ;; mac specific settings
   (setq mac-control-modifier 'control)
@@ -33,7 +36,7 @@
                   'save-buffer)
   (global-set-key (kbd "s-k")
                   'kill-this-buffer)
-    (global-set-key (kbd "s-c")
+  (global-set-key (kbd "s-c")
                   'kill-ring-save)
   (global-set-key (kbd "s-x")
                   'kill-region)
