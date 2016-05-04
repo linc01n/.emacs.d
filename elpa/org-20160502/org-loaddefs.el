@@ -652,8 +652,8 @@ Extract anniversaries from BBDB for display in the agenda.
 ;;;***
 
 ;;;### (autoloads (org-capture-import-remember-templates org-capture
-;;;;;;  org-capture-string) "org-capture" "org-capture.el" (22200
-;;;;;;  12002))
+;;;;;;  org-capture-string) "org-capture" "org-capture.el" (22287
+;;;;;;  9770))
 ;;; Generated autoloads from org-capture.el
 
 (autoload 'org-capture-string "org-capture" "\
@@ -1260,7 +1260,7 @@ line directly before or after the table.
 ;;;;;;  org-table-begin org-table-align org-table-export org-table-import
 ;;;;;;  org-table-convert-region org-table-create org-table-create-or-convert-from-region
 ;;;;;;  org-table-create-with-table\.el) "org-table" "org-table.el"
-;;;;;;  "69133b6755f093c9a485af24640426b1")
+;;;;;;  "78c8482f6800eba041e8d28acab96787")
 ;;; Generated autoloads from org-table.el
 
 (autoload 'org-table-create-with-table\.el "org-table" "\
@@ -1651,20 +1651,14 @@ Recompute the current line if marked for it, and if we haven't just done it.
 (autoload 'org-table-eval-formula "org-table" "\
 Replace the table field value at the cursor by the result of a calculation.
 
-This function makes use of Dave Gillespie's Calc package, in my view the
-most exciting program ever written for GNU Emacs.  So you need to have Calc
-installed in order to use this function.
-
 In a table, this command replaces the value in the current field with the
 result of a formula.  It also installs the formula as the \"current\" column
 formula, by storing it in a special line below the table.  When called
-with a `C-u' prefix, the current field must be a named field, and the
-formula is installed as valid in only this specific field.
+with a `\\[universal-argument]' prefix the formula is installed as a field formula.
 
-When called with two `C-u' prefixes, insert the active equation
-for the field back into the current field, so that it can be
-edited there.  This is useful in order to use \\[org-table-show-reference]
-to check the referenced fields.
+When called with a `\\[universal-argument] \\[universal-argument]' prefix, insert the active equation for the field
+back into the current field, so that it can be edited there.  This is useful
+in order to use \\<org-table-fedit-map>`\\[org-table-show-reference]' to check the referenced fields.
 
 When called, the command first prompts for a formula, which is read in
 the minibuffer.  Previously entered formulas are available through the
@@ -1673,7 +1667,7 @@ These stored formulas are adapted correctly when moving, inserting, or
 deleting columns with the corresponding commands.
 
 The formula can be any algebraic expression understood by the Calc package.
-For details, see the Org-mode manual.
+For details, see the Org mode manual.
 
 This function can also be called from Lisp programs and offers
 additional arguments: EQUATION can be the formula to apply.  If this
@@ -1683,15 +1677,19 @@ SUPPRESS-CONST suppresses the interpretation of constants in the
 formula, assuming that this has been done already outside the function.
 SUPPRESS-STORE means the formula should not be stored, either because
 it is already stored, or because it is a modified equation that should
-not overwrite the stored one.
+not overwrite the stored one.  SUPPRESS-ANALYSIS prevents any call to
+`org-table-analyze'.
 
 \(fn &optional ARG EQUATION SUPPRESS-ALIGN SUPPRESS-CONST SUPPRESS-STORE SUPPRESS-ANALYSIS)" t nil)
 
 (autoload 'org-table-recalculate "org-table" "\
 Recalculate the current table line by applying all stored formulas.
+
 With prefix arg ALL, do this for all lines in the table.
-With the prefix argument ALL is `(16)' (a double \\[universal-prefix] \\[universal-prefix] prefix), or if
-it is the symbol `iterate', recompute the table until it no longer changes.
+
+When called with a `\\[universal-argument] \\[universal-argument]' prefix, or if ALL is the symbol `iterate',
+recompute the table until it no longer changes.
+
 If NOALIGN is not nil, do not re-align the table after the computations
 are done.  This is typically used internally to save time, if it is
 known that the table will be realigned a little later anyway.
@@ -2005,7 +2003,7 @@ using three `C-u' prefix arguments.
 ;;;***
 
 ;;;### (autoloads (org-git-version org-release) "org-version" "org-version.el"
-;;;;;;  (22255 32724))
+;;;;;;  (22310 57045))
 ;;; Generated autoloads from org-version.el
 
 (autoload 'org-release "org-version" "\
@@ -2031,7 +2029,7 @@ The location of ODT styles.")
 ;;;;;;  org-run-like-in-org-mode turn-on-orgstruct++ turn-on-orgstruct
 ;;;;;;  orgstruct-mode org-global-cycle org-cycle org-mode org-clock-persistence-insinuate
 ;;;;;;  turn-on-orgtbl org-version org-babel-load-file org-babel-do-load-languages)
-;;;;;;  "org" "org.el" (22251 36266))
+;;;;;;  "org" "org.el" (22309 36778))
 ;;; Generated autoloads from org.el
 
 (autoload 'org-babel-do-load-languages "org" "\
@@ -2422,7 +2420,7 @@ When ARG is \\[universal-argument] \\[universal-argument], display the asynchron
 
 ;;;### (autoloads (org-ascii-publish-to-utf8 org-ascii-publish-to-latin1
 ;;;;;;  org-ascii-publish-to-ascii org-ascii-export-to-ascii org-ascii-export-as-ascii)
-;;;;;;  "ox-ascii" "ox-ascii.el" "8b996711b8e315a0dd406d54c0854eaa")
+;;;;;;  "ox-ascii" "ox-ascii.el" "18c316ed803aa330fd3faea0de033049")
 ;;; Generated autoloads from ox-ascii.el
 
 (autoload 'org-ascii-export-as-ascii "ox-ascii" "\
@@ -2662,7 +2660,7 @@ Return output file name.
 
 ;;;### (autoloads (org-html-publish-to-html org-html-export-to-html
 ;;;;;;  org-html-convert-region-to-html org-html-export-as-html org-html-htmlize-generate-css)
-;;;;;;  "ox-html" "ox-html.el" "8a71c624b1d1c388ab0adfe0baf74040")
+;;;;;;  "ox-html" "ox-html.el" "9fdb85e79abb14cefd5dd6de2fb0b77f")
 ;;; Generated autoloads from ox-html.el
 
 (put 'org-html-head-include-default-style 'safe-local-variable 'booleanp)
@@ -2770,7 +2768,7 @@ Return output file name.
 
 ;;;### (autoloads (org-icalendar-combine-agenda-files org-icalendar-export-agenda-files
 ;;;;;;  org-icalendar-export-to-ics) "ox-icalendar" "ox-icalendar.el"
-;;;;;;  "0420c450f1da4a87e24a8afbc23f75f3")
+;;;;;;  "1b39db5795af4356d4b383ec0219ddf8")
 ;;; Generated autoloads from ox-icalendar.el
 
 (autoload 'org-icalendar-export-to-ics "ox-icalendar" "\
@@ -3022,7 +3020,7 @@ Return output file name.
 ;;;***
 
 ;;;### (autoloads (org-odt-convert org-odt-export-to-odt org-odt-export-as-odf-and-open
-;;;;;;  org-odt-export-as-odf) "ox-odt" "ox-odt.el" "e3a936f4f3bbe947f4d4b75ce359538f")
+;;;;;;  org-odt-export-as-odf) "ox-odt" "ox-odt.el" "40e36a40e3f6385fa77160d3139b7217")
 ;;; Generated autoloads from ox-odt.el
 
 (put 'org-odt-preferred-output-format 'safe-local-variable 'stringp)
@@ -3209,7 +3207,7 @@ the project.
 ;;;***
 
 ;;;### (autoloads (org-texinfo-convert-region-to-texinfo org-texinfo-publish-to-texinfo)
-;;;;;;  "ox-texinfo" "ox-texinfo.el" "78e9355de19d5650647109cc50825a58")
+;;;;;;  "ox-texinfo" "ox-texinfo.el" "08ecda1fb3c8057babfe32ad3477300c")
 ;;; Generated autoloads from ox-texinfo.el
 
 (autoload 'org-texinfo-publish-to-texinfo "ox-texinfo" "\
