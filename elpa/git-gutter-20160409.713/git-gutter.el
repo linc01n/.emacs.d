@@ -4,7 +4,7 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter
-;; Package-Version: 20160210.28
+;; Package-Version: 20160409.713
 ;; Version: 0.87
 ;; Package-Requires: ((cl-lib "0.5") (emacs "24"))
 
@@ -111,6 +111,10 @@ gutter information of other windows."
 (defcustom git-gutter:verbosity 0
   "Log/message level. 4 means all, 0 nothing."
   :type 'integer)
+
+(defcustom git-gutter:visual-line nil
+  "Show sign at gutter by visual line."
+  :type 'boolean)
 
 (defface git-gutter:separator
   '((t (:foreground "cyan" :weight bold :inherit default)))
@@ -387,20 +391,23 @@ gutter information of other windows."
            when (overlay-get ov 'linum-str)
            return ov))
 
-(defun git-gutter:view-at-pos-linum (sign pos)
-  (git-gutter:awhen (git-gutter:linum-get-overlay pos)
-    (overlay-put it 'before-string
-                 (propertize " "
-                             'display
-                             `((margin left-margin)
-                               ,(concat sign (overlay-get it 'linum-str)))))))
+(defun git-gutter:put-signs-linum (sign points)
+  (dolist (pos points)
+    (git-gutter:awhen (git-gutter:linum-get-overlay pos)
+      (overlay-put it 'before-string
+                   (propertize " "
+                               'display
+                               `((margin left-margin)
+                                 ,(concat sign (overlay-get it 'linum-str))))))))
 
-(defun git-gutter:view-at-pos (sign pos)
+(defun git-gutter:put-signs (sign points)
   (if git-gutter:linum-enabled
-      (git-gutter:view-at-pos-linum sign pos)
-    (let ((ov (make-overlay pos pos)))
-      (overlay-put ov 'before-string (git-gutter:before-string sign))
-      (overlay-put ov 'git-gutter t))))
+      (git-gutter:put-signs-linum sign points)
+    (dolist (pos points)
+      (let ((ov (make-overlay pos pos))
+            (gutter-sign (git-gutter:before-string sign)))
+        (overlay-put ov 'before-string gutter-sign)
+        (overlay-put ov 'git-gutter t)))))
 
 (defsubst git-gutter:sign-width (sign)
   (cl-loop for s across sign
@@ -415,16 +422,26 @@ gutter information of other windows."
     (+ (apply #'max (mapcar 'git-gutter:sign-width signs))
        (git-gutter:sign-width git-gutter:separator-sign))))
 
+(defun git-gutter:next-visual-line (arg)
+  (let ((line-move-visual t))
+    (with-no-warnings
+      (next-line arg))))
+
 (defun git-gutter:view-for-unchanged ()
   (save-excursion
     (let ((sign (if git-gutter:unchanged-sign
                     (propertize git-gutter:unchanged-sign
                                 'face 'git-gutter:unchanged)
-                  " ")))
+                  " "))
+          (move-fn (if git-gutter:visual-line
+                       #'git-gutter:next-visual-line
+                     #'forward-line))
+          points)
       (goto-char (point-min))
       (while (not (eobp))
-        (git-gutter:view-at-pos sign (point))
-        (forward-line 1)))))
+        (push (point) points)
+        (funcall move-fn 1))
+      (git-gutter:put-signs sign points))))
 
 (defsubst git-gutter:check-file-and-directory ()
   (and (git-gutter:base-file)
@@ -471,10 +488,12 @@ gutter information of other windows."
 (defun git-gutter:linum-prepend-spaces ()
   (save-excursion
     (goto-char (point-min))
-    (let ((padding (git-gutter:linum-padding)))
+    (let ((padding (git-gutter:linum-padding))
+          points)
       (while (not (eobp))
-        (git-gutter:view-at-pos-linum padding (point))
-        (forward-line 1)))))
+        (push (point) points)
+        (forward-line 1))
+      (git-gutter:put-signs-linum padding points))))
 
 (defun git-gutter:linum-update (diffinfos)
   (let ((linum-width (car (window-margins))))
@@ -566,25 +585,31 @@ gutter information of other windows."
   (save-excursion
     (goto-char (point-min))
     (cl-loop with curline = 1
+             with move-fn = (if git-gutter:visual-line
+                                #'git-gutter:next-visual-line
+                              #'forward-line)
+
              for info in diffinfos
              for start-line = (plist-get info :start-line)
              for end-line = (plist-get info :end-line)
              for type = (plist-get info :type)
              for sign = (git-gutter:propertized-sign type)
+             for points = nil
              do
-             (progn
-               (forward-line (- start-line curline))
+             (let ((bound (progn
+                            (forward-line (- end-line curline))
+                            (point))))
+               (forward-line (- start-line end-line))
                (cl-case type
                  ((modified added)
-                  (setq curline start-line)
-                  (while (and (<= curline end-line) (not (eobp)))
-                    (git-gutter:view-at-pos sign (point))
-                    (cl-incf curline)
-                    (forward-line 1)))
+                  (while (and (<= (point) bound) (not (eobp)))
+                    (push (point) points)
+                    (funcall move-fn 1))
+                  (git-gutter:put-signs sign points))
                  (deleted
-                  (git-gutter:view-at-pos sign (point))
-                  (forward-line 1)
-                  (setq curline (1+ end-line))))))))
+                  (git-gutter:put-signs sign (list (point)))
+                  (forward-line 1)))
+               (setq curline (1+ end-line))))))
 
 (defun git-gutter:view-diff-infos (diffinfos)
   (when (or diffinfos git-gutter:always-show-separator)
@@ -853,6 +878,10 @@ gutter information of other windows."
 
 (defadvice vc-revert (after git-gutter:vc-revert activate)
   (when git-gutter-mode
+    (run-with-idle-timer 0.1 nil 'git-gutter)))
+
+(defadvice toggle-truncate-lines (after git-gutter:toggle-truncate-lines activate)
+  (when (and git-gutter-mode git-gutter:visual-line)
     (run-with-idle-timer 0.1 nil 'git-gutter)))
 
 ;; `quit-window' and `switch-to-buffer' are called from other
