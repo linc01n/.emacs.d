@@ -4,8 +4,8 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20160321.1905
-;; Version: 1.0
+;; Package-Version: 20160427.1204
+;; Version: 1.1.7
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
 
@@ -68,7 +68,11 @@ this behavior."
   :group 'which-key
   :type 'float)
 
-(defcustom which-key-echo-keystrokes 0
+(defcustom which-key-echo-keystrokes (if (and echo-keystrokes
+                                              (> echo-keystrokes
+                                                 which-key-idle-delay))
+                                         (/ (float which-key-idle-delay) 4)
+                                       echo-keystrokes)
   "Value to use for `echo-keystrokes'.
 This only applies if `which-key-popup-type' is minibuffer or
 `which-key-show-prefix' is echo. It needs to be less than
@@ -327,21 +331,6 @@ prefixes in `which-key-paging-prefixes'"
                         "No longer applies. See `which-key-C-h-dispatch'"
                         "2015-12-2")
 
-(defcustom which-key-allow-evil-operators (boundp 'evil-this-operator)
-  "Allow popup to show for evil operators. The popup is normally
-  inhibited in the middle of commands, but setting this to
-  non-nil will override this behavior for evil operators."
-  :group 'which-key
-  :type 'boolean)
-
-(defcustom which-key-show-operator-state-maps nil
-  "Experimental: Try to show the right keys following an evil
-command that reads a motion, such as \"y\", \"d\" and \"c\" from
-normal state. This is experimental, because there might be some
-valid keys missing and it might be showing some invalid keys."
-  :group 'which-key
-  :type 'boolean)
-
 (defcustom which-key-hide-alt-key-translations t
   "Hide key translations using Alt key if non nil.
 These translations are not relevant most of the times since a lot
@@ -437,6 +426,10 @@ to a non-nil value for the execution of a command. Like this
 \(let \(\(which-key-inhibit t\)\)
 ...\)")
 
+(defvar which-key-keymap-history nil
+  "History of keymap selections in functions like
+`which-key-show-keymap'.")
+
 ;; Internal Vars
 (defvar which-key--buffer nil
   "Internal: Holds reference to which-key buffer.")
@@ -498,6 +491,57 @@ sequence. prefix-title is a string. The title is displayed
 alongside the actual current key sequence when
 `which-key-show-prefix' is set to either top or echo.")
 
+
+;; Third-party library support
+
+;; Evil
+(defcustom which-key-allow-evil-operators (boundp 'evil-this-operator)
+  "Allow popup to show for evil operators. The popup is normally
+  inhibited in the middle of commands, but setting this to
+  non-nil will override this behavior for evil operators."
+  :group 'which-key
+  :type 'boolean)
+
+(defcustom which-key-show-operator-state-maps nil
+  "Experimental: Try to show the right keys following an evil
+command that reads a motion, such as \"y\", \"d\" and \"c\" from
+normal state. This is experimental, because there might be some
+valid keys missing and it might be showing some invalid keys."
+  :group 'which-key
+  :type 'boolean)
+
+;; God-mode
+(defvar which-key--god-mode-support-enabled nil
+  "Support god-mode if non-nil. This is experimental,
+so you need to explicitly opt-in for now. Please report any
+problems at github.")
+
+(defvar which-key--god-mode-key-string nil
+  "Holds key string to use for god-mode support.")
+
+(defadvice god-mode-lookup-command
+    (around which-key--god-mode-lookup-command-advice disable)
+  (setq which-key--god-mode-key-string (ad-get-arg 0))
+  (unwind-protect
+      ad-do-it
+    (when (bound-and-true-p which-key-mode)
+      (which-key--hide-popup))))
+
+(defun which-key-enable-god-mode-support (&optional disable)
+  "Enable support for god-mode if non-nil. This is experimental,
+so you need to explicitly opt-in for now. Please report any
+problems at github. If DISABLE is non-nil disable support."
+  (interactive "P")
+  (setq which-key--god-mode-support-enabled (null disable))
+  (if disable
+      (ad-disable-advice
+       'god-mode-lookup-command
+       'around 'which-key--god-mode-lookup-command-advice)
+    (ad-enable-advice
+     'god-mode-lookup-command
+     'around 'which-key--god-mode-lookup-command-advice))
+  (ad-activate 'god-mode-lookup-command))
+
 ;;;###autoload
 (define-minor-mode which-key-mode
   "Toggle which-key-mode."
@@ -553,7 +597,7 @@ alongside the actual current key sequence when
 
 (defun which-key--setup ()
   "Initial setup for which-key.
-Reduce `echo-keystrokes' if necessary (it will interfer if it's
+Reduce `echo-keystrokes' if necessary (it will interfere if it's
 set too high) and setup which-key buffer."
   (when (or (eq which-key-show-prefix 'echo)
             (eq which-key-popup-type 'minibuffer))
@@ -564,7 +608,7 @@ set too high) and setup which-key buffer."
   (setq which-key--is-setup t))
 
 (defun which-key--setup-echo-keystrokes ()
-  "Reduce `echo-keystrokes' if necessary (it will interfer if
+  "Reduce `echo-keystrokes' if necessary (it will interfere if
 it's set too high)."
   (let (;(previous echo-keystrokes)
         )
@@ -748,40 +792,43 @@ MORE allows you to specifcy additional KEY-SEQUENCE NAME pairs.
 All names are added to `which-key-prefix-names-alist' and titles
 to `which-key-prefix-title-alist'."
   (while key-sequence
-    (let ((-name (if (consp name) (car name) name))
-          (-title (if (consp name) (cdr name) name)))
+    (let ((name (if (consp name) (car name) name))
+          (title (if (consp name) (cdr name) name)))
         (setq which-key-prefix-name-alist
               (which-key--add-key-val-to-alist
-               which-key-prefix-name-alist key-sequence -name "prefix-name")
+               which-key-prefix-name-alist key-sequence name "prefix-name")
               which-key-prefix-title-alist
               (which-key--add-key-val-to-alist
-               which-key-prefix-title-alist key-sequence -title "prefix-title")))
+               which-key-prefix-title-alist key-sequence title "prefix-title")))
     (setq key-sequence (pop more) name (pop more))))
 (put 'which-key-declare-prefixes 'lisp-indent-function 'defun)
 
 ;;;###autoload
 (defun which-key-declare-prefixes-for-mode (mode key-sequence name &rest more)
-  "Functions like `which-key-declare-prefix-names'.
+  "Functions like `which-key-declare-prefixes'.
 The difference is that MODE specifies the `major-mode' that must
 be active for KEY-SEQUENCE and NAME (MORE contains
 addition KEY-SEQUENCE NAME pairs) to apply."
   (when (not (symbolp mode))
     (error "MODE should be a symbol corresponding to a value of major-mode"))
   (let ((mode-name-alist (cdr (assq mode which-key-prefix-name-alist)))
-        (mode-title-alist (cdr (assq mode which-key-prefix-title-alist)))
-        (-name (if (consp name) (car name) name))
-        (-title (if (consp name) (cdr name) name)))
+        (mode-title-alist (cdr (assq mode which-key-prefix-title-alist))))
     (while key-sequence
-      (setq mode-name-alist (which-key--add-key-val-to-alist
-                             mode-name-alist key-sequence -name
-                             (format "prefix-name-%s" mode))
-            mode-title-alist (which-key--add-key-val-to-alist
-                              mode-title-alist key-sequence -title
-                              (format "prefix-name-%s" mode)))
+      (let ((name (if (consp name) (car name) name))
+            (title (if (consp name) (cdr name) name)))
+        (setq mode-name-alist (which-key--add-key-val-to-alist
+                               mode-name-alist key-sequence name
+                               (format "prefix-name-%s" mode))
+              mode-title-alist (which-key--add-key-val-to-alist
+                                mode-title-alist key-sequence title
+                                (format "prefix-name-%s" mode))))
       (setq key-sequence (pop more) name (pop more)))
     (if (assq mode which-key-prefix-name-alist)
         (setcdr (assq mode which-key-prefix-name-alist) mode-name-alist)
-      (push (cons mode mode-name-alist) which-key-prefix-name-alist))))
+      (push (cons mode mode-name-alist) which-key-prefix-name-alist))
+    (if (assq mode which-key-prefix-title-alist)
+        (setcdr (assq mode which-key-prefix-title-alist) mode-title-alist)
+      (push (cons mode mode-title-alist) which-key-prefix-title-alist))))
 (put 'which-key-declare-prefixes-for-mode 'lisp-indent-function 'defun)
 
 (defun which-key-define-key-recursively (map key def &optional recursing)
@@ -1418,6 +1465,15 @@ alists. Returns a list (key separator description)."
                          (string-match (format "^%s[ \t]\\([^ \t]+\\)[ \t]+$" key-str-qt) key))
                     (unless (assoc-string (match-string 1 key) bindings)
                       (push (cons (match-string 1 key) binding) bindings)))
+                   ((and which-key--current-prefix
+                         (string-match
+                          (format
+                           "^%s[ \t]\\([^ \t]+\\) \\.\\. %s[ \t]\\([^ \t]+\\)[ \t]+$"
+                           key-str-qt key-str-qt) key))
+                    (let ((stripped-key
+                           (concat (match-string 1 key) " \.\. " (match-string 2 key))))
+                      (unless (assoc-string stripped-key bindings)
+                        (push (cons stripped-key binding) bindings))))
                    ((string-match "^\\([^ \t]+\\|[^ \t]+ \\.\\. [^ \t]+\\)[ \t]+$" key)
                     (unless (assoc-string (match-string 1 key) bindings)
                       (push (cons (match-string 1 key) binding) bindings)))))))))
@@ -1910,7 +1966,7 @@ is selected interactively from all available keymaps."
                         (and (boundp m)
                              (keymapp (symbol-value m))
                              (not (equal (symbol-value m) (make-sparse-keymap)))))
-                      t nil 'variable-name-history))))
+                      t nil 'which-key-keymap-history))))
     (which-key--show-keymap (symbol-name keymap-sym) (symbol-value keymap-sym))))
 
 (defun which-key-show-minor-mode-keymap ()
@@ -1927,7 +1983,7 @@ is selected interactively by mode in `minor-mode-map-alist'."
                       (and (symbol-value (car entry))
                            (not (equal (cdr entry) (make-sparse-keymap)))))
                     minor-mode-map-alist))
-           nil t nil 'variable-name-history))))
+           nil t nil 'which-key-keymap-history))))
     (which-key--show-keymap (symbol-name mode-sym)
                             (cdr (assq mode-sym minor-mode-map-alist)))))
 
@@ -2022,6 +2078,28 @@ Finally, show the buffer."
     ;;  (message "key: %s" (key-description prefix-keys)))
     ;; (when (> (length prefix-keys) 0)
     ;;  (message "key binding: %s" (key-binding prefix-keys)))
+    ;; Taken from guide-key
+    (when (and (equal prefix-keys [key-chord])
+               (bound-and-true-p key-chord-mode))
+      (setq prefix-keys
+            (condition-case nil
+                (let ((rkeys (recent-keys)))
+                  (vector 'key-chord
+                          ;; Take the two preceding the last one, because the
+                          ;; read-event call in key-chord seems to add a
+                          ;; spurious key press to this list. Note this is
+                          ;; different from guide-key's method which didn't work
+                          ;; for me.
+                          (aref rkeys (- (length rkeys) 3))
+                          (aref rkeys (- (length rkeys) 2))))
+              (error (progn
+                       (message "which-key error in key-chord handling")
+                       [key-chord])))))
+    (when (and which-key--god-mode-support-enabled
+               (bound-and-true-p god-local-mode)
+               (eq this-command 'god-mode-self-insert))
+      (setq prefix-keys (when which-key--god-mode-key-string
+                          (kbd which-key--god-mode-key-string))))
     (cond ((and (> (length prefix-keys) 0)
                 (or (keymapp (key-binding prefix-keys))
                     ;; Some keymaps are stored here like iso-transl-ctl-x-8-map
@@ -2035,6 +2113,9 @@ Finally, show the buffer."
                 ;; executed
                 (or (and which-key-allow-evil-operators
                          (bound-and-true-p evil-this-operator))
+                    (and which-key--god-mode-support-enabled
+                         (bound-and-true-p god-local-mode)
+                         (eq this-command 'god-mode-self-insert))
                     (null this-command)))
            (which-key--create-buffer-and-show prefix-keys)
            (when which-key-idle-secondary-delay

@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "which-key" "which-key.el" (22258 45377 0 0))
+;;;### (autoloads nil "which-key" "which-key.el" (22313 46135 0 0))
 ;;; Generated autoloads from which-key.el
 
 (defvar which-key-mode nil "\
@@ -92,7 +92,7 @@ to `which-key-prefix-title-alist'.
 \(fn KEY-SEQUENCE NAME &rest MORE)" nil nil)
 
 (autoload 'which-key-declare-prefixes-for-mode "which-key" "\
-Functions like `which-key-declare-prefix-names'.
+Functions like `which-key-declare-prefixes'.
 The difference is that MODE specifies the `major-mode' that must
 be active for KEY-SEQUENCE and NAME (MORE contains
 addition KEY-SEQUENCE NAME pairs) to apply.
