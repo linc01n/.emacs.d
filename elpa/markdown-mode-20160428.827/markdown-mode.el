@@ -1,4 +1,4 @@
-;;; markdown-mode.el --- Emacs Major mode for Markdown-formatted text files -*- lexical-binding: t; -*-
+;;; markdown-mode.el --- Major mode for Markdown-formatted text -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2007-2016 Jason R. Blevins <jrblevin@sdf.org>
 ;; Copyright (C) 2007, 2009 Edward O'Connor <ted@oconnor.cx>
@@ -33,7 +33,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160313.1318
+;; Package-Version: 20160428.827
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -58,7 +58,7 @@
 ;;; Commentary:
 
 ;; markdown-mode is a major mode for editing [Markdown][]-formatted
-;; text files in GNU Emacs.  markdown-mode is free software, licensed
+;; text.  markdown-mode is free software, licensed
 ;; under the GNU GPL.
 ;;
 ;;  [Markdown]: http://daringfireball.net/projects/markdown/
@@ -196,6 +196,11 @@
 ;;     active region or the word at point, if any, as the alt text.
 ;;     `C-c C-i I` behaves similarly and inserts a reference-style
 ;;     image.
+;;
+;;     Local images associated with image links may be displayed
+;;     inline in the buffer by pressing `C-c C-i C-t`
+;;     (`markdown-toggle-inline-images'). This is a toggle command, so
+;;     pressing this once again will remove inline images.
 ;;
 ;;   * Styles: `C-c C-s`
 ;;
@@ -509,6 +514,15 @@
 ;;   * `markdown-asymmetric-header' - set to a non-nil value to use
 ;;     asymmetric header styling, placing header characters only on
 ;;     the left of headers (default: `nil').
+;;
+;;   * `markdown-header-scaling' - set to a non-nil value to use
+;;     a variable-pitch font for headings where the size corresponds
+;;     to the level of the heading (default: `nil').
+;;
+;;   * `markdown-header-scaling-values' - list of scaling values,
+;;     relative to baseline, for headers of levels one through six,
+;;     used when `markdown-header-scaling' is non-nil
+;;     (default: `(list 1.8 1.4 1.2 1.0 1.0 1.0)`).
 ;;
 ;;   * `markdown-list-indent-width' - depth of indentation for lists
 ;;     when inserting, promoting, and demoting list items (default: 4).
@@ -1471,11 +1485,15 @@ Function is called repeatedly until it returns nil. For details, see
   (save-match-data
     (save-excursion
       (let* ((new-start (progn (goto-char start)
+                               (skip-chars-forward "\n")
                                (if (re-search-backward "\n\n" nil t)
-                                   (match-end 0) (point-min))))
+                                   (min start (match-end 0))
+                                 (point-min))))
              (new-end (progn (goto-char end)
+                             (skip-chars-backward "\n")
                              (if (re-search-forward "\n\n" nil t)
-                                 (match-beginning 0) (point-max))))
+                                 (max end (match-beginning 0))
+                               (point-max))))
              (code-match (markdown-code-block-at-pos new-start))
              (new-start (or (and code-match (cl-first code-match)) new-start))
              (code-match (markdown-code-block-at-pos end))
@@ -2095,41 +2113,6 @@ START and END delimit region to propertize."
   "Base face for headers hash delimiter."
   :group 'markdown-faces)
 
-(defface markdown-header-face
-  '((t (:inherit font-lock-function-name-face :weight bold)))
-  "Base face for headers."
-  :group 'markdown-faces)
-
-(defface markdown-header-face-1
-  '((t (:inherit markdown-header-face)))
-  "Face for level-1 headers."
-  :group 'markdown-faces)
-
-(defface markdown-header-face-2
-  '((t (:inherit markdown-header-face)))
-  "Face for level-2 headers."
-  :group 'markdown-faces)
-
-(defface markdown-header-face-3
-  '((t (:inherit markdown-header-face)))
-  "Face for level-3 headers."
-  :group 'markdown-faces)
-
-(defface markdown-header-face-4
-  '((t (:inherit markdown-header-face)))
-  "Face for level-4 headers."
-  :group 'markdown-faces)
-
-(defface markdown-header-face-5
-  '((t (:inherit markdown-header-face)))
-  "Face for level-5 headers."
-  :group 'markdown-faces)
-
-(defface markdown-header-face-6
-  '((t (:inherit markdown-header-face)))
-  "Face for level-6 headers."
-  :group 'markdown-faces)
-
 (defface markdown-inline-code-face
   '((t (:inherit font-lock-constant-face)))
   "Face for inline code."
@@ -2219,6 +2202,68 @@ START and END delimit region to propertize."
   '((t (:inherit highlight)))
   "Face for mouse highlighting."
   :group 'markdown-faces)
+
+(defcustom markdown-header-scaling nil
+  "Whether to use variable-height faces for headers.
+When non-nil, `markdown-header-face' will inherit from
+`variable-pitch' and the scaling values in
+`markdown-header-scaling-values' will be applied to
+headers of levels one through six respectively."
+  :type 'boolean
+  :initialize 'custom-initialize-default
+  :set (lambda (symbol value)
+         (set-default symbol value)
+         (markdown-update-header-faces value))
+  :group 'markdown-faces)
+
+(defcustom markdown-header-scaling-values
+  '(1.8 1.4 1.2 1.0 1.0 1.0)
+  "List of scaling values for headers of level one through six.
+Used when `markdown-header-scaling' is non-nil."
+  :type 'list
+  :initialize 'custom-initialize-default
+  :set (lambda (symbol value)
+         (set-default symbol value)
+         (markdown-update-header-faces markdown-header-scaling value))
+  :group 'markdown-faces)
+
+(defun markdown-make-header-faces ()
+  "Build the faces used for Markdown headers."
+  (defface markdown-header-face
+    `((t (:inherit (,(when markdown-header-scaling 'variable-pitch)
+                     font-lock-function-name-face)
+                   :weight bold)))
+    "Base face for headers."
+    :group 'markdown-faces)
+  (dotimes (num 6)
+    (let* ((num1 (1+ num))
+           (face-name (intern (format "markdown-header-face-%s" num1)))
+           (scale (if markdown-header-scaling
+                      (float (nth num markdown-header-scaling-values))
+                    1.0)))
+      (eval
+       `(defface ,face-name
+          '((t (:inherit markdown-header-face :height ,scale)))
+          (format "Face for level %s headers.
+
+You probably don't want to customize this face directly. Instead
+you can customize the base face `markdown-header-face' or the
+variable-height variable `markdown-header-scaling'." ,num1)
+          :group 'markdown-faces)))))
+
+(markdown-make-header-faces)
+
+(defun markdown-update-header-faces (&optional scaling scaling-values)
+  "Update header faces, depending on if header SCALING is desired.
+If so, use given list of SCALING-VALUES relative to the baseline
+size of `markdown-header-face'."
+  (dotimes (num 6)
+    (let* ((face-name (intern (format "markdown-header-face-%s" (1+ num))))
+           (scale (cond ((not scaling) 1.0)
+                        (scaling-values (float (nth num scaling-values)))
+                        (t (float (nth num markdown-header-scaling-values))))))
+      (unless (get face-name 'saved-face) ; Don't update customized faces
+        (set-face-attribute face-name nil :height scale)))))
 
 (defun markdown-syntactic-face (state)
   "Return font-lock face for characters with given STATE.
@@ -2832,11 +2877,19 @@ Return nil otherwise."
 (defun markdown-match-bold (last)
   "Match inline bold from the point to LAST."
   (when (markdown-match-inline-generic markdown-regex-bold last)
-    (set-match-data (list (match-beginning 2) (match-end 2)
+    (let ((begin (match-beginning 2)) (end (match-end 2)))
+      (cond
+       ((markdown-range-property-any
+         begin end 'face (list markdown-inline-code-face
+                               markdown-math-face))
+        (goto-char (1+ (match-end 0)))
+        (markdown-match-bold last))
+       (t
+        (set-match-data (list (match-beginning 2) (match-end 2)
                           (match-beginning 3) (match-end 3)
                           (match-beginning 4) (match-end 4)
                           (match-beginning 5) (match-end 5)))
-    (goto-char (1+ (match-end 0)))))
+        (goto-char (1+ (match-end 0))))))))
 
 (defun markdown-match-italic (last)
   "Match inline italics from the point to LAST."
@@ -2845,6 +2898,11 @@ Return nil otherwise."
     (when (markdown-match-inline-generic regex last)
       (let ((begin (match-beginning 1)) (end (match-end 1)))
         (cond
+         ((markdown-range-property-any
+           begin begin 'face (list markdown-url-face))
+          ;; Italics shouldn't begin inside a URL due to an underscore
+          (goto-char (min (1+ (match-end 0)) last))
+          (markdown-match-italic last))
          ((markdown-range-property-any
            begin end 'face (list markdown-inline-code-face
                                  markdown-bold-face
@@ -4162,12 +4220,19 @@ these cases, indent to the default position.
 Positions are calculated by `markdown-calc-indents'."
   (interactive)
   (let ((positions (markdown-calc-indents))
+        (cursor-pos (current-column))
+        (_ (back-to-indentation))
         (cur-pos (current-column)))
     (if (not (equal this-command 'markdown-cycle))
         (indent-line-to (car positions))
       (setq positions (sort (delete-dups positions) '<))
-      (indent-line-to
-       (markdown-indent-find-next-position cur-pos positions)))))
+      (let* ((next-pos (markdown-indent-find-next-position cur-pos positions))
+             (new-cursor-pos
+              (if (< cur-pos next-pos)
+                  (+ cursor-pos (- next-pos cur-pos))
+                (- cursor-pos cur-pos))))
+        (indent-line-to next-pos)
+        (move-to-column new-cursor-pos)))))
 
 (defun markdown-calc-indents ()
   "Return a list of indentation columns to cycle through.
@@ -4506,6 +4571,7 @@ Assumes match data is available for `markdown-regex-italic'."
     (define-key map "\C-c\C-aw" 'markdown-insert-wiki-link)
     (define-key map "\C-c\C-ii" 'markdown-insert-image)
     (define-key map "\C-c\C-iI" 'markdown-insert-reference-image)
+    (define-key map "\C-c\C-i\C-t" 'markdown-toggle-inline-images)
     (define-key map "\C-c\C-th" 'markdown-insert-header-dwim)
     (define-key map "\C-c\C-tH" 'markdown-insert-header-setext-dwim)
     (define-key map "\C-c\C-t1" 'markdown-insert-header-atx-1)
@@ -4671,6 +4737,7 @@ See also `markdown-mode-map'.")
      ["Indent region" markdown-indent-region]
      ["Exdent region" markdown-exdent-region])
     "---"
+    ["Toggle inline images" markdown-toggle-inline-images]
     ["Check references" markdown-check-refs]
     ["Clean up list numbering" markdown-cleanup-list-numbers]
     ["Complete markup" markdown-complete-buffer]
@@ -6509,6 +6576,53 @@ BEG and END are the limits of scanned region."
        (progn (goto-char end) (forward-line 1) (point))))))
 
 
+;;; Display inline image =================================================
+
+(defvar markdown-inline-image-overlays nil)
+(make-variable-buffer-local 'markdown-inline-image-overlays)
+
+(defun markdown-remove-inline-images ()
+  "Remove inline image overlays from image links in the buffer.
+This can be toggled with `markdown-toggle-inline-images'
+or \\[markdown-toggle-inline-images]."
+  (interactive)
+  (mapc 'delete-overlay markdown-inline-image-overlays)
+  (setq markdown-inline-image-overlays nil))
+
+(defun markdown-display-inline-images ()
+  "Add inline image overlays to image links in the buffer.
+This can be toggled with `markdown-toggle-inline-images'
+or \\[markdown-toggle-inline-images]."
+  (interactive)
+  (unless (display-graphic-p)
+    (error "Cannot show images"))
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (while (re-search-forward markdown-regex-link-inline nil t)
+        (let ((start (match-beginning 0))
+              (end (match-end 0))
+              (file (match-string-no-properties 6)))
+          (when (file-exists-p file)
+            (let* ((abspath (if (file-name-absolute-p file)
+                                file
+                              (concat default-directory file)))
+                   (image (create-image abspath)))
+              (when image
+                (let ((ov (make-overlay start end)))
+                  (overlay-put ov 'display image)
+                  (overlay-put ov 'face 'default)
+                  (push ov markdown-inline-image-overlays))))))))))
+
+(defun markdown-toggle-inline-images ()
+  "Toggle inline image overlays in the buffer."
+  (interactive)
+  (if markdown-inline-image-overlays
+      (markdown-remove-inline-images)
+    (markdown-display-inline-images)))
+
+
 ;;; Mode Definition  ==========================================================
 
 (defun markdown-show-version ()
@@ -6633,9 +6747,9 @@ BEG and END are the limits of scanned region."
   (add-hook 'kill-buffer-hook #'markdown-live-preview-remove-on-kill t t))
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode) t)
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode) t)
 
 
 ;;; GitHub Flavored Markdown Mode  ============================================
