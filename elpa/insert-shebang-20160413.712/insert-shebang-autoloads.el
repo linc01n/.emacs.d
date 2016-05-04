@@ -3,8 +3,8 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "insert-shebang" "insert-shebang.el" (22256
-;;;;;;  644 0 0))
+;;;### (autoloads nil "insert-shebang" "insert-shebang.el" (22313
+;;;;;;  46196 0 0))
 ;;; Generated autoloads from insert-shebang.el
 
 (autoload 'insert-shebang "insert-shebang" "\
@@ -13,6 +13,7 @@ Calls function `insert-shebang-get-extension-and-insert'.  With argument as
 `buffer-name'.
 
 \(fn)" t nil)
+(add-hook 'find-file-hook 'insert-shebang)
 
 ;;;***
 
