@@ -339,11 +339,11 @@ and https://debbugs.gnu.org/cgi/bugreport.cgi?bug=7847."
 
 (defface magit-diff-removed
  '((((class color) (background light))
-     :background "#ffdddd"
-     :foreground "#aa2222")
-    (((class color) (background dark))
-     :background "#553333"
-     :foreground "#ffdddd"))
+    :background "#ffdddd"
+    :foreground "#aa2222")
+   (((class color) (background dark))
+    :background "#553333"
+    :foreground "#ffdddd"))
   "Face for lines in a diff that have been removed."
   :group 'magit-faces)
 
@@ -958,7 +958,7 @@ which, as the name suggests always visits the actual file."
                          (expand-file-name it)
                        (user-error "No file at point"))
                      current-prefix-arg))
-  (if (file-accessible-directory-p file)
+  (if (magit-file-accessible-directory-p file)
       (magit-diff-visit-directory file other-window)
     (let ((current (magit-current-section))
           (rev (cond (force-worktree nil)
@@ -1399,7 +1399,9 @@ section or a child thereof."
         (setq orig (magit-decode-git-path orig)))
       (setq file (magit-decode-git-path file))
       ;; KLUDGE `git-log' ignores `--no-prefix' when `-L' is used.
-      (when (derived-mode-p 'magit-log-mode)
+      (when (and (derived-mode-p 'magit-log-mode)
+                 (--first (string-match-p "\\`-L" it)
+                          (nth 1 magit-refresh-args)))
         (setq file (substring file 2))
         (when orig
           (setq orig (substring orig 2))))
@@ -1435,11 +1437,15 @@ section or a child thereof."
         (magit-delete-line)
         (setq modified t))
       (cond
-       ((looking-at "^Submodule [^ ]+ \\([^ :]+\\)\\( (rewind)\\)?:$")
-        (magit-bind-match-strings (range rewind) nil
+       ((and (looking-at "^Submodule \\([^ ]+\\) \\([^ :]+\\)\\( (rewind)\\)?:$")
+             (equal (match-string 1) module))
+        (magit-bind-match-strings (_module range rewind) nil
           (magit-delete-line)
           (while (looking-at "^  \\([<>]\\) \\(.+\\)$")
             (magit-delete-line))
+          (when rewind
+            (setq range (replace-regexp-in-string "[^.]\\(\\.\\.\\)[^.]"
+                                                  "..." range t t 1)))
           (magit-insert-section (file module t)
             (magit-insert-heading
               (concat (propertize (concat "modified   " module)
@@ -1461,8 +1467,9 @@ section or a child thereof."
               (magit-git-wash (apply-partially 'magit-log-wash-log 'module)
                 "log" "--oneline" "--left-right" range)
               (delete-char -1)))))
-       ((looking-at "^Submodule [^ ]+ \\([^ ]+\\) (\\([^)]+\\))$")
-        (magit-bind-match-strings (_range msg) nil
+       ((and (looking-at "^Submodule \\([^ ]+\\) \\([^ ]+\\) (\\([^)]+\\))$")
+             (equal (match-string 1) module))
+        (magit-bind-match-strings (_module _range msg) nil
           (magit-delete-line)
           (magit-insert-section (file module)
             (magit-insert-heading

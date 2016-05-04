@@ -271,8 +271,7 @@ removed on the respective remote."
   "Popup console for pull commands."
   'magit-commands
   :man-page "git-pull"
-  :variables '("Variables"
-               (?r "branch.%s.rebase"
+  :variables '((?r "branch.%s.rebase"
                    magit-cycle-branch*rebase
                    magit-pull-format-branch*rebase))
   :actions '((lambda ()
@@ -335,7 +334,7 @@ missing.  To add them use something like:
              (?F "remotes and prune" magit-fetch-all-prune)
              "Fetch"
              (?o "another branch"    magit-fetch-branch)
-             (?r "explicit refspec"  magit-fetch-refspec)
+             (?s "explicit refspec"  magit-fetch-refspec)
              (?m "submodules"        magit-submodule-fetch))
   :default-action 'magit-fetch
   :max-action-columns 1)
