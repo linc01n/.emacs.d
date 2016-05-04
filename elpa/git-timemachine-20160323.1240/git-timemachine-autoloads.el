@@ -4,7 +4,7 @@
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
 ;;;### (autoloads nil "git-timemachine" "git-timemachine.el" (22314
-;;;;;;  11700 0 0))
+;;;;;;  13682 0 0))
 ;;; Generated autoloads from git-timemachine.el
 
 (autoload 'git-timemachine-toggle "git-timemachine" "\
