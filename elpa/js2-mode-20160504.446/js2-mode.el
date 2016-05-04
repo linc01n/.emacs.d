@@ -1456,7 +1456,7 @@ the correct number of ARGS must be provided."
          "Compilation produced %s syntax errors.")
 
 (js2-msg "msg.var.redecl"
-         "TypeError: redeclaration of var %s.")
+         "Redeclaration of var %s.")
 
 (js2-msg "msg.const.redecl"
          "TypeError: redeclaration of const %s.")
@@ -7264,7 +7264,7 @@ are ignored."
            when (and (eq 'block (js2-comment-node-format node))
                      (save-excursion
                        (goto-char (js2-node-abs-pos node))
-                       (looking-at "/\\*global ")))
+                       (looking-at "/\\* *global ")))
            append (js2-get-jslint-globals-in
                    (match-end 0)
                    (js2-node-abs-end node))))
