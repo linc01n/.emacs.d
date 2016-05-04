@@ -3,12 +3,13 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "string-edit" "string-edit.el" (22148 3959
+;;;### (autoloads nil "string-edit" "string-edit.el" (22313 46150
 ;;;;;;  0 0))
 ;;; Generated autoloads from string-edit.el
 
 (autoload 'string-edit-at-point "string-edit" "\
-
+Pop up a buffer to edit the string at point.
+This saves you from needing to manually escape characters.
 
 \(fn)" t nil)
 
