@@ -4,7 +4,7 @@
 
 ;; Author:            Adam Sokolnicki <adam.sokolnicki@gmail.com>
 ;; URL:               https://github.com/asok/projectile-rails
-;; Package-Version: 20160303.1450
+;; Package-Version: 20160417.506
 ;; Version:           0.5.0
 ;; Keywords:          rails, projectile
 ;; Package-Requires:  ((emacs "24.3") (projectile "0.12.0") (inflections "1.1") (inf-ruby "2.2.6") (f "0.13.0") (rake "0.3.2"))
@@ -604,17 +604,24 @@ The bound variable is \"filename\"."
 
 (defun projectile-rails-find-log ()
   (interactive)
-  ;;logs tend to not be under scm so do not resort to projectile-dir-files
-  (find-file (projectile-rails-expand-root
-              (concat
-               "log/"
-               (projectile-completing-read
-                "log: "
-                (projectile-rails-list-entries 'f-files "log/")))))
-  (auto-revert-tail-mode +1)
-  (setq-local auto-revert-verbose nil)
-  (buffer-disable-undo)
-  (projectile-rails-on))
+  (let ((logs-dir (loop for dir in '("log/" "spec/dummy/log/" "test/dummy/log/")
+                       until (projectile-rails--file-exists-p dir)
+                       finally return dir)))
+
+        (unless logs-dir
+          (user-error "No log directory found"))
+
+        ;;logs tend to not be under scm so do not resort to projectile-dir-files
+        (find-file (projectile-rails-expand-root
+                    (concat
+                     logs-dir
+                     (projectile-completing-read
+                      "log: "
+                      (projectile-rails-list-entries 'f-files logs-dir)))))
+        (auto-revert-tail-mode +1)
+        (setq-local auto-revert-verbose nil)
+        (buffer-disable-undo)
+        (projectile-rails-on)))
 
 (defun projectile-rails-rake (arg)
   (interactive "P")
@@ -624,12 +631,12 @@ The bound variable is \"filename\"."
   "Returns rails root directory if this file is a part of a Rails application else nil"
   (ignore-errors
     (let ((root (projectile-locate-dominating-file default-directory "Gemfile")))
-      (when (file-exists-p (expand-file-name "config/environment.rb" root))
+      (when (file-exists-p (expand-file-name "config/routes.rb" root))
         root))))
 
 (defun projectile-rails-root-relative-to-project-root ()
   "Return the location of the rails root relative to `projectile-project-root'."
-  (let ((rails-root (projectile-rails-root))
+  (let ((rails-root (file-truename (projectile-rails-root)))
         (project-root (projectile-project-root)))
     (if (string-equal rails-root project-root)
         ""
@@ -638,6 +645,9 @@ The bound variable is \"filename\"."
 (defun projectile-rails-expand-root (dir)
   "Like `projectile-expand-root' but consider `projectile-rails-root'."
   (projectile-expand-root (concat (projectile-rails-root) dir)))
+
+(defun projectile-rails--file-exists-p (filepath)
+  (file-exists-p (projectile-expand-root filepath)))
 
 (defun projectile-rails-console (arg)
   (interactive "P")
@@ -651,6 +661,76 @@ The bound variable is \"filename\"."
                                (read-string "rails console: " rails-console-command)
                              rails-console-command))
        (projectile-rails-mode +1)))))
+
+;; Shamelessly stolen from rinari.el
+(defun projectile-rails--db-config ()
+  (json-read-from-string
+   (shell-command-to-string
+    (format
+     "ruby -ryaml -rjson -e 'JSON.dump(YAML.load(ARGF.read), STDOUT)' \"%s\""
+     (projectile-rails-expand-root "config/database.yml")))))
+
+(defvar projectile-rails--sql-adapters->products
+  '(("mysql2"         "mysql")
+    ("mysql"          "mysql")
+    ("jdbcmysql"      "mysql")
+
+    ("postgres"       "postgres")
+    ("postgresql"     "postgres")
+    ("jdbcpostgresql" "postgres")
+
+    ("sqlite"         "sqlite")
+    ("sqlite3"        "sqlite")
+    ("jdbcsqlite3"    "sqlite")
+
+    ("informix"       "informix")
+    ("ingres"         "ingres")
+    ("interbase"      "interbase")
+    ("linter"         "linter")
+    ("ms"             "ms")
+    ("oracle"         "oracle")
+    ("solid"          "solid")
+    ("sybase"         "sybase")
+    ("vertica"        "vertica")))
+
+(defun projectile-rails--determine-sql-product (env)
+  (intern
+   (car
+    (cdr
+     (assoc-string (cdr (assoc-string "adapter" (cdr (assoc-string env (projectile-rails--db-config)))))
+                   projectile-rails--sql-adapters->products)))))
+
+(defun projectile-rails--choose-env ()
+  (projectile-completing-read
+   "Choose env: "
+   (--map (substring it 0 -3)
+    (projectile-rails-list-entries 'f-files "config/environments/"))))
+
+(defun projectile-rails-dbconsole (env)
+  (interactive (list (projectile-rails--choose-env)))
+  (require 'sql)
+  (projectile-rails-with-root
+   (let* ((product (projectile-rails--determine-sql-product env))
+          (sqli-login      (sql-get-product-feature product :sqli-login))
+          (sqli-options    (sql-get-product-feature product :sqli-options))
+          (sqli-program    (sql-get-product-feature product :sqli-program))
+          (sql-comint-func (sql-get-product-feature product :sqli-comint-func))
+          (commands (s-split " " (projectile-rails-with-preloader
+                                  :spring (concat projectile-rails-spring-command " dbconsole")
+                                  :zeus (concat projectile-rails-zeus-command " dbconsole")
+                                  :vanilla (concat projectile-rails-vanilla-command " dbconsole")))))
+     (sql-set-product-feature product :sqli-login '())
+     (sql-set-product-feature product :sqli-options '())
+     (sql-set-product-feature product :sqli-program (car commands))
+     (sql-set-product-feature product :sqli-comint-func (lambda (_ __)
+                                                          (sql-comint product (cdr commands))))
+
+     (sql-product-interactive product)
+
+     (sql-set-product-feature product :sqli-comint-func sql-comint-func)
+     (sql-set-product-feature product :sqli-program sqli-program)
+     (sql-set-product-feature product :sqli-options sqli-options)
+     (sql-set-product-feature product :sqli-login sqli-login))))
 
 (defun projectile-rails-expand-snippet-maybe ()
   (when (and (fboundp 'yas-expand-snippet)
@@ -668,7 +748,7 @@ The bound variable is \"filename\"."
      (-last-item parts))))
 
 (defun projectile-rails--expand-snippet (snippet)
-  (yas-minor-mode-on)
+  (yas-minor-mode +1)
   (yas-expand-snippet snippet))
 
 (defun projectile-rails-expand-corresponding-snippet ()
@@ -676,7 +756,7 @@ The bound variable is \"filename\"."
     (cond ((string-match "app/[^/]+/concerns/\\(.+\\)\\.rb$" name)
            (projectile-rails--expand-snippet
             (format
-             "module %s\n  extend ActiveSupport::Concern\n$1\nend"
+             "module %s\n  extend ActiveSupport::Concern\n  $0\nend"
              (s-join "::" (projectile-rails-classify (match-string 1 name))))))
           ((string-match "app/controllers/\\(.+\\)\\.rb$" name)
            (projectile-rails--expand-snippet
@@ -686,7 +766,7 @@ The bound variable is \"filename\"."
           ((string-match "spec/[^/]+/\\(.+\\)_spec\\.rb$" name)
            (projectile-rails--expand-snippet
             (format
-             "require \"${1:rails_helper}\"\n\nRSpec.describe %s do\n$1\nend"
+             "require \"${1:rails_helper}\"\n\nRSpec.describe %s do\n  $0\nend"
              (s-join "::" (projectile-rails-classify (match-string 1 name))))))
           ((string-match "app/models/\\(.+\\)\\.rb$" name)
            (projectile-rails--expand-snippet
@@ -718,6 +798,8 @@ The bound variable is \"filename\"."
 (defun projectile-rails-server ()
   "Runs rails server command"
   (interactive)
+  (when (not (projectile-rails--file-exists-p "config/environment.rb"))
+    (user-error "You're not running it from a rails application."))
   (if (member projectile-rails-server-buffer-name (mapcar 'buffer-name (buffer-list)))
       (switch-to-buffer projectile-rails-server-buffer-name)
     (projectile-rails-with-root
@@ -1035,10 +1117,10 @@ If file does not exist and ASK in not nil it will ask user to proceed."
 (defun projectile-rails-set-assets-dirs ()
   (setq-local
    projectile-rails-javascript-dirs
-   (--filter (file-exists-p (projectile-rails-expand-root it)) projectile-rails-javascript-dirs))
+   (--filter (projectile-rails--file-exists-p it) projectile-rails-javascript-dirs))
   (setq-local
    projectile-rails-stylesheet-dirs
-   (--filter (file-exists-p (projectile-rails-expand-root it)) projectile-rails-stylesheet-dirs)))
+   (--filter (projectile-rails--file-exists-p it) projectile-rails-stylesheet-dirs)))
 
 
 (defun projectile-rails-set-fixture-dirs ()
@@ -1065,6 +1147,7 @@ If file does not exist and ASK in not nil it will ask user to proceed."
     (define-key map (kbd "r") 'projectile-rails-rake)
     (define-key map (kbd "g") 'projectile-rails-generate)
     (define-key map (kbd "d") 'projectile-rails-destroy)
+    (define-key map (kbd "b") 'projectile-rails-dbconsole)
     map)
   "A run map for `projectile-rails-mode'.")
 (fset 'projectile-rails-mode-run-map projectile-rails-mode-run-map)
@@ -1183,6 +1266,7 @@ If file does not exist and ASK in not nil it will ask user to proceed."
     ["Extract to partial"       projectile-rails-extract-region]
     "--"
     ["Run console"              projectile-rails-console]
+    ["Run dbconsole"            projectile-rails-dbconsole]
     ["Run server"               projectile-rails-server]
     ["Run rake"                 projectile-rails-rake]
     ["Run rails generate"       projectile-rails-generate]
@@ -1203,6 +1287,7 @@ If file does not exist and ASK in not nil it will ask user to proceed."
 (defun projectile-rails-on ()
   "Enable `projectile-rails-mode' minor mode if this is a rails project."
   (when (and
+         (projectile-project-p)
          (not (projectile-rails--ignore-buffer-p))
          (projectile-rails-root))
     (projectile-rails-mode +1)))
@@ -1323,6 +1408,7 @@ Killing the buffer will terminate to server's process."
                     ("Run external command"
                      ("r" "rake"           projectile-rails-rake)
                      ("c" "console"        projectile-rails-console)
+                     ("b" "dbconsole"      projectile-rails-dbconsole)
                      ("s" "server"         projectile-rails-server)
                      ("g" "generate"       projectile-rails-generate)
                      ("d" "destroy"        projectile-rails-destroy))
@@ -1377,11 +1463,12 @@ Killing the buffer will terminate to server's process."
 
   (defhydra hydra-projectile-rails-run (:color blue :columns 8)
     "Run external command & interact"
-    ("r" projectile-rails-rake     "rake")
-    ("c" projectile-rails-console  "console")
-    ("s" projectile-rails-server   "server")
-    ("g" projectile-rails-generate "generate")
-    ("d" projectile-rails-destroy  "destroy")
+    ("r" projectile-rails-rake       "rake")
+    ("c" projectile-rails-console    "console")
+    ("b" projectile-rails-dbconsole  "dbconsole")
+    ("s" projectile-rails-server     "server")
+    ("g" projectile-rails-generate   "generate")
+    ("d" projectile-rails-destroy    "destroy")
     ("x" projectile-rails-extract-region "extract region"))
 
   (defhydra hydra-projectile-rails (:color blue :columns 8)
