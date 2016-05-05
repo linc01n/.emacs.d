@@ -1,5 +1,7 @@
 (req-package dired+
   :init
-  (diredp-toggle-find-file-reuse-dir 1)
+  (progn
+    (diredp-toggle-find-file-reuse-dir 1))
   :config
-  (setq diredp-hide-details-initially-flag t))
+  (progn
+    (setq diredp-hide-details-initially-flag t)))

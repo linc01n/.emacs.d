@@ -1,4 +1,5 @@
 (req-package smartparens
   :config
-  (require 'smartparens-config)
-  (smartparens-global-mode t))
+  (progn
+    (require 'smartparens-config)
+    (smartparens-global-mode t)))

@@ -1,3 +1,4 @@
 (req-package smooth-scrolling
   :init
-  (setq scroll-conservatively 10000))
+  (progn
+    (setq scroll-conservatively 10000)))

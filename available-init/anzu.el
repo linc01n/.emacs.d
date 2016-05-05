@@ -1,3 +1,4 @@
 (req-package anzu
   :config
-  (global-anzu-mode t))
+  (progn
+    (global-anzu-mode t)))

@@ -1,3 +1,4 @@
 (req-package hl-line
   :config
-  (add-hook 'prog-mode-hook #'hl-line-mode))
+  (progn
+    (add-hook 'prog-mode-hook #'hl-line-mode)))

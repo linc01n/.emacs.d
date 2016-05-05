@@ -1,4 +1,5 @@
-(req-package spaceline-config
-  :require spaceline
+(req-package spaceline
   :config
-  (spaceline-spacemacs-theme))
+  (progn
+    (require 'spaceline-config)
+    (spaceline-spacemacs-theme)))
