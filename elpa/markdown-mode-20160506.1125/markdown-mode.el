@@ -33,7 +33,7 @@
 ;; Maintainer: Jason R. Blevins <jrblevin@sdf.org>
 ;; Created: May 24, 2007
 ;; Version: 2.1
-;; Package-Version: 20160505.702
+;; Package-Version: 20160506.1125
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -943,11 +943,15 @@
 (require 'outline)
 (require 'thingatpt)
 (require 'cl-lib)
+(require 'url-parse nil t)
 
 (defvar jit-lock-start)
 (defvar jit-lock-end)
 
 (declare-function eww-open-file "eww")
+(declare-function url-generic-parse-url "url-parse")
+(declare-function url-fullness "url-parse")
+(declare-function url-path-and-query "url-parse")
 
 
 ;;; Constants =================================================================
@@ -1489,9 +1493,17 @@ missing."
    3 "[ ]?\\([^[:space:]]+\\|{[^}]*}\\)?\\([[:space:]]*?\\)$")
   "Regular expression for matching Pandoc tildes.")
 
-(defconst markdown-regex-multimarkdown-metadata
-  "^\\([[:alpha:]][[:alpha:] _-]*?\\)\\(:[ \t]*\\)\\(.*\\)$"
-  "Regular expression for matching MultiMarkdown metadata.")
+(defconst markdown-regex-declarative-metadata
+  "^\\([[:alpha:]][[:alpha:] _-]*?\\)\\([:=][ \t]*\\)\\(.*\\)$"
+  "Regular expression for matching declarative metadata statements.
+This matches MultiMarkdown metadata as well as YAML and TOML
+assignments such as the following:
+
+    variable: value
+
+or
+
+    variable = value")
 
 (defconst markdown-regex-pandoc-metadata
   "^\\(%\\)\\([ \t]*\\)\\(.*\\(?:\n[ \t]+.*\\)*\\)"
@@ -1937,7 +1949,7 @@ start which was previously propertized."
   (save-excursion
     (goto-char start)
     (cl-loop
-     while (re-search-forward markdown-regex-multimarkdown-metadata end t)
+     while (re-search-forward markdown-regex-declarative-metadata end t)
      do (when (get-text-property (match-beginning 0)
                                  'markdown-yaml-metadata-section)
           (put-text-property (match-beginning 1) (match-end 1)
@@ -2356,7 +2368,7 @@ See `font-lock-syntactic-face-function' for details."
     (markdown-match-heading-1-atx . ((4 markdown-header-delimiter-face)
                                      (5 markdown-header-face-1)
                                      (6 markdown-header-delimiter-face)))
-    (markdown-match-multimarkdown-metadata . ((1 markdown-metadata-key-face)
+    (markdown-match-declarative-metadata . ((1 markdown-metadata-key-face)
                                               (2 markdown-markup-face)
                                               (3 markdown-metadata-value-face)))
     (markdown-match-pandoc-metadata . ((1 markdown-markup-face)
@@ -3151,9 +3163,9 @@ is \"\n\n\""
              t))
           (t nil))))
 
-(defun markdown-match-multimarkdown-metadata (last)
-  "Match MultiMarkdown metadata from the point to LAST."
-  (markdown-match-generic-metadata markdown-regex-multimarkdown-metadata last))
+(defun markdown-match-declarative-metadata (last)
+  "Match declarative metadata from the point to LAST."
+  (markdown-match-generic-metadata markdown-regex-declarative-metadata last))
 
 (defun markdown-match-pandoc-metadata (last)
   "Match Pandoc metadata from the point to LAST."
@@ -5556,9 +5568,21 @@ Derived from `org-end-of-subtree'."
 (defun markdown-outline-fix-visibility ()
   "Hide any false positive headings that should not be shown.
 For example, headings inside preformatted code blocks may match
-`outline-regexp' but should not be shown as headings when cycling."
+`outline-regexp' but should not be shown as headings when cycling.
+Also, the ending --- line in metadata blocks appears to be a
+setext header, but should not be folded."
   (save-excursion
     (goto-char (point-min))
+    ;; Unhide any false positives in metadata blocks
+    (when (markdown-text-property-at-point 'markdown-yaml-metadata-begin)
+      (let* ((body (progn (forward-line)
+                          (markdown-text-property-at-point
+                           'markdown-yaml-metadata-section)))
+             (end (progn (goto-char (cl-second body))
+                         (markdown-text-property-at-point
+                          'markdown-yaml-metadata-end))))
+        (outline-flag-region (point-min) (1+ (cl-second end)) nil)))
+    ;; Hide any false positives in code blocks
     (unless (outline-on-heading-p)
       (outline-next-visible-heading 1))
     (while (< (point) (point-max))
@@ -6172,9 +6196,25 @@ not at a link or the link reference is not defined returns nil."
    (t nil)))
 
 (defun markdown-follow-link-at-point ()
-  "Open the current non-wiki link in a browser."
+  "Open the current non-wiki link.
+If the link is a complete URL, open in browser with `browse-url'.
+Otherwise, open with `find-file' after stripping anchor and/or query string."
   (interactive)
-  (if (markdown-link-p) (browse-url (markdown-link-link))
+  (if (markdown-link-p)
+      (let* ((link (markdown-link-link)) (struct nil) (full t) (file link))
+        ;; Parse URL, determine fullness, strip query string
+        (when (featurep 'url-parse)
+          (setq struct (url-generic-parse-url link)
+                full (url-fullness struct))
+          (if (fboundp 'url-path-and-query)
+              (setq file (car (url-path-and-query struct)))
+            (when (and (setq file (url-filename struct))
+                       (string-match "\\?" file))
+              (setq file (substring file 0 (match-beginning 0))))))
+        ;; Open full URLs in browser, files in Emacs
+        (if full
+            (browse-url link)
+          (when (and file (> (length file) 0)) (find-file file))))
     (error "Point is not at a Markdown link or URI")))
 
 
