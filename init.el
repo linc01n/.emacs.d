@@ -86,7 +86,7 @@
 
 (req-package load-dir
   :config
-  (setq load-dirs (cons "~/.emacs.d/load.d" '("~/.emacs.d/site-lisp")))
+  (setq load-dirs (cons "~/.emacs.d/site-lisp" '("~/.emacs.d/load.d")))
   (load-dirs-reload))
 
 
