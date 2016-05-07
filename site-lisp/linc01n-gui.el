@@ -1,8 +1,12 @@
-; ~/.emacs.d/my-gui.el
-
 ;; Remove scrollbars, menu bars, and toolbars
-; when is a special form of "if", with no else clause, it reads:
-; (when <condition> <code-to-execute-1> <code-to-execute2> ...)
-(when (fboundp 'menu-bar-mode) (menu-bar-mode -1))
-(when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
-(when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
+
+(unless (eq window-system 'mac)
+  (when (and (fboundp 'menu-bar-mode) (not (eq menu-bar-mode -1)))
+    (menu-bar-mode -1)))
+(when (and (fboundp 'scroll-bar-mode) (not (eq scroll-bar-mode -1)))
+  (scroll-bar-mode -1))
+(when (and (fboundp 'tool-bar-mode) (not (eq tool-bar-mode -1)))
+  (tool-bar-mode -1))
+;; tooltips in echo-aera
+(when (and (fboundp 'tooltip-mode) (not (eq tooltip-mode -1)))
+  (tooltip-mode -1))
