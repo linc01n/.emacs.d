@@ -4,7 +4,7 @@
 
 ;; Author: Magnar Sveen <magnars@gmail.com>
 ;; Version: 1.10.0
-;; Package-Version: 20160508.517
+;; Package-Version: 20160508.2357
 ;; Keywords: strings
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -340,7 +340,7 @@ This is a simple wrapper around the built-in `string-match-p'."
   "REPLACEMENTS is a list of cons-cells. Each `car` is replaced with `cdr` in S."
   (replace-regexp-in-string (regexp-opt (mapcar 'car replacements))
                             (lambda (it) (s--aget replacements it))
-                            s))
+                            s t t))
 
 (defun s-downcase (s)
   "Convert S to lower case.
@@ -430,7 +430,7 @@ SUBEXP-DEPTH is 0 by default."
                 (< pos (length string)))
       (let ((m (match-end subexp-depth)))
         (push (cons (match-beginning subexp-depth) (match-end subexp-depth)) result)
-        (setq pos m)))
+        (setq pos (match-end 0))))
     (nreverse result)))
 
 (defun s-match (regexp s &optional start)
