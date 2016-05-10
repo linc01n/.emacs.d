@@ -29,3 +29,9 @@
              ;; Also disable auto-dictionary when disabling spell-checking.
              (when (fboundp 'auto-dictionary-mode) (auto-dictionary-mode -1)))
       :documentation "Enable automatic spell checking.")))
+
+(req-package flyspell-popup
+  :require flyspell
+  :config
+  (progn
+    (add-hook 'flyspell-mode-hook #'flyspell-popup-auto-correct-mode)))
