@@ -81,9 +81,6 @@
 
 (use-package req-package :ensure t)
 
-(req-package darktooth-theme
-  :init (load-theme 'darktooth t))
-
 (req-package load-dir
   :config
   (setq load-dirs (cons "~/.emacs.d/site-lisp" '("~/.emacs.d/load.d")))
