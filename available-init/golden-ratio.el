@@ -1,5 +1,10 @@
 (req-package golden-ratio
   :config
   (progn
-    (golden-ratio-mode 1)
-    (add-hook 'buffer-list-update-hook #'golden-ratio)))
+    (advice-add #'select-window
+                :after
+                #'(lambda
+                    (select-window-function &rest ...)
+                    (unless (minibuffer-window-active-p (selected-window))
+                      (golden-ratio))))
+    (golden-ratio-mode 1)))
