@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "json-reformat" "json-reformat.el" (22316 26356
+;;;### (autoloads nil "json-reformat" "json-reformat.el" (22322 39075
 ;;;;;;  0 0))
 ;;; Generated autoloads from json-reformat.el
 

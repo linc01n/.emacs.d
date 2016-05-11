@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "tabbar" "tabbar.el" (22316 26393 0 0))
+;;;### (autoloads nil "tabbar" "tabbar.el" (22322 39111 0 0))
 ;;; Generated autoloads from tabbar.el
 
 (autoload 'tabbar-backward "tabbar" "\
@@ -165,7 +165,7 @@ Returns non-nil if the new state is enabled.
 
 ;;;***
 
-;;;### (autoloads nil nil ("tabbar-pkg.el") (22316 26393 838479 0))
+;;;### (autoloads nil nil ("tabbar-pkg.el") (22322 39111 573501 0))
 
 ;;;***
 
