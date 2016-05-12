@@ -7,11 +7,11 @@
 ;; Copyright (C) 1999-2016, Drew Adams, all rights reserved.
 ;; Created: Fri Mar 19 15:58:58 1999
 ;; Version: 2013.07.23
-;; Package-Version: 20160507.1224
+;; Package-Version: 20160510.1649
 ;; Package-Requires: ()
-;; Last-Updated: Sat May  7 12:18:17 2016 (-0700)
+;; Last-Updated: Tue May 10 16:55:53 2016 (-0700)
 ;;           By: dradams
-;;     Update #: 9488
+;;     Update #: 9492
 ;; URL: http://www.emacswiki.org/dired+.el
 ;; Doc URL: http://www.emacswiki.org/DiredPlus
 ;; Keywords: unix, mouse, directories, diredp, dired
@@ -7538,7 +7538,18 @@ A prefix arg specifies directly whether or not to reuse.
 To set the behavior as a preference (default behavior), put this in
 your ~/.emacs, where VALUE is 1 to reuse or -1 to not reuse:
 
- (diredp-toggle-find-file-reuse-dir VALUE)"
+ (diredp-toggle-find-file-reuse-dir VALUE)
+
+Note: This affects only these commands:
+
+  `dired-find-file'
+  `diredp-mouse-find-file'
+
+It does not affect the corresponding `-other-window' commands.  Note
+too that, by default, mouse clicks to open files or directories open
+in another window: command `diredp-mouse-find-file-other-window', not
+`diredp-mouse-find-file'.  If you want a mouse click to reuse a
+directory then bind `mouse-2' to `diredp-mouse-find-file' instead."
   (interactive "P")
   (if force-p                           ; Force.
       (if (natnump (prefix-numeric-value force-p))
