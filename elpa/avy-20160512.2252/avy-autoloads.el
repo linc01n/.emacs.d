@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "avy" "avy.el" (22322 39042 0 0))
+;;;### (autoloads nil "avy" "avy.el" (22325 53812 0 0))
 ;;; Generated autoloads from avy.el
 
 (autoload 'avy-goto-char "avy" "\
@@ -105,6 +105,11 @@ The window scope is determined by `avy-all-windows' or
 `avy-all-windows-alt' when ARG is non-nil.
 
 \(fn ARG)" t nil)
+
+(autoload 'avy-move-region "avy" "\
+Select two lines and move the text between them here.
+
+\(fn)" t nil)
 
 (autoload 'avy-setup-default "avy" "\
 Setup the default shortcuts.

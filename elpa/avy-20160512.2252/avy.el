@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20160503.1901
+;; Package-Version: 20160512.2252
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -83,6 +83,7 @@ in the avy overlays."
                      (const avy-copy-line)
                      (const avy-copy-region)
                      (const avy-move-line)
+                     (const avy-move-region)
                      (function :tag "Other command"))
           :value-type (repeat :tag "Keys" character)))
 
@@ -112,6 +113,7 @@ If the commands isn't on the list, `avy-style' is used."
                      (const avy-copy-line)
                      (const avy-copy-region)
                      (const avy-move-line)
+                     (const avy-move-region)
                      (function :tag "Other command"))
           :value-type (choice
                        (const :tag "Pre" pre)
@@ -1253,6 +1255,22 @@ The window scope is determined by `avy-all-windows' or
                  (insert str)))
               (t
                (user-error "Unexpected `avy-line-insert-style'")))))))
+
+;;;###autoload
+(defun avy-move-region ()
+  "Select two lines and move the text between them here."
+  (interactive)
+  (avy-with avy-move-region
+    (let* ((beg (avy--line))
+           (end (save-excursion
+                  (goto-char (avy--line))
+                  (forward-line)
+                  (point)))
+           (text (buffer-substring beg end))
+           (pad (if (bolp) "" "\n")))
+      (move-beginning-of-line nil)
+      (delete-region beg end)
+      (insert text pad))))
 
 ;;;###autoload
 (defun avy-setup-default ()
