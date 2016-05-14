@@ -88,6 +88,6 @@
   :demand t
   :bind
   (("s-<left>" . tabbar-backward-tab)
-   ("s-{" . tabbar-backward-tab)
+   ("s-[" . tabbar-backward-group)
    ("s-<right>" . tabbar-forward-tab)
-   ("s-}" . tabbar-forward-tab)))
+   ("s-]" . tabbar-forward-group)))
