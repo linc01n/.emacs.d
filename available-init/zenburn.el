@@ -36,8 +36,8 @@
 (defconst zenburn/yellow-2  "#D0BF8F"  "Zenburn palette: #D0BF8F.")
 
 (defvar me/font-family            "Source Code Pro"  "The font to use.")
-(defvar me/font-size-default      240       "The font size to use for default text.")
-(defvar me/font-size-header       240       "The font size to use for headers.")
+(defvar me/font-size-default      180       "The font size to use for default text.")
+(defvar me/font-size-header       180       "The font size to use for headers.")
 (defvar me/font-size-mode-line    180       "The font size to use for the mode line.")
 
 (req-package zenburn-theme
