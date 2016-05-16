@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20160512.2252
+;; Package-Version: 20160514.2215
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -983,7 +983,9 @@ The window scope is determined by `avy-all-windows' (ARG negates it)."
   (avy-with avy-isearch
     (let ((avy-background nil))
       (avy--process
-       (avy--regex-candidates isearch-string)
+       (avy--regex-candidates (if isearch-regexp
+                                  isearch-string
+                                (regexp-quote isearch-string)))
        (avy--style-fn avy-style))
       (isearch-done))))
 
