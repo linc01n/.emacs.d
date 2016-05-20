@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "avy" "avy.el" (22332 14793 0 0))
+;;;### (autoloads nil "avy" "avy.el" (22334 23314 0 0))
 ;;; Generated autoloads from avy.el
 
 (autoload 'avy-goto-char "avy" "\
@@ -51,6 +51,20 @@ The window scope is determined by `avy-all-windows' (ARG negates it).
 (autoload 'avy-goto-word-1 "avy" "\
 Jump to the currently visible CHAR at a word start.
 The window scope is determined by `avy-all-windows' (ARG negates it).
+
+\(fn CHAR &optional ARG BEG END)" t nil)
+
+(autoload 'avy-goto-word-1-above "avy" "\
+Jump to the currently visible CHAR at a word start.
+This is a scoped version of `avy-goto-word-1', where the scope is
+the visible part of the current buffer up to point.
+
+\(fn CHAR &optional ARG)" t nil)
+
+(autoload 'avy-goto-word-1-below "avy" "\
+Jump to the currently visible CHAR at a word start.
+This is a scoped version of `avy-goto-word-1', where the scope is
+the visible part of the current buffer following point.
 
 \(fn CHAR &optional ARG)" t nil)
 
