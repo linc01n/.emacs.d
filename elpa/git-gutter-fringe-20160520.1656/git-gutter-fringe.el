@@ -4,9 +4,9 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter-fringe
-;; Package-Version: 20150331.2139
-;; Version: 0.22
-;; Package-Requires: ((git-gutter "0.82") (fringe-helper "0.1.1") (cl-lib "0.5") (emacs "24"))
+;; Package-Version: 20160520.1656
+;; Version: 0.23
+;; Package-Requires: ((git-gutter "0.88") (fringe-helper "0.1.1") (cl-lib "0.5") (emacs "24"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -114,14 +114,14 @@
 
 (defun git-gutter-fr:view-diff-infos (diffinfos)
   (when git-gutter-fr:bitmap-references
-    (git-gutter:clear))
+    (git-gutter:clear-gutter))
   (save-excursion
     (goto-char (point-min))
     (cl-loop with curline = 1
              for info in diffinfos
-             for start-line = (plist-get info :start-line)
-             for end-line = (plist-get info :end-line)
-             for type = (plist-get info :type)
+             for start-line = (git-gutter-hunk-start-line info)
+             for end-line = (git-gutter-hunk-end-line info)
+             for type = (git-gutter-hunk-type info)
              do
              (let (beg end)
                (forward-line (- start-line curline))
