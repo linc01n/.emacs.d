@@ -10,3 +10,5 @@
 ;; tooltips in echo-aera
 (when (and (fboundp 'tooltip-mode) (not (eq tooltip-mode -1)))
   (tooltip-mode -1))
+
+(toggle-frame-maximized)
