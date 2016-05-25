@@ -207,12 +207,12 @@ option_parser = OptionParser.new do |opts|
   end
 
   opts.on "-A", "--all", "Commit all updated elpa packages (as individual commits)" do
-        puts <<-EOD.gsub(/^ */,'')
+    puts <<-EOD.gsub(/^ */,'')
         #{ANSI_MESSAGE}Commit all updated packages
         Current commit (for reset): #{ANSI_COMMAND_LOG}#{%x[git log --pretty=oneline -1]}#{ANSI_RESET}
     EOD
-        elpa.commit_all_packages
-        exit 0
+    elpa.commit_all_packages
+    exit 0
   end
 
   opts.on "-e", "--elpa-archive", "Commit updated elpa/melpa archive index" do
