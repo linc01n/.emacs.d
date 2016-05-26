@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "dired+" "dired+.el" (22341 30827 0 0))
+;;;### (autoloads nil "dired+" "dired+.el" (22342 22080 0 0))
 ;;; Generated autoloads from dired+.el
 
 (defvar diff-switches "-c" "\
@@ -650,6 +650,13 @@ subdirectories are handled recursively in the same way.
 (autoload 'diredp-mark-files-regexp-recursive "dired+" "\
 Mark all files matching REGEXP, including those in marked subdirs.
 Like `dired-mark-files-regexp' but act recursively on marked subdirs.
+
+However, file names to be matched are always constructed relative to
+`default-directory'.  For an entry in an included subdir listing, this
+means that the relative file name (no directory part) is prefixed with
+the subdir name relative to the value of `default-directory' in the
+current Dired buffer.
+
 Directories `.' and `..' are never marked.
 
 A non-negative prefix arg means to UNmark the files instead.
@@ -1488,15 +1495,48 @@ non-empty directories is allowed.
 
 (autoload 'dired-mark-files-regexp "dired+" "\
 Mark all files matching REGEXP for use in later commands.
-A prefix argument means to unmark them instead.
-`.' and `..' are never marked.
+`.' and `..' are never marked or unmarked by this command.
 
-REGEXP is an Emacs regexp, not a shell wildcard.  Thus, use `\\.o$' for
-object files--just `.o' will mark more than you might think.
+Whether to mark or unmark, and what form of file name to match, are
+governed by the prefix argument.  For this, a plain (`C-u') or a
+double-plain (`C-u C-u') prefix arg is considered only as such - it is
+not considered numerically.
+
+Whether to mark or unmark:
+
+ - No prefix arg, a positive, or a negative arg means mark.
+
+ - Plain (`C-u'), double-plain (`C-u C-u'), or zero (e.g. `M-0' means
+   unmark.
+
+The form of a file name used for matching:
+
+ - No prefix arg (to mark) or a plain prefix arg (`C-u', to unmark)
+   means use the absolute file name, that is, including all directory
+   components.
+
+ - A negative arg (e.g. `M--', to mark) or a zero arg (e.g. `M-0', to
+   unmark) means use the relative file name (no directory part).
+
+ - A positive arg (e.g. `M-+', to mark) or a double plain arg (`C-u
+   C-u', to unmark) means construct the name relative to
+   `default-directory'.  For an entry in an inserted subdir listing,
+   this means prefix the relative file name (no directory part) with
+   the subdir name relative to `default-directory'.
+
+Using no prefix arg or a plain prefix arg `C-u' thus gives you the
+same behavior as vanilla Emacs (marking or unmarking, respectively).
+
+What Dired+ offers in addition is the possibility to match against
+names that are relative (have no directory part) or are relative to
+the `default-directory'.
+
+REGEXP is an Emacs regexp, not a shell wildcard.  Thus, use `\\.o$'
+for object files--just `.o' might mark more than you might expect.
 
 REGEXP is added to `regexp-search-ring', for regexp search.
 
-\(fn REGEXP &optional MARKER-CHAR)" t nil)
+\(fn REGEXP &optional MARKER-CHAR LOCALP)" t nil)
 
 (autoload 'diredp-capitalize "dired+" "\
 Rename all marked (or next ARG) files by capitalizing them.
