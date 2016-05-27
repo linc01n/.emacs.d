@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "projectile" "projectile.el" (22338 24503 0
+;;;### (autoloads nil "projectile" "projectile.el" (22343 41584 0
 ;;;;;;  0))
 ;;; Generated autoloads from projectile.el
 
