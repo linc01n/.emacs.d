@@ -4,8 +4,8 @@
 
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20160524.1837
-;; Version: 1.1.10
+;; Package-Version: 20160526.819
+;; Version: 1.1.11
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.3"))
 
@@ -1620,7 +1620,9 @@ is the width of the live window."
 Slight delay gets around evil functions that clear the echo
 area."
   (let* ((minibuffer (eq which-key-popup-type 'minibuffer))
-         (delay (if minibuffer 0.2 (+ echo-keystrokes 0.001)))
+         (delay (if minibuffer
+                    0.2
+                  (+ (or echo-keystrokes 0) 0.001)))
          message-log-max)
     (unless minibuffer (message "%s" text))
     (run-with-idle-timer
