@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "dired+" "dired+.el" (22342 22080 0 0))
+;;;### (autoloads nil "dired+" "dired+.el" (22348 2855 0 0))
 ;;; Generated autoloads from dired+.el
 
 (defvar diff-switches "-c" "\
@@ -651,11 +651,11 @@ subdirectories are handled recursively in the same way.
 Mark all files matching REGEXP, including those in marked subdirs.
 Like `dired-mark-files-regexp' but act recursively on marked subdirs.
 
-However, file names to be matched are always constructed relative to
-`default-directory'.  For an entry in an included subdir listing, this
-means that the relative file name (no directory part) is prefixed with
-the subdir name relative to the value of `default-directory' in the
-current Dired buffer.
+The file names to be matched by this command are always absolute -
+they include the full directory.  This corresponds to the default
+behavior for `dired-mark-files-regexp' with Dired+.  The other
+matching possibilities offered by `dired-mark-files-regexp' are not
+available for this command.
 
 Directories `.' and `..' are never marked.
 
@@ -1524,12 +1524,17 @@ The form of a file name used for matching:
    this means prefix the relative file name (no directory part) with
    the subdir name relative to `default-directory'.
 
-Using no prefix arg or a plain prefix arg `C-u' thus gives you the
-same behavior as vanilla Emacs (marking or unmarking, respectively).
+Note that the default matching behavior of this command is different
+for Dired+ than it is for vanilla Emacs.  Using a positive prefix arg
+or a double plain prefix arg (`C-u C-u' gives you the same behavior as
+vanilla Emacs (marking or unmarking, respectively): matching against
+names that are relative to the `default-directory'.
 
 What Dired+ offers in addition is the possibility to match against
-names that are relative (have no directory part) or are relative to
-the `default-directory'.
+names that are absolute (no prefix arg or `C-u', to mark or unmark,
+respectively) or relative (have no directory part - `M--' or `M-0',
+respectively).  The default behavior uses absolute names because it
+gives you more flexibility.
 
 REGEXP is an Emacs regexp, not a shell wildcard.  Thus, use `\\.o$'
 for object files--just `.o' might mark more than you might expect.
