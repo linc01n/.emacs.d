@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/swiper
-;; Package-Version: 20160510.2311
+;; Package-Version: 20160531.2212
 ;; Version: 0.8.0
 ;; Package-Requires: ((emacs "24.1") (ivy "0.8.0"))
 ;; Keywords: matching
@@ -206,6 +206,8 @@
     emms-playlist-mode
     emms-stream-mode
     erc-mode
+    forth-mode
+    forth-block-mode
     org-agenda-mode
     dired-mode
     jabber-chat-mode
