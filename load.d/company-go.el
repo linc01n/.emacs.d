@@ -1,0 +1,1 @@
+../available-init/company-go.el

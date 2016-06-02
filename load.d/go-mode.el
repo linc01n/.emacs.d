@@ -1,0 +1,1 @@
+../available-init/go-mode.el
