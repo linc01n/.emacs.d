@@ -1,4 +1,4 @@
-(define-package "ivy" "20160529.2351" "Incremental Vertical completYon"
+(define-package "ivy" "20160603.18" "Incremental Vertical completYon"
   '((emacs "24.1"))
   :url "https://github.com/abo-abo/swiper" :keywords
   '("matching"))

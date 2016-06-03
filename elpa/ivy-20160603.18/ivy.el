@@ -1284,8 +1284,17 @@ escape it with %%. See also `ivy-count-format'.
 COLLECTION is either a list of strings, a function, an alist, or
 a hash table.
 
+PREDICATE is applied to filter out the COLLECTION immediately.
+This argument is for `completing-read' compat.
+
+When REQUIRE-MATCH is non-nil, only memebers of COLLECTION can be
+selected, i.e. custom text.
+
 If INITIAL-INPUT is not nil, then insert that input in the
 minibuffer initially.
+
+HISTORY is a name of a variable to hold the completion session
+history.
 
 KEYMAP is composed with `ivy-minibuffer-map'.
 
@@ -1670,6 +1679,8 @@ The previous string is between `ivy-completion-beg' and `ivy-completion-end'."
           (if (string= str (car comps))
               (message "Sole match")
             (setf (ivy-state-window ivy-last) (selected-window))
+            (setq ivy-completion-beg start)
+            (setq ivy-completion-end end)
             (ivy-completion-in-region-action
              (substring-no-properties
               (car comps))))

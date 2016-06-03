@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "ivy" "ivy.el" (22348 2844 0 0))
+;;;### (autoloads nil "ivy" "ivy.el" (22353 20000 0 0))
 ;;; Generated autoloads from ivy.el
 
 (autoload 'ivy-resume "ivy" "\
@@ -22,8 +22,17 @@ escape it with %%. See also `ivy-count-format'.
 COLLECTION is either a list of strings, a function, an alist, or
 a hash table.
 
+PREDICATE is applied to filter out the COLLECTION immediately.
+This argument is for `completing-read' compat.
+
+When REQUIRE-MATCH is non-nil, only memebers of COLLECTION can be
+selected, i.e. custom text.
+
 If INITIAL-INPUT is not nil, then insert that input in the
 minibuffer initially.
+
+HISTORY is a name of a variable to hold the completion session
+history.
 
 KEYMAP is composed with `ivy-minibuffer-map'.
 
@@ -110,8 +119,8 @@ Find a file on `recentf-list'.
 
 ;;;***
 
-;;;### (autoloads nil nil ("colir.el" "ivy-pkg.el") (22348 2844 426496
-;;;;;;  0))
+;;;### (autoloads nil nil ("colir.el" "ivy-pkg.el") (22353 20000
+;;;;;;  613664 0))
 
 ;;;***
 
