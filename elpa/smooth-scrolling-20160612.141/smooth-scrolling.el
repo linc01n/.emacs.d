@@ -10,7 +10,7 @@
 ;; Maintainer: Adam Spiers <emacs-ss@adamspiers.org>
 ;; Homepage: http://github.com/aspiers/smooth-scrolling/
 ;; Version: 2.0.0
-;; Package-Version: 20160526.232
+;; Package-Version: 20160612.141
 ;; Keywords: convenience
 ;; GitHub: http://github.com/aspiers/smooth-scrolling/
 
@@ -288,7 +288,9 @@ advice, use `disable-smooth-scroll-for-function'."
   (enable-smooth-scroll-for-function next-line)
   (enable-smooth-scroll-for-function dired-previous-line)
   (enable-smooth-scroll-for-function dired-next-line)
-  (enable-smooth-scroll-for-function isearch-repeat))
+  (enable-smooth-scroll-for-function isearch-repeat)
+  (enable-smooth-scroll-for-function scroll-up-command)
+  (enable-smooth-scroll-for-function scroll-down-command))
 
 ;;;_ + provide
 (provide 'smooth-scrolling)
