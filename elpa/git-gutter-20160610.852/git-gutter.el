@@ -4,8 +4,8 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter
-;; Package-Version: 20160520.1655
-;; Version: 0.88
+;; Package-Version: 20160610.852
+;; Version: 0.89
 ;; Package-Requires: ((cl-lib "0.5") (emacs "24"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -545,7 +545,7 @@ gutter information of other windows."
             (git-gutter)
             (when (and (not git-gutter:update-timer) (> git-gutter:update-interval 0))
               (setq git-gutter:update-timer
-                    (run-with-idle-timer 1 git-gutter:update-interval 'git-gutter:live-update))))
+                    (run-with-idle-timer git-gutter:update-interval t 'git-gutter:live-update))))
         (when (> git-gutter:verbosity 2)
           (message "Here is not %s work tree" (git-gutter:show-backends)))
         (git-gutter-mode -1))
@@ -940,7 +940,7 @@ start revision."
   (when git-gutter:update-timer
     (error "Update timer is already running."))
   (setq git-gutter:update-timer
-        (run-with-idle-timer 1 git-gutter:update-interval 'git-gutter:live-update)))
+        (run-with-idle-timer git-gutter:update-interval t 'git-gutter:live-update)))
 
 (defun git-gutter:cancel-update-timer ()
   (interactive)
