@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
 
-;;;### (autoloads nil "use-package" "use-package.el" (22322 39032
+;;;### (autoloads nil "use-package" "use-package.el" (22367 25235
 ;;;;;;  0 0))
 ;;; Generated autoloads from use-package.el
 
