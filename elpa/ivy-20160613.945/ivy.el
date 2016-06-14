@@ -227,6 +227,11 @@ Example:
   (setq ivy--sources-list
         (plist-put ivy--sources-list cmd sources)))
 
+(defvar ivy-current-prefix-arg nil
+  "Prefix arg to pass to actions.
+This is a global variable that is set by ivy functions for use in
+action functions.")
+
 ;;* Keymap
 (require 'delsel)
 (defvar ivy-minibuffer-map
@@ -466,6 +471,7 @@ When non-nil, it should contain at least one %d.")
 (defun ivy-done ()
   "Exit the minibuffer with the selected candidate."
   (interactive)
+  (setq ivy-current-prefix-arg current-prefix-arg)
   (delete-minibuffer-contents)
   (cond ((or (> ivy--length 0)
              ;; the action from `ivy-dispatching-done' may not need a
@@ -544,10 +550,11 @@ selection, non-nil otherwise."
 (defun ivy-dispatching-call ()
   "Select one of the available actions and call `ivy-call'."
   (interactive)
+  (setq ivy-current-prefix-arg current-prefix-arg)
   (let ((actions (copy-sequence (ivy-state-action ivy-last))))
     (unwind-protect
-         (when (ivy-read-action)
-           (ivy-call))
+        (when (ivy-read-action)
+          (ivy-call))
       (ivy-set-action actions))))
 
 (defun ivy-build-tramp-name (x)
@@ -566,6 +573,7 @@ Is is a cons cell, related to `tramp-get-completion-function'."
   "Exit the minibuffer with the selected candidate.
 When ARG is t, exit with current text, ignoring the candidates."
   (interactive "P")
+  (setq ivy-current-prefix-arg current-prefix-arg)
   (cond (arg
          (ivy-immediate-done))
         (ivy--directory
@@ -858,7 +866,7 @@ If the input is empty, select the previous history element instead."
 
 (defun ivy--actionp (x)
   "Return non-nil when X is a list of actions."
-  (and x (listp x) (not (eq (car x) 'closure))))
+  (and x (listp x) (not (memq (car x) '(closure lambda)))))
 
 (defcustom ivy-action-wrap nil
   "When non-nil, `ivy-next-action' and `ivy-prev-action' wrap."
@@ -909,6 +917,15 @@ Example use:
 (defun ivy-call ()
   "Call the current action without exiting completion."
   (interactive)
+  (unless
+      (or
+       ;; this is needed for testing in ivy-with which seems to call ivy-call
+       ;; again, and this-command is nil in that case.
+       (null this-command)
+       (memq this-command '(ivy-done
+                            ivy-alt-done
+                            ivy-dispatching-done)))
+    (setq ivy-current-prefix-arg current-prefix-arg))
   (unless ivy-inhibit-action
     (let ((action (ivy--get-action ivy-last)))
       (when action
@@ -1499,10 +1516,18 @@ This is useful for recursive `ivy-read'."
              (setq coll (ivy--buffer-list "" ivy-use-virtual-buffers predicate)))
             (dynamic-collection
              (setq coll (funcall collection ivy-text)))
+            ((and (consp collection) (listp (car collection)))
+             (if (and sort (setq sort-fn (cdr (assoc caller ivy-sort-functions-alist))))
+                 (progn
+                   (setq sort nil)
+                   (setq coll (mapcar #'car
+                                      (cl-sort
+                                       (copy-sequence collection)
+                                       sort-fn))))
+               (setq coll (all-completions "" collection predicate))))
             ((or (functionp collection)
                  (byte-code-function-p collection)
                  (vectorp collection)
-                 (and (consp collection) (listp (car collection)))
                  (hash-table-p collection)
                  (and (listp collection) (symbolp (car collection))))
              (setq coll (all-completions "" collection predicate)))
@@ -1635,20 +1660,37 @@ INHERIT-INPUT-METHOD is currently ignored."
 (defvar ivy-completion-end nil
   "Completion bounds end.")
 
+(declare-function mc/all-fake-cursors "ext:multiple-cursors-core")
+
 (defun ivy-completion-in-region-action (str)
   "Insert STR, erasing the previous one.
 The previous string is between `ivy-completion-beg' and `ivy-completion-end'."
   (when (stringp str)
     (with-ivy-window
-      (when ivy-completion-beg
-        (delete-region
-         ivy-completion-beg
-         ivy-completion-end))
-      (setq ivy-completion-beg
-            (move-marker (make-marker) (point)))
-      (insert (substring-no-properties str))
-      (setq ivy-completion-end
-            (move-marker (make-marker) (point))))))
+      (let ((fake-cursors (and (featurep 'multiple-cursors)
+                               (mc/all-fake-cursors)))
+            (pt (point))
+            (beg ivy-completion-beg)
+            (end ivy-completion-end))
+        (when ivy-completion-beg
+          (delete-region
+           ivy-completion-beg
+           ivy-completion-end))
+        (setq ivy-completion-beg
+              (move-marker (make-marker) (point)))
+        (insert (substring-no-properties str))
+        (setq ivy-completion-end
+              (move-marker (make-marker) (point)))
+        (save-excursion
+          (dolist (cursor fake-cursors)
+            (goto-char (overlay-start cursor))
+            (delete-region (+ (point) (- beg pt))
+                           (+ (point) (- end pt)))
+            (insert (substring-no-properties str))
+            ;; manually move the fake cursor
+            (move-overlay cursor (point) (1+ (point)))
+            (move-marker (overlay-get cursor 'point) (point))
+            (move-marker (overlay-get cursor 'mark) (point))))))))
 
 (defun ivy-completion-common-length (str)
   "Return the length of the first 'completions-common-part face in STR."
@@ -1673,11 +1715,13 @@ The previous string is between `ivy-completion-beg' and `ivy-completion-end'."
          (str (buffer-substring-no-properties start end))
          (completion-ignore-case case-fold-search)
          (comps
-          (completion-all-completions str collection predicate (- end start))))
+          (completion-all-completions str collection predicate (- end start)))
+         (len (min (ivy-completion-common-length (car comps))
+                   (length str))))
     (if (null comps)
         (message "No matches")
       (nconc comps nil)
-      (setq ivy-completion-beg (- end (ivy-completion-common-length (car comps))))
+      (setq ivy-completion-beg (- end len))
       (setq ivy-completion-end end)
       (if (null (cdr comps))
           (if (string= str (car comps))
@@ -1918,6 +1962,19 @@ depending on the number of candidates."
     (goto-char (minibuffer-prompt-end))
     (delete-region (line-end-position) (point-max))))
 
+(defvar ivy-set-prompt-text-properties-function
+  'ivy-set-prompt-text-properties-default
+  "Function to set the text properties of the default ivy prompt.
+Called with two arguments, PROMPT and STD-PROPS.
+The returned value should be the updated PROMPT.")
+
+(defun ivy-set-prompt-text-properties-default (prompt std-props)
+  (ivy--set-match-props prompt "confirm"
+                        `(face ivy-confirm-face ,@std-props))
+  (ivy--set-match-props prompt "match required"
+                        `(face ivy-match-required-face ,@std-props))
+  prompt)
+
 (defun ivy--insert-prompt ()
   "Update the prompt according to `ivy--prompt'."
   (when ivy--prompt
@@ -1971,20 +2028,21 @@ depending on the number of candidates."
           (set-text-properties 0 (length n-str)
                                `(face minibuffer-prompt ,@std-props)
                                n-str)
-          (ivy--set-match-props n-str "confirm"
-                                `(face ivy-confirm-face ,@std-props))
-          (ivy--set-match-props n-str "match required"
-                                `(face ivy-match-required-face ,@std-props))
+          (setq n-str (funcall ivy-set-prompt-text-properties-function
+                               n-str std-props))
           (insert n-str))
         ;; get out of the prompt area
         (constrain-to-field nil (point-max))))))
 
-(defun ivy--set-match-props (str match props)
-  "Set STR text properties that match MATCH to PROPS."
+(defun ivy--set-match-props (str match props &optional subexp)
+  "Set STR text properties for regexp group SUBEXP that match MATCH to PROPS.
+If SUBEXP is nil, the text properties are applied to the whole match."
+  (when (null subexp)
+    (setq subexp 0))
   (when (string-match match str)
     (set-text-properties
-     (match-beginning 0)
-     (match-end 0)
+     (match-beginning subexp)
+     (match-end subexp)
      props
      str)))
 
