@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20160531.2258
+;; Package-Version: 20160613.1353
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -1138,10 +1138,7 @@ Which one depends on variable `subword-mode'."
 
 (defvar visual-line-mode)
 
-(defun avy--line (&optional arg beg end)
-  "Select a line.
-The window scope is determined by `avy-all-windows' (ARG negates it).
-Narrow the scope to BEG END."
+(defun avy--line-cands (&optional arg beg end)
   (let (candidates)
     (avy-dowindows arg
       (let ((ws (or beg (window-start))))
@@ -1162,8 +1159,96 @@ Narrow the scope to BEG END."
                     (setq temporary-goal-column 0)
                     (line-move-visual 1 t))
                 (forward-line 1)))))))
-    (let ((avy-action #'identity))
-      (avy--process (nreverse candidates) (avy--style-fn avy-style)))))
+    (nreverse candidates)))
+
+(defun avy--linum-strings ()
+  (let* ((lines (mapcar #'car (avy--line-cands)))
+         (line-tree (avy-tree lines avy-keys))
+         (line-list nil))
+    (avy-traverse
+     line-tree
+     (lambda (path _leaf)
+       (let ((str (propertize (apply #'string (reverse path))
+                              'face 'avy-lead-face)))
+         (when (> (length str) 1)
+           (set-text-properties 0 1 '(face avy-lead-face-0) str))
+         (push str line-list))))
+    (nreverse line-list)))
+
+(defun avy--linum-update-window (_ win)
+  "Update line numbers for the portion visible in window WIN."
+  (goto-char (window-start win))
+  (let ((line (line-number-at-pos))
+        (limit (window-end win t))
+        (fmt (cond ((stringp linum-format) linum-format)
+                   ((eq linum-format 'dynamic)
+                    (let ((w (length (number-to-string
+                                      (count-lines (point-min) (point-max))))))
+                      (concat "%" (number-to-string w) "d")))))
+        (width 0)
+        (avy-strs (when avy-linum-mode
+                    (avy--linum-strings))))
+    (run-hooks 'linum-before-numbering-hook)
+    ;; Create an overlay (or reuse an existing one) for each
+    ;; line visible in this window, if necessary.
+    (while (and (not (eobp)) (< (point) limit))
+      (let* ((str
+              (cond (avy-linum-mode
+                     (pop avy-strs))
+                    (fmt
+                     (propertize (format fmt line) 'face 'linum))
+                    (t
+                     (funcall linum-format line))))
+             (visited (catch 'visited
+                        (dolist (o (overlays-in (point) (point)))
+                          (when (equal-including-properties
+                                 (overlay-get o 'linum-str) str)
+                            (unless (memq o linum-overlays)
+                              (push o linum-overlays))
+                            (setq linum-available (delq o linum-available))
+                            (throw 'visited t))))))
+        (setq width (max width (length str)))
+        (unless visited
+          (let ((ov (if (null linum-available)
+                        (make-overlay (point) (point))
+                      (move-overlay (pop linum-available) (point) (point)))))
+            (push ov linum-overlays)
+            (overlay-put ov 'before-string
+                         (propertize " " 'display `((margin left-margin) ,str)))
+            (overlay-put ov 'linum-str str))))
+      ;; Text may contain those nasty intangible properties, but that
+      ;; shouldn't prevent us from counting those lines.
+      (let ((inhibit-point-motion-hooks t))
+        (forward-line))
+      (setq line (1+ line)))
+    (when (display-graphic-p)
+      (setq width (ceiling
+                   (/ (* width 1.0 (linum--face-width 'linum))
+                      (frame-char-width)))))
+    (set-window-margins win width (cdr (window-margins win)))))
+
+(define-minor-mode avy-linum-mode
+  "Minor mode that uses avy hints for `linum-mode'."
+  :group 'avy
+  (if avy-linum-mode
+      (progn
+        (require 'linum)
+        (advice-add 'linum-update-window :around 'avy--linum-update-window)
+        (linum-mode 1))
+    (advice-remove 'linum-update-window 'avy--linum-update-window)
+    (linum-mode -1)))
+
+(defun avy--line (&optional arg beg end)
+  "Select a line.
+The window scope is determined by `avy-all-windows' (ARG negates it).
+Narrow the scope to BEG END."
+  (let ((avy-action #'identity))
+    (avy--process
+     (avy--line-cands arg beg end)
+     (if avy-linum-mode
+         (progn (message "Goto line:")
+                'ignore)
+       (avy--style-fn avy-style)))))
 
 ;;;###autoload
 (defun avy-goto-line (&optional arg)
