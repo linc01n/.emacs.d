@@ -5,6 +5,7 @@
   (setq gofmt-command "goimports")
   (set (make-local-variable 'company-backends) '(company-go))
   (company-mode)
+
   (add-hook 'before-save-hook 'gofmt-before-save))
 
 (req-package go-mode
@@ -12,5 +13,10 @@
   (progn (add-hook 'go-mode-hook 'go-mode-setup))
   :bind
   ("M-." . godef-jump))
+
+(req-package go-flymake
+  :require flymake)
+(req-package go-flycheck
+  :require flycheck)
 
 (req-package go-eldoc)
