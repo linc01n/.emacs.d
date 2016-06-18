@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/swiper
-;; Package-Version: 20160602.18
+;; Package-Version: 20160617.30
 ;; Version: 0.8.0
 ;; Package-Requires: ((emacs "24.1") (ivy "0.8.0"))
 ;; Keywords: matching
@@ -77,6 +77,11 @@
 (defcustom swiper-min-highlight 2
   "Only highlight matches for regexps at least this long."
   :type 'integer)
+
+(defcustom swiper-include-line-number-in-search nil
+  "Include line number in text of search candidates."
+  :type 'boolean
+  :group 'swiper)
 
 (defvar swiper-map
   (let ((map (make-sparse-keymap)))
@@ -306,10 +311,14 @@ numbers; replaces calculating the width from buffer line count."
                             (point)
                             (line-end-position)))))))
               (remove-text-properties 0 (length str) '(field) str)
-              (put-text-property 0 1 'display
-                                 (format swiper--format-spec
-                                         (cl-incf line-number))
-                                 str)
+              (let ((line-number-str
+                     (format swiper--format-spec (cl-incf line-number))))
+                (if swiper-include-line-number-in-search
+                    (setq str (concat line-number-str str))
+                  (put-text-property
+                   0 1 'display line-number-str str))
+                (put-text-property
+                 0 1 'swiper-line-number line-number-str str))
               (push str candidates))
             (funcall advancer 1))
           (nreverse candidates))))))
@@ -345,7 +354,7 @@ When REVERT is non-nil, regenerate the current *ivy-occur* buffer."
                            fname
                            (propertize
                             (string-trim-right
-                             (get-text-property 0 'display s))
+                             (get-text-property 0 'swiper-line-number s))
                             'face 'compilation-line-number)
                            (substring s 1)))
                  (if (null revert)
@@ -503,7 +512,7 @@ Matched candidates should have `swiper-invocation-face'."
                   "    " "\t"
                   (funcall ivy--regex-function ivy-text)))
              (re (if (stringp re) re (caar re)))
-             (str (get-text-property 0 'display ivy--current))
+             (str (get-text-property 0 'swiper-line-number ivy--current))
              (num (if (string-match "^[0-9]+" str)
                       (string-to-number (match-string 0 str))
                     0)))
@@ -590,7 +599,7 @@ WND, when specified is the window."
 
 (defun swiper--action (x)
   "Goto line X."
-  (let ((ln (1- (read (or (get-text-property 0 'display x)
+  (let ((ln (1- (read (or (get-text-property 0 'swiper-line-number x)
                           (and (string-match ":\\([0-9]+\\):.*\\'" x)
                                (match-string-no-properties 1 x))))))
         (re (ivy--regex ivy-text)))
@@ -716,12 +725,12 @@ Run `swiper' for those buffers."
          (delete-minibuffer-contents))))
 
 (defun swiper-multi-action-2 (x)
-  (let ((buf-space (get-text-property (1- (length x)) 'display x)))
+  (let ((buf-space (get-text-property (1- (length x)) 'swiper-line-number x)))
     (with-ivy-window
       (when (string-match "\\` *\\([^ ]+\\)\\'" buf-space)
         (switch-to-buffer (match-string 1 buf-space))
         (goto-char (point-min))
-        (forward-line (1- (read (get-text-property 0 'display x))))
+        (forward-line (1- (read (get-text-property 0 'swiper-line-number x))))
         (re-search-forward
          (ivy--regex ivy-text)
          (line-end-position) t)
