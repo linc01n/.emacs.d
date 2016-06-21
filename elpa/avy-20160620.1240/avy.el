@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20160613.1353
+;; Package-Version: 20160620.1240
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -169,6 +169,7 @@ When nil, punctuation chars will not be matched.
   "Regexp that determines positions for `avy-goto-word-0'."
   :type '(choice
           (const :tag "Default" "\\b\\sw")
+          (const :tag "Symbol" "\\_<\\(\\sw\\|\\s_\\)")
           (const :tag "Not whitespace" "[^ \r\n\t]+")
           (regexp :tag "Regex")))
 
@@ -475,6 +476,10 @@ multiple DISPLAY-FN invokations."
          (unless (memq major-mode avy-ignored-modes)
            ,@body)))))
 
+(defun avy-resume ()
+  "Stub to hold last avy command.
+Commands using `avy-with' macro can be resumed.")
+
 (defmacro avy-with (command &rest body)
   "Set `avy-keys' according to COMMAND and execute BODY.
 Set `avy-style' according to COMMMAND as well."
@@ -485,6 +490,10 @@ Set `avy-style' according to COMMMAND as well."
          (avy-style (or (cdr (assq ',command avy-styles-alist))
                         avy-style)))
      (setq avy-action nil)
+     (setf (symbol-function 'avy-resume)
+           (lambda ()
+             (interactive)
+             ,@body))
      ,@body))
 
 (defun avy-action-goto (pt)
@@ -1030,7 +1039,7 @@ The window scope is determined by `avy-all-windows' (ARG negates it)."
     (avy--generic-jump avy-goto-word-0-regexp arg avy-style)))
 
 ;;;###autoload
-(defun avy-goto-word-1 (char &optional arg beg end)
+(defun avy-goto-word-1 (char &optional arg beg end symbol)
   "Jump to the currently visible CHAR at a word start.
 The window scope is determined by `avy-all-windows' (ARG negates it)."
   (interactive (list (read-char "char: " t)
@@ -1044,7 +1053,7 @@ The window scope is determined by `avy-all-windows' (ARG negates it)."
                          (regexp-quote str))
                         (t
                          (concat
-                          "\\b"
+                          (if symbol "\\_<" "\\b")
                           str)))))
       (avy--generic-jump regex arg avy-style beg end))))
 
@@ -1067,6 +1076,35 @@ the visible part of the current buffer following point. "
                      current-prefix-arg))
   (avy-with avy-goto-word-1
     (avy-goto-word-1 char arg (point) (window-end (selected-window) t))))
+
+;;;###autoload
+(defun avy-goto-symbol-1 (char &optional arg)
+  "Jump to the currently visible CHAR at a symbol start.
+The window scope is determined by `avy-all-windows' (ARG negates it)."
+  (interactive (list (read-char "char: " t)
+                     current-prefix-arg))
+  (avy-with avy-goto-symbol-1
+    (avy-goto-word-1 char arg nil nil t)))
+
+;;;###autoload
+(defun avy-goto-symbol-1-above (char &optional arg)
+  "Jump to the currently visible CHAR at a symbol start.
+This is a scoped version of `avy-goto-symbol-1', where the scope is
+the visible part of the current buffer up to point. "
+  (interactive (list (read-char "char: " t)
+                     current-prefix-arg))
+  (avy-with avy-goto-symbol-1-above
+    (avy-goto-word-1 char arg (window-start) (point) t)))
+
+;;;###autoload
+(defun avy-goto-symbol-1-below (char &optional arg)
+  "Jump to the currently visible CHAR at a symbol start.
+This is a scoped version of `avy-goto-symbol-1', where the scope is
+the visible part of the current buffer following point. "
+  (interactive (list (read-char "char: " t)
+                     current-prefix-arg))
+  (avy-with avy-goto-symbol-1-below
+    (avy-goto-word-1 char arg (point) (window-end (selected-window) t) t)))
 
 (declare-function subword-backward "subword")
 (defvar subword-backward-regexp)
@@ -1175,6 +1213,22 @@ Which one depends on variable `subword-mode'."
          (push str line-list))))
     (nreverse line-list)))
 
+(defvar linum-available)
+(defvar linum-overlays)
+(defvar linum-format)
+(declare-function linum--face-width "linum")
+
+(define-minor-mode avy-linum-mode
+  "Minor mode that uses avy hints for `linum-mode'."
+  :group 'avy
+  (if avy-linum-mode
+      (progn
+        (require 'linum)
+        (advice-add 'linum-update-window :around 'avy--linum-update-window)
+        (linum-mode 1))
+    (advice-remove 'linum-update-window 'avy--linum-update-window)
+    (linum-mode -1)))
+
 (defun avy--linum-update-window (_ win)
   "Update line numbers for the portion visible in window WIN."
   (goto-char (window-start win))
@@ -1226,17 +1280,6 @@ Which one depends on variable `subword-mode'."
                    (/ (* width 1.0 (linum--face-width 'linum))
                       (frame-char-width)))))
     (set-window-margins win width (cdr (window-margins win)))))
-
-(define-minor-mode avy-linum-mode
-  "Minor mode that uses avy hints for `linum-mode'."
-  :group 'avy
-  (if avy-linum-mode
-      (progn
-        (require 'linum)
-        (advice-add 'linum-update-window :around 'avy--linum-update-window)
-        (linum-mode 1))
-    (advice-remove 'linum-update-window 'avy--linum-update-window)
-    (linum-mode -1)))
 
 (defun avy--line (&optional arg beg end)
   "Select a line.
