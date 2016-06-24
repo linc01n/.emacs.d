@@ -5,7 +5,7 @@
 ;; Author: Nikolaj Schumacher
 ;; Maintainer: Dmitry Gutov <dgutov@yandex.ru>
 ;; URL: http://company-mode.github.io/
-;; Version: 0.9.0-cvs
+;; Version: 0.9.0
 ;; Keywords: abbrev, convenience, matching
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 
@@ -643,6 +643,7 @@ asynchronous call into synchronous.")
     (define-key keymap [mouse-3] 'company-select-mouse)
     (define-key keymap [up-mouse-1] 'ignore)
     (define-key keymap [up-mouse-3] 'ignore)
+    (define-key keymap [return] 'company-complete-selection)
     (define-key keymap (kbd "RET") 'company-complete-selection)
     (define-key keymap [tab] 'company-complete-common)
     (define-key keymap (kbd "TAB") 'company-complete-common)
