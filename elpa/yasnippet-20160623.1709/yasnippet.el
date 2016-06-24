@@ -896,10 +896,10 @@ Honour `yas-dont-activate-functions', which see."
                 ;; They're "compiled", so extract the source.
                 (cadr font-lock-keywords)
               font-lock-keywords))
-          '(("$\\([0-9]+\\)"
+          '(("\\$\\([0-9]+\\)"
              (0 font-lock-keyword-face)
              (1 font-lock-string-face t))
-            ("${\\([0-9]+\\):?"
+            ("\\${\\([0-9]+\\):?"
              (0 font-lock-keyword-face)
              (1 font-lock-warning-face t))
             ("\\(\\$(\\)" 1 font-lock-preprocessor-face)
@@ -3855,7 +3855,7 @@ Meant to be called in a narrowed buffer, does various passes"
     (yas--protect-escapes)
     ;; Parse indent markers: `$>'.
     (goto-char parse-start)
-    (yas--indent-parse-create snippet)
+    (yas--indent-parse-create)
     ;; parse fields with {}
     ;;
     (goto-char parse-start)
@@ -3961,12 +3961,11 @@ The SNIPPET's markers are preserved."
                        (zerop (current-column)))
              (indent-to-column yas--indent-original-column)))
           ((eq yas-indent-line 'auto)
-           (let ((end (set-marker (make-marker) (point-max))))
-             (unless yas-also-auto-indent-first-line
-               (forward-line 1))
-             (yas--indent-region (line-beginning-position)
-                                 (point-max)
-                                 snippet))))))
+           (unless yas-also-auto-indent-first-line
+             (forward-line 1))
+           (yas--indent-region (line-beginning-position)
+                               (point-max)
+                               snippet)))))
 
 (defun yas--collect-snippet-markers (snippet)
   "Make a list of all the markers used by SNIPPET."
@@ -4017,34 +4016,34 @@ With optional string TEXT do it in string instead of the buffer."
 (defun yas--save-backquotes ()
   "Save all the \"`(lisp-expression)`\"-style expressions
 with their evaluated value into `yas--backquote-markers-and-strings'."
-  ;; Gather `(lisp-expression)`s.
-  (let ((end (point-max)))
-    (save-restriction
-      (widen)
-      (while (re-search-forward yas--backquote-lisp-expression-regexp end t)
-        (let ((expr (yas--read-lisp (yas--restore-escapes
-                                     (match-string-no-properties 1))))
-              (marker (make-marker)))
-          (delete-region (match-beginning 0) (match-end 0))
-          (insert "Y") ;; quite horrendous, I love it :)
-          (set-marker marker (point))
-          (insert "Y")
-          (push (cons marker expr) yas--backquote-markers-and-strings)))))
-  ;; Evaluate them.
-  (dolist (m-e yas--backquote-markers-and-strings)
-    (let* ((marker (car m-e))
-           (expr (cdr m-e))
-           (result (save-excursion
-                     (goto-char marker)
-                     (yas--eval-lisp expr))))
-      (setcdr m-e result)
-      (unless result
+  (let* ((yas--change-detected nil)
+         (detect-change (lambda (_beg _end) (setq yas--change-detected t))))
+    (while (re-search-forward yas--backquote-lisp-expression-regexp nil t)
+      (let ((current-string (match-string-no-properties 1)) transformed)
         (save-restriction (widen)
-                          (delete-region (1- marker) (1+ marker)))
-        (set-marker marker nil))))
-  ;; Drop the nil results.
-  (setq yas--backquote-markers-and-strings
-        (cl-delete-if-not #'cdr yas--backquote-markers-and-strings)))
+                          (delete-region (match-beginning 0) (match-end 0)))
+        (let ((before-change-functions
+               (cons detect-change before-change-functions)))
+          (setq transformed (yas--eval-lisp (yas--read-lisp
+                                             (yas--restore-escapes
+                                              current-string '(?`))))))
+        (goto-char (match-beginning 0))
+        (when transformed
+          (let ((marker (make-marker))
+                (before-change-functions (cdr before-change-functions)))
+            (save-restriction
+              (widen)
+              (insert "Y") ;; quite horrendous, I love it :)
+              (set-marker marker (point))
+              (insert "Y"))
+            (push (cons marker transformed) yas--backquote-markers-and-strings)))))
+    (when yas--change-detected
+      (lwarn '(yasnippet backquote-change) :warning
+             "`%s' modified buffer in a backquote expression.
+  To hide this warning, add (yasnippet backquote-change) to `warning-suppress-types'."
+             (if yas--current-template
+                 (yas--template-name yas--current-template)
+               "Snippet")))))
 
 (defun yas--restore-backquotes ()
   "Replace markers in `yas--backquote-markers-and-strings' with their values."
@@ -4073,8 +4072,8 @@ with their evaluated value into `yas--backquote-markers-and-strings'."
     (set-marker-insertion-type marker nil)
     marker))
 
-(defun yas--indent-parse-create (snippet)
-  "Parse the \"$>\" indentation markers in SNIPPET."
+(defun yas--indent-parse-create ()
+  "Parse the \"$>\" indentation markers just inserted."
   (setq yas--indent-markers ())
   (while (search-forward "$>" nil t)
     (delete-region (match-beginning 0) (match-end 0))
@@ -4295,10 +4294,13 @@ When multiple expressions are found, only the last one counts."
         (yas--advance-start-maybe (yas--mirror-next mirror) (point))
         ;; super-special advance
         (yas--advance-end-of-parents-maybe mirror-parent-field (point)))
-      (let ((yas--inhibit-overlay-hooks t))
-        (yas--indent-region (yas--mirror-start mirror)
-                            (yas--mirror-end mirror)
-                            snippet)))))
+      (let ((yas--inhibit-overlay-hooks t)
+            (beg (save-excursion (goto-char (yas--mirror-start mirror))
+                                 (forward-line 1)
+                                 (point)))
+            (end (yas--mirror-end mirror)))
+        (when (< beg end)
+          (yas--indent-region beg end snippet))))))
 
 (defun yas--field-update-display (field)
   "Much like `yas--mirror-update-display', but for fields."
