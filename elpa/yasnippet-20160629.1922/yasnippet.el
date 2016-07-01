@@ -207,7 +207,7 @@ created with `yas-new-snippet'. "
 # name: $1
 # key: ${2:${1:$(yas--key-from-desc yas-text)}}
 # --
-$0`yas-selected-text`"
+$0`(yas-escape-text yas-selected-text)`"
   "Default snippet to use when creating a new snippet.
 If nil, don't use any snippet."
   :type 'string
@@ -1914,18 +1914,10 @@ prefix argument."
         (funcall fun))
       (remhash mode yas--scheduled-jit-loads))))
 
-;; (when (<= emacs-major-version 22)
-;;   (add-hook 'after-change-major-mode-hook 'yas--load-pending-jits))
+(defun yas-escape-text (text)
+  "Escape TEXT for snippet."
+  (replace-regexp-in-string "[\\$]" "\\\\\\&" text))
 
-(defun yas--quote-string (string)
-  "Escape and quote STRING.
-foo\"bar\\! -> \"foo\\\"bar\\\\!\""
-  (concat "\""
-          (replace-regexp-in-string "[\\\"]"
-                                    "\\\\\\&"
-                                    string
-                                    t)
-          "\""))
 
 ;;; Snippet compilation function
 
