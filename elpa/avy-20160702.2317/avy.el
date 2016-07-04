@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20160620.1240
+;; Package-Version: 20160702.2317
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -541,12 +541,14 @@ Set `avy-style' according to COMMMAND as well."
   "Auto correct word at PT."
   (save-excursion
     (goto-char pt)
-    (if (looking-at-p "\\b")
-        (ispell-word)
-      (progn
-        (backward-word)
-        (when (looking-at-p "\\b")
-          (ispell-word))))))
+    (if (bound-and-true-p flyspell-mode)
+        (flyspell-correct-word-before-point)
+      (if (looking-at-p "\\b")
+          (ispell-word)
+        (progn
+          (backward-word)
+          (when (looking-at-p "\\b")
+            (ispell-word)))))))
 
 (defun avy--process (candidates overlay-fn)
   "Select one of CANDIDATES using `avy-read'.
