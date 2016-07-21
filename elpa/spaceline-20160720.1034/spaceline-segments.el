@@ -141,9 +141,21 @@
   "The current column number."
   "%2c")
 
+(declare-function pdf-view-current-page 'pdf-view)
+(declare-function pdf-cache-number-of-pages 'pdf-view)
+
+(defun spaceline--pdfview-page-number ()
+  (format "(%d/%d)"
+	  (pdf-view-current-page)
+	  (pdf-cache-number-of-pages)))
+
 (spaceline-define-segment line-column
-  "The current line and column numbers."
-  "%l:%2c")
+  "The current line and column numbers, or `(current page/number of pages)`
+in pdf-view mode (enabled by the `pdf-tools' package)."
+  (if (eq 'pdf-view-mode major-mode)
+      (spaceline--pdfview-page-number)
+    "%l:%2c"))
+
 
 (spaceline-define-segment buffer-position
   "The current approximate buffer position, in percent."
