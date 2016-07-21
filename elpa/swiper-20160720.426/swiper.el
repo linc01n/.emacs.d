@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/swiper
-;; Package-Version: 20160630.1302
+;; Package-Version: 20160720.426
 ;; Version: 0.8.0
 ;; Package-Requires: ((emacs "24.1") (ivy "0.8.0"))
 ;; Keywords: matching
@@ -136,6 +136,8 @@
 (defun swiper-avy ()
   "Jump to one of the current swiper candidates."
   (interactive)
+  (unless (require 'avy nil 'noerror)
+    (error "Package avy isn't installed"))
   (unless (string= ivy-text "")
     (let* ((avy-all-windows nil)
            (candidates (append
