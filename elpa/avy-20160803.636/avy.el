@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20160722.512
+;; Package-Version: 20160803.636
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -1064,6 +1064,8 @@ The window scope is determined by `avy-all-windows' (ARG negates it)."
                         ((and avy-word-punc-regexp
                               (string-match avy-word-punc-regexp str))
                          (regexp-quote str))
+                        ((<= char 26)
+                         str)
                         (t
                          (concat
                           (if symbol "\\_<" "\\b")
