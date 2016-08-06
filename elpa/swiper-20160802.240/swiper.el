@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/swiper
-;; Package-Version: 20160730.416
+;; Package-Version: 20160802.240
 ;; Version: 0.8.0
 ;; Package-Requires: ((emacs "24.1") (ivy "0.8.0"))
 ;; Keywords: matching
@@ -400,21 +400,24 @@ When REVERT is non-nil, regenerate the current *ivy-occur* buffer."
   "Transform STR into a swiper regex.
 This is the regex used in the minibuffer where candidates have
 line numbers. For the buffer, use `ivy--regex' instead."
-  (let ((re (cond
-              ((equal str "")
-               "")
-              ((equal str "^")
-               (setq ivy--subexps 0)
-               ".")
-              ((string-match "^\\^" str)
-               (setq ivy--old-re "")
-               (let ((re (ivy--regex-plus (substring str 1))))
-                 (if (zerop ivy--subexps)
-                     (prog1 (format "^ ?\\(%s\\)" re)
-                       (setq ivy--subexps 1))
-                   (format "^ %s" re))))
-              (t
-               (ivy--regex-plus str)))))
+  (let* ((re-builder
+          (or (cdr (assoc 'swiper ivy-re-builders-alist))
+              (cdr (assoc t ivy-re-builders-alist))))
+         (re (cond
+               ((equal str "")
+                "")
+               ((equal str "^")
+                (setq ivy--subexps 0)
+                ".")
+               ((string-match "^\\^" str)
+                (setq ivy--old-re "")
+                (let ((re (funcall re-builder (substring str 1))))
+                  (if (zerop ivy--subexps)
+                      (prog1 (format "^ ?\\(%s\\)" re)
+                        (setq ivy--subexps 1))
+                    (format "^ %s" re))))
+               (t
+                (funcall re-builder str)))))
     (cond ((stringp re)
            (replace-regexp-in-string "\t" "    " re))
           ((and (consp re)
@@ -739,7 +742,9 @@ Run `swiper' for those buffers."
               (put-text-property 0 1 'point (point) match)
               (push match cands)))))
       (setq ivy--old-re nil)
-      (setq ivy--old-cands (nreverse cands)))))
+      (if (null cands)
+          (list "")
+        (setq ivy--old-cands (nreverse cands))))))
 
 (defun swiper--all-format-function (cands)
   (let* ((ww (window-width))
