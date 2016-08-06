@@ -1,4 +1,4 @@
-(define-package "spaceline" "20160720.1034" "Modeline configuration library for powerline"
+(define-package "spaceline" "20160801.211" "Modeline configuration library for powerline"
   '((emacs "24.3")
     (cl-lib "0.5")
     (powerline "2.3")
