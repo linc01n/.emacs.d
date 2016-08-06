@@ -4,7 +4,7 @@
 
 ;; Author: Lars Tveito
 ;; Keywords: org, wp, markdown, github
-;; Package-Version: 20160520.1442
+;; Package-Version: 20160804.909
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,7 +45,6 @@
 ;;; Define Back-End
 
 (org-export-define-derived-backend 'gfm 'md
-  :export-block '("GFM" "GITHUB FLAVORED MARKDOWN")
   :filters-alist '((:filter-parse-tree . org-md-separate-elements))
   :menu-entry
   '(?g "Export to Github Flavored Markdown"
@@ -57,7 +56,7 @@
               (if a (org-gfm-export-to-markdown t s v)
                 (org-open-file (org-gfm-export-to-markdown nil s v)))))))
   :translate-alist '((inner-template . org-gfm-inner-template)
-		     (paragraph . org-gfm-paragraph)
+                     (paragraph . org-gfm-paragraph)
                      (strike-through . org-gfm-strike-through)
                      (src-block . org-gfm-src-block)
                      (table-cell . org-gfm-table-cell)
@@ -75,12 +74,11 @@
 CONTENTS is the paragraph contents.  INFO is a plist used as a
 communication channel."
   (unless (plist-get info :preserve-breaks)
-    (setq contents (concat (mapconcat 'identity (split-string contents) " ")
-                 "\n")))
+    (setq contents (concat (mapconcat 'identity (split-string contents) " ") "\n")))
   (let ((first-object (car (org-element-contents paragraph))))
     ;; If paragraph starts with a #, protect it.
     (if (and (stringp first-object) (string-match "\\`#" first-object))
-	(replace-regexp-in-string "\\`#" "\\#" contents nil t)
+        (replace-regexp-in-string "\\`#" "\\#" contents nil t)
       contents)))
 
 
@@ -227,8 +225,8 @@ contextual information."
                                   columns
                                   gfm-table-separator)
                        gfm-table-right-border "\n"))))))
-  (concat (when no-header (funcall build-dummy-header))
-          (replace-regexp-in-string "\n\n" "\n" contents))))
+    (concat (when no-header (funcall build-dummy-header))
+            (replace-regexp-in-string "\n\n" "\n" contents))))
 
 
 ;;;; Table of contents
@@ -241,9 +239,7 @@ plist used as a communication channel."
          (level (1- (org-element-property :level headline)))
          (indent (concat (make-string (* level 2) ? )))
          (anchor (or (org-element-property :custom_id headline)
-                     (concat "sec-" (mapconcat 'number-to-string
-                                               (org-export-get-headline-number
-                                                headline info) "-")))))
+                     (org-export-get-reference headline info))))
     (concat indent "- [" title "]" "(#" anchor ")")))
 
 
