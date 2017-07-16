@@ -5,7 +5,7 @@
 ;; Author: Steve Purcell <steve@sanityinc.com>
 ;; Keywords: environment
 ;; URL: https://github.com/purcell/exec-path-from-shell
-;; Package-Version: 20160112.2246
+;; Package-Version: 20170508.4
 ;; Package-X-Original-Version: 0
 
 ;; This file is not part of GNU Emacs.
@@ -39,7 +39,7 @@
 
 ;; If you use a non-POSIX-standard shell like "tcsh" or "fish", your
 ;; shell will be asked to execute "sh" as a subshell in order to print
-;; out the variables in a format which can be reliably parsed. "sh"
+;; out the variables in a format which can be reliably parsed.  "sh"
 ;; must be a POSIX-compliant shell in this case.
 
 ;; Note that shell variables which have not been exported as
@@ -48,8 +48,9 @@
 
 ;; Installation:
 
-;; ELPA packages are available on Marmalade and MELPA. Alternatively, place
-;; this file on a directory in your `load-path', and explicitly require it.
+;; ELPA packages are available on Marmalade and MELPA.  Alternatively,
+;; place this file on a directory in your `load-path', and explicitly
+;; require it.
 
 ;; Usage:
 ;;
@@ -90,6 +91,15 @@ Environment variables should be set in .profile or .zshenv rather than
   :type 'boolean
   :group 'exec-path-from-shell)
 
+(defcustom exec-path-from-shell-shell-name nil
+  "If non-nil, use this shell executable.
+Otherwise, use either `shell-file-name' (if set), or the value of
+the SHELL environment variable."
+  :type '(choice
+          (file :tag "Shell executable")
+          (const :tag "Use `shell-file-name' or $SHELL" nil))
+  :group 'exec-path-from-shell)
+
 (defvar exec-path-from-shell-debug nil
   "Display debug info when non-nil.")
 
@@ -97,8 +107,17 @@ Environment variables should be set in .profile or .zshenv rather than
   "Double-quote S, escaping any double-quotes already contained in it."
   (concat "\"" (replace-regexp-in-string "\"" "\\\\\"" s) "\""))
 
+(defun exec-path-from-shell--shell ()
+  "Return the shell to use.
+See documentation for `exec-path-from-shell-shell-name'."
+  (or
+   exec-path-from-shell-shell-name
+   shell-file-name
+   (getenv "SHELL")
+   (error "SHELL environment variable is unset")))
+
 (defcustom exec-path-from-shell-arguments
-  (if (string-match-p "t?csh$" (getenv "SHELL"))
+  (if (string-match-p "t?csh$" (exec-path-from-shell--shell))
       (list "-d")
     (list "-l" "-i"))
   "Additional arguments to pass to the shell.
@@ -113,13 +132,13 @@ The default value denotes an interactive login shell."
     (apply 'message msg args)))
 
 (defun exec-path-from-shell--standard-shell-p (shell)
-  "Return non-nil iff SHELL supports the standard ${VAR-default} syntax."
+  "Return non-nil iff the shell supports the standard ${VAR-default} syntax."
   (not (string-match "\\(fish\\|t?csh\\)$" shell)))
 
 (defun exec-path-from-shell-printf (str &optional args)
   "Return the result of printing STR in the user's shell.
 
-Executes $SHELL as interactive login shell.
+Executes the shell as interactive login shell.
 
 STR is inserted literally in a single-quoted argument to printf,
 and may therefore contain backslashed escape sequences understood
@@ -131,14 +150,14 @@ shell-escaped, so they may contain $ etc."
   (let* ((printf-bin (or (executable-find "printf") "printf"))
          (printf-command
           (concat printf-bin
-                  " '__RESULT\\000" str "' "
+                  " '__RESULT\\000" str "\\000__RESULT' "
                   (mapconcat #'exec-path-from-shell--double-quote args " ")))
+         (shell (exec-path-from-shell--shell))
          (shell-args (append exec-path-from-shell-arguments
                              (list "-c"
-                                   (if (exec-path-from-shell--standard-shell-p (getenv "SHELL"))
+                                   (if (exec-path-from-shell--standard-shell-p shell)
                                        printf-command
-                                     (concat "sh -c " (shell-quote-argument printf-command))))))
-         (shell (getenv "SHELL")))
+                                     (concat "sh -c " (shell-quote-argument printf-command)))))))
     (with-temp-buffer
       (exec-path-from-shell--debug "Invoking shell %s with args %S" shell shell-args)
       (let ((exit-code (apply #'call-process shell nil t nil shell-args)))
@@ -147,14 +166,14 @@ shell-escaped, so they may contain $ etc."
           (error "Non-zero exit code from shell %s invoked with args %S.  Output was:\n%S"
                  shell shell-args (buffer-string))))
       (goto-char (point-min))
-      (if (re-search-forward "__RESULT\0\\(.*\\)" nil t)
+      (if (re-search-forward "__RESULT\0\\(.*\\)\0__RESULT" nil t)
           (match-string 1)
         (error "Expected printf output from shell, but got: %S" (buffer-string))))))
 
 (defun exec-path-from-shell-getenvs (names)
   "Get the environment variables with NAMES from the user's shell.
 
-Execute $SHELL according to `exec-path-from-shell-arguments'.
+Execute the shell according to `exec-path-from-shell-arguments'.
 The result is a list of (NAME . VALUE) pairs."
   (let* ((random-default (md5 (format "%s%s%s" (emacs-pid) (random) (current-time))))
          (dollar-names (mapcar (lambda (n) (format "${%s-%s}" n random-default)) names))
@@ -176,7 +195,7 @@ The result is a list of (NAME . VALUE) pairs."
 (defun exec-path-from-shell-getenv (name)
   "Get the environment variable NAME from the user's shell.
 
-Execute $SHELL as interactive login shell, have it output the
+Execute the shell as interactive login shell, have it output the
 variable of NAME and return this output as string."
   (cdr (assoc name (exec-path-from-shell-getenvs (list name)))))
 
