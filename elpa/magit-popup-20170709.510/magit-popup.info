@@ -1,12 +1,7 @@
 This is magit-popup.info, produced by makeinfo version 5.2 from
 magit-popup.texi.
 
-Taking inspiration from regular prefix commands and prefix arguments,
-this library implements a similar abstraction; a new kind of prefix
-command that is associated with a specific set of infix arguments and
-suffix commands.
-
-     Copyright (C) 2015-2016 Jonas Bernoulli <jonas@bernoul.li>
+     Copyright (C) 2015-2017 Jonas Bernoulli <jonas@bernoul.li>
 
      You can redistribute this document and/or modify it under the terms
      of the GNU General Public License as published by the Free Software
@@ -33,7 +28,7 @@ this library implements a similar abstraction; a new kind of prefix
 command that is associated with a specific set of infix arguments and
 suffix commands.
 
-     Copyright (C) 2015-2016 Jonas Bernoulli <jonas@bernoul.li>
+     Copyright (C) 2015-2017 Jonas Bernoulli <jonas@bernoul.li>
 
      You can redistribute this document and/or modify it under the terms
      of the GNU General Public License as published by the Free Software
@@ -49,22 +44,22 @@ suffix commands.
 
 * Introduction::
 * Usage::
-* Defining prefix and suffix commands::
+* Defining Prefix and Suffix Commands::
 
 — The Detailed Node Listing —
 
 
 Usage
 
-* Customizing existing popups::
-* Other options::
+* Customizing Existing Popups::
+* Other Options::
 
 
 
-Defining prefix and suffix commands
+Defining Prefix and Suffix Commands
 
-* Defining prefix commands::
-* Defining suffix commands::
+* Defining Prefix Commands::
+* Defining Suffix Commands::
 
 
 File: magit-popup.info,  Node: Introduction,  Next: Usage,  Prev: Top,  Up: Top
@@ -83,19 +78,19 @@ argument is prefixes with the key sequence that can be used to toggle it
 or change its value.  Likewise each suffix command is prefixed with the
 key used to invoke it.  Such a popup buffer might look like this:
 
-,-----------------------------------------
-|Switches
-| -l Show graph (--graph)
-| -d Show refnames (--decorate)
-|
-|Options
-| =m Search messages (--grep="popup")
-| =p Search patches (-G)
-|
-|Action
-| l Show log for current branch
-| o Show log for another branch
-'-----------------------------------------
+     ,-----------------------------------------
+     |Switches
+     | -l Show graph (--graph)
+     | -d Show refnames (--decorate)
+     |
+     |Options
+     | =m Search messages (--grep="popup")
+     | =p Search patches (-G)
+     |
+     |Action
+     | l Show log for current branch
+     | o Show log for another branch
+     '-----------------------------------------
 
    The user could then for example type ‘-l’ to toggle the ‘--graph’
 *switch* (when it is on then it is shown in green, otherwise in gray),
@@ -110,28 +105,28 @@ for prefix arguments.
 prefix commands and prefix arguments, they are also quite different.
 This should illustrate the most basic differences:
 
-   • A regular prefix commands
+   • A regular prefix command
 
-             /- command1
-     prefix --- command2
-             \- command3
+                  /- command1
+          prefix --- command2
+                  \- command3
 
    • Prefix arguments
 
-              /- command1
-     C-u ... --- command2
-              \- well *any* command
+                   /- command1
+          C-u ... --- command2
+                   \- well any command
 
    • A Prefix-Infix-Suffix combo
 
-              /- argument1 -\ /- suffix1
-     prefix----- argument2 --+-- suffix2
-            ^ \- argument3 -/
-            |        |
-            '--------'
-         (refresh buffer)
+                   /- argument1 -\ /- suffix1
+          prefix----- argument2 --+-- suffix2
+                 ^ \- argument3 -/
+                 |        |
+                 '--------'
+              (refresh buffer)
 
-   This library was written as a replacement for ‘magit-key-mode’ which
+   This library was written as a replacement for ‘magit-key-mode’, which
 was used in Magit releases before 2.1.0.  It is used to implement all
 "popups" in the current Magit release but a future release will switch
 to yet another implementation.
@@ -142,7 +137,7 @@ packages that are not related to Magit.  But keep in mind that it will
 be deprecated eventually.
 
 
-File: magit-popup.info,  Node: Usage,  Next: Defining prefix and suffix commands,  Prev: Introduction,  Up: Top
+File: magit-popup.info,  Node: Usage,  Next: Defining Prefix and Suffix Commands,  Prev: Introduction,  Up: Top
 
 2 Usage
 *******
@@ -174,10 +169,12 @@ chance to notice them.
 
  -- User Option: magit-popup-show-common-commands
 
-     This option controls whether the section which lists the commands
-     that are common to all popups is initially show.  We recommend you
-     set this to ‘nil’ - after you have memorized that it can be shown
-     on demand using ‘C-t’.
+     This option controls whether the section that lists the commands
+     that are common to all popups is initially shown.
+
+     By default this is not the case, but note that you can temporarily
+     show this section using ‘C-t’, which therefore is the only common
+     command you actually have to memorize.
 
 ‘C-t’     (‘magit-popup-toggle-show-common-commands’)
 
@@ -215,8 +212,7 @@ popup buffer.
 
    It is also possible to add additional arguments and commands to an
 existing popup, but that cannot be done directly from the popup (or the
-Custom interface).  See *note Customizing existing popups: Customizing
-existing popups.
+Custom interface).  See *note Customizing Existing Popups::.
 
    Documentation about a popup’s arguments and commands can be shown
 directly from the popup.
@@ -250,13 +246,13 @@ along with the other common commands.
 
 * Menu:
 
-* Customizing existing popups::
-* Other options::
+* Customizing Existing Popups::
+* Other Options::
 
 
-File: magit-popup.info,  Node: Customizing existing popups,  Next: Other options,  Up: Usage
+File: magit-popup.info,  Node: Customizing Existing Popups,  Next: Other Options,  Up: Usage
 
-2.1 Customizing existing popups
+2.1 Customizing Existing Popups
 ===============================
 
 It is possible to define additional infix arguments and suffix commands
@@ -374,31 +370,22 @@ to an existing popup using the following functions.
      which is to be unbound.
 
    It is also possible to change other aspects of a popup by setting a
-property using ‘plist-put’.  See *note Defining prefix commands:
-Defining prefix commands. for valid properties.  The most likely change
-Magit users might want to make is:
+property using ‘plist-put’.  See *note Defining Prefix Commands:: for
+valid properties.  The most likely change Magit users might want to make
+is:
 
      (plist-put magit-show-refs-popup :use-prefix nil)
 
 
-File: magit-popup.info,  Node: Other options,  Prev: Customizing existing popups,  Up: Usage
+File: magit-popup.info,  Node: Other Options,  Prev: Customizing Existing Popups,  Up: Usage
 
-2.2 Other options
+2.2 Other Options
 =================
 
  -- User Option: magit-popup-use-prefix-argument
 
      This option controls the effect that the use of a prefix argument
-     before entering a popup has.  The *intended* default is ‘default’,
-     but the *actual* default is ‘disabled’.  This is necessary because
-     the old popup implementation did simply forward such a pre-popup
-     prefix argument to the suffix command invoked from the popup, and
-     changing that without users being aware of it could lead to tears.
-
-        • ‘disabled’
-
-          Bring up a Custom option buffer so that the user reads this
-          and then makes an informed choice.
+     before entering a popup has.
 
         • ‘default’
 
@@ -416,8 +403,7 @@ File: magit-popup.info,  Node: Other options,  Prev: Customizing existing popups
      This option can be overridden for individual popups.
      ‘magit-show-refs-popup’ for example defaults to invoking the
      default action directly.  It only shows the popup buffer when a
-     prefix argument is used.  See *note Customizing existing popups:
-     Customizing existing popups.
+     prefix argument is used.  See *note Customizing Existing Popups::.
 
  -- User Option: magit-popup-manpage-package
 
@@ -436,9 +422,9 @@ File: magit-popup.info,  Node: Other options,  Prev: Customizing existing popups
      (button-type-put 'magit-popup-action-button 'format " %k %D")
 
 
-File: magit-popup.info,  Node: Defining prefix and suffix commands,  Prev: Usage,  Up: Top
+File: magit-popup.info,  Node: Defining Prefix and Suffix Commands,  Prev: Usage,  Up: Top
 
-3 Defining prefix and suffix commands
+3 Defining Prefix and Suffix Commands
 *************************************
 
 If you write an extension for Magit then you should use this library now
@@ -466,30 +452,30 @@ infix arguments, and then also one of its suffix commands.
        'magit-commands
        :man-page "git-tag"
        :switches '((?a "Annotate" "--annotate")
-     	      (?s "Sign"     "--sign")
-     	      (?f "Force"    "--force"))
+                   (?s "Sign"     "--sign")
+                   (?f "Force"    "--force"))
        :actions  '((?t "Create"   magit-tag)
-     	      (?k "Delete"   magit-tag-delete)
-     	      (?p "Prune"    magit-tag-prune))
+                   (?k "Delete"   magit-tag-delete)
+                   (?p "Prune"    magit-tag-prune))
        :default-action 'magit-tag)
 
      ;;;###autoload
      (defun magit-tag (name rev &optional args)
        "Create a new tag with the given NAME at REV."
        (interactive (list (magit-read-tag "Tag name")
-     		     (magit-read-branch-or-commit "Place tag on")
-     		     (magit-tag-arguments)))
+                          (magit-read-branch-or-commit "Place tag on")
+                          (magit-tag-arguments)))
        (magit-run-git-with-editor "tag" args name rev))
 
 * Menu:
 
-* Defining prefix commands::
-* Defining suffix commands::
+* Defining Prefix Commands::
+* Defining Suffix Commands::
 
 
-File: magit-popup.info,  Node: Defining prefix commands,  Next: Defining suffix commands,  Up: Defining prefix and suffix commands
+File: magit-popup.info,  Node: Defining Prefix Commands,  Next: Defining Suffix Commands,  Up: Defining Prefix and Suffix Commands
 
-3.1 Defining prefix commands
+3.1 Defining Prefix Commands
 ============================
 
 Prefix commands and their infix arguments are defined using the macro
@@ -526,10 +512,11 @@ commands have to be defined separately using plain ‘defun’.
      value of the variable by the same name.  See below for more
      information.
 
-     The optional argument GROUP specifies the Custom group in which the
-     option is placed.  If omitted then the option is placed in some
+     Optional argument GROUP specifies the Custom group into which the
+     option is placed.  If omitted then the option is placed into some
      group the same way it is done when directly using ‘defcustom’ and
-     omitting the group.
+     omitting the group, except when NAME begins with "magit-", in which
+     case the group ‘magit-git-arguments’ is used.
 
      The optional argument MODE specifies the mode used by the popup
      buffer.  If it is omitted or ‘nil’ then ‘magit-popup-mode’ is used.
@@ -544,12 +531,6 @@ commands have to be defined separately using plain ‘defun’.
           The actions which can be invoked from the popup.  VALUE is a
           list whose members have the form (KEY DESC COMMAND), see
           ‘magit-define-popup-action’ for details.
-
-          How the actions are split into rows and columns currently
-          depends on the available space and ‘:max-action-columns’.
-
-          WARNING: This will likely be change to use a more explicit
-          format (((KEY DESC COMMAND)…)…) before the release.
 
           Actions are regular Emacs commands, which usually have an
           ‘interactive’ form setup to consume the values of the popup
@@ -583,7 +564,16 @@ commands have to be defined separately using plain ‘defun’.
           the default action (if any) directly.  This overrides the
           global default set using ‘magit-popup-use-prefix-argument’.
           The value, if specified, should be one of ‘default’ or
-          ‘prefix’.
+          ‘prefix’, or a function that is called with no arguments and
+          returns one of these symbols.
+
+        • ‘:max-action-columns’
+
+          The maximum number of actions to display on a single line, a
+          number or a function that return a number and takes the name
+          of the section currently being inserted as argument.  If there
+          isn’t enough room to display as many columns as specified
+          here, then fewer are used.
 
         • ‘:switches’
 
@@ -594,20 +584,20 @@ commands have to be defined separately using plain ‘defun’.
         • ‘:options’
 
           The popup arguments which take a value, as in "–opt~OPTVAL".
-          VALUE is a list whose members have the form (KEY DESC OPTION
-          READER), see ‘magit-define-popup-option’ for details.
-
-        • ‘:variables’
-
-          Git variables which can be set from the popup.  VALUE is a
-          list whose members have the form (KEY DESC COMMAND FORMATTER),
-          see ‘magit-define-popup-variable’ for details.
+          VALUE is a list whose members have the form ‘(KEY DESC OPTION
+          READER)’, see ‘magit-define-popup-option’ for details.
 
         • ‘:default-arguments’
 
           The default arguments, a list of switches (which are then
           enabled by default) and options with there default values, as
-          in "–OPT~OPTVAL\".
+          in ‘"--OPT=OPTVAL"’.
+
+        • ‘:variables’
+
+          Git variables which can be set from the popup.  VALUE is a
+          list whose members have the form ‘(KEY DESC COMMAND
+          FORMATTER)’, see ‘magit-define-popup-variable’ for details.
 
         • ‘:sequence-predicate’
 
@@ -638,9 +628,9 @@ commands have to be defined separately using plain ‘defun’.
           help for an argument.
 
 
-File: magit-popup.info,  Node: Defining suffix commands,  Prev: Defining prefix commands,  Up: Defining prefix and suffix commands
+File: magit-popup.info,  Node: Defining Suffix Commands,  Prev: Defining Prefix Commands,  Up: Defining Prefix and Suffix Commands
 
-3.2 Defining suffix commands
+3.2 Defining Suffix Commands
 ============================
 
 Commands intended to be invoked from a particular popup should determine
@@ -695,14 +685,14 @@ directly.
 
 
 Tag Table:
-Node: Top994
-Node: Introduction2170
-Node: Usage4747
-Node: Customizing existing popups9404
-Node: Other options14932
-Node: Defining prefix and suffix commands16981
-Node: Defining prefix commands19077
-Node: Defining suffix commands25757
+Node: Top768
+Node: Introduction1944
+Node: Usage4644
+Node: Customizing Existing Popups9341
+Node: Other Options14844
+Node: Defining Prefix and Suffix Commands16386
+Node: Defining Prefix Commands18538
+Node: Defining Suffix Commands25513
 
 End Tag Table
 
