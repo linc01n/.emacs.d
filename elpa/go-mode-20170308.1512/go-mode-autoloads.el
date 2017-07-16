@@ -1,9 +1,9 @@
 ;;; go-mode-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "go-mode" "go-mode.el" (22409 49709 0 0))
+;;;### (autoloads nil "go-mode" "go-mode.el" (22887 32396 0 0))
 ;;; Generated autoloads from go-mode.el
 
 (autoload 'go-mode "go-mode" "\
@@ -75,15 +75,15 @@ with goflymake (see URL `https://github.com/dougm/goflymake'), gocode
 
 (autoload 'gofmt-before-save "go-mode" "\
 Add this to .emacs to run gofmt on the current buffer when saving:
- (add-hook 'before-save-hook 'gofmt-before-save).
+\(add-hook 'before-save-hook 'gofmt-before-save).
 
-Note that this will cause go-mode to get loaded the first time
+Note that this will cause ‘go-mode’ to get loaded the first time
 you save any file, kind of defeating the point of autoloading.
 
 \(fn)" t nil)
 
 (autoload 'godoc "go-mode" "\
-Show Go documentation for QUERY, much like M-x man.
+Show Go documentation for QUERY, much like \\<go-mode-map>\\[man].
 
 \(fn QUERY)" t nil)
 
@@ -95,16 +95,9 @@ Tries to look for a URL at point.
 
 ;;;***
 
-;;;### (autoloads nil nil ("go-mode-pkg.el") (22409 49709 432467
-;;;;;;  0))
-
-;;;***
-
-(provide 'go-mode-autoloads)
 ;; Local Variables:
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
-;; coding: utf-8
 ;; End:
 ;;; go-mode-autoloads.el ends here
