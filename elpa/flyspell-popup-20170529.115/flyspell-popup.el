@@ -1,12 +1,12 @@
 ;;; flyspell-popup.el --- Correcting words with Flyspell in popup menus
 
-;; Copyright (C) 2015  Chunyang Xu
+;; Copyright (C) 2015, 2017  Chunyang Xu
 
-;; Author: Chunyang Xu <xuchunyang56@gmail.com>
+;; Author: Chunyang Xu <mail@xuchunyang.me>
 ;; Keywords: convenience
-;; Package-Version: 20150926.803
+;; Package-Version: 20170529.115
 ;; URL: https://github.com/xuchunyang/flyspell-popup
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires: ((popup "0.5.0"))
 ;; Created: Sun Jun 28 15:23:05 CST 2015
 
@@ -95,10 +95,13 @@ Adapted from `flyspell-correct-word-before-point'."
                                          :value (cons 'session word))
                         (popup-make-item (format "Accept (buffer) \"%s\"" word)
                                          :value (cons 'buffer word))))
-                      :margin t)))
+                      :margin t
+                      :fallback (lambda (_event _default)
+                                  (keyboard-quit)))))
                 (cond ((stringp res)
                        (flyspell-do-correct
-                        res poss word cursor-location start end opoint))
+                        (substring-no-properties res)
+                        poss word cursor-location start end opoint))
                       (t
                        (let ((cmd (car res))
                              (wrd (cdr res)))
