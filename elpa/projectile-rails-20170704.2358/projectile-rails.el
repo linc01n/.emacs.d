@@ -4,8 +4,8 @@
 
 ;; Author:            Adam Sokolnicki <adam.sokolnicki@gmail.com>
 ;; URL:               https://github.com/asok/projectile-rails
-;; Package-Version: 20160627.1329
-;; Version:           0.5.0
+;; Package-Version: 20170704.2358
+;; Version:           0.15.0
 ;; Keywords:          rails, projectile
 ;; Package-Requires:  ((emacs "24.3") (projectile "0.12.0") (inflections "1.1") (inf-ruby "2.2.6") (f "0.13.0") (rake "0.3.2"))
 
@@ -30,12 +30,13 @@
 
 ;;; Commentary:
 ;;
-;; To make it start alongside projectile-mode:
+;; To start it for the rails projects:
 ;;
-;;    (add-hook 'projectile-mode-hook 'projectile-rails-on)
+;;    (projectile-rails-global-mode)
 ;;
 ;;; Code:
 
+(require 'cl)
 (require 'projectile)
 (require 'inf-ruby)
 (require 'inflections)
@@ -53,7 +54,7 @@
     "serialize" "exempt_from_layout" "filter_parameter_logging" "hide_action"
     "cache_sweeper" "protect_from_forgery" "caches_page" "cache_page"
     "caches_action" "expire_page" "expire_action" "rescue_from" "params"
-    "request" "response" "session" "flash" "head" "redirect_to"
+    "request" "response" "session" "flash" "head" "redirect_to" "redirect_back"
     "render_to_string" "respond_with" "before_filter" "append_before_filter"
     "before_action" "append_before_action"
     "prepend_before_filter" "after_filter" "append_after_filter"
@@ -62,7 +63,7 @@
     "prepend_before_action" "after_action" "append_after_action"
     "prepend_after_action" "around_action" "append_around_action"
     "prepend_around_action" "skip_before_action" "skip_after_action" "skip_action")
-  "List of keywords to highlight for controllers"
+  "List of keywords to highlight for controllers."
   :group 'projectile-rails
   :type '(repeat string))
 
@@ -70,8 +71,10 @@
   '("create_table" "change_table" "drop_table" "rename_table" "add_column"
     "rename_column" "change_column" "change_column_default" "change_column_null"
     "remove_column" "add_index" "remove_index" "rename_index" "execute"
-    "reversible" "revert" "announce")
-  "List of keywords to highlight for migrations"
+    "add_timestamps" "remove_timestamps" "add_foreign_key" "remove_foreign_key"
+    "add_reference" "remove_reference" "add_belongs_to" "remove_belongs_to"
+    "transaction" "reversible" "revert" "announce")
+  "List of keywords to highlight for migrations."
   :group 'projectile-rails
   :type '(repeat string))
 
@@ -90,8 +93,8 @@
     "validates_format_of" "validates_inclusion_of" "validates_length_of"
     "validates_numericality_of" "validates_presence_of" "validates_size_of"
     "validates_existence_of" "validates_uniqueness_of" "validates_with"
-    "enum")
-  "List of keywords to highlight for models"
+    "enum" "after_create_commit" "after_update_commit" "after_destroy_commit")
+  "List of keywords to highlight for models."
   :group 'projectile-rails
   :type '(repeat string))
 
@@ -130,17 +133,17 @@
     "time_ago_in_words" "time_select" "time_tag" "time_zone_options_for_select"
     "time_zone_select" "translate" "truncate" "url_field" "url_field_tag"
     "url_for" "url_options" "video_path" "video_tag" "word_wrap")
-  "List of keywords to highlight for views"
+  "List of keywords to highlight for views."
   :group 'projectile-rails
   :type '(repeat string))
 
 (defcustom projectile-rails-active-support-keywords
   '("alias_attribute" "with_options" "delegate")
-  "List of keywords to highlight for all `projectile-rails-mode' buffers"
+  "List of keywords to highlight for all `projectile-rails-mode' buffers."
   :group 'projectile-rails
   :type '(repeat string))
 
-(defvar projectile-rails-keyword-face	'projectile-rails-keyword-face
+(defvar projectile-rails-keyword-face 'projectile-rails-keyword-face
   "Face name to use for keywords.")
 
 (defface projectile-rails-keyword-face '((t :inherit 'font-lock-keyword-face))
@@ -187,6 +190,11 @@
   :group 'projectile-rails
   :type '(repeat string))
 
+(defcustom projectile-rails-component-dir "app/javascript/packs/"
+  "The directory to look for javascript component files in."
+  :group 'projectile-rails
+  :type 'string)
+
 (defcustom projectile-rails-stylesheet-dirs
   '("app/assets/stylesheets/" "lib/assets/stylesheets/" "public/stylesheets/")
   "The list of directories to look for the stylesheet files in."
@@ -204,7 +212,7 @@
   :type 'boolean)
 
 (defcustom projectile-rails-keymap-prefix (kbd "C-c r")
-  "`projectile-rails-mode' keymap prefix."
+  "Keymap prefix for `projectile-rails-mode'."
   :group 'projectile-rails
   :type 'string)
 
@@ -230,6 +238,16 @@
 
 (defcustom projectile-rails-zeus-command "zeus"
   "The command for zeus."
+  :group 'projectile-rails
+  :type 'string)
+
+(defcustom projectile-rails-root-file "Gemfile"
+  "The file that is used to identify rails root."
+  :group 'projectile-rails
+  :type 'string)
+
+(defcustom projectile-rails-verify-root-file "config/routes.rb"
+  "The file that is used to verify rails root directory."
   :group 'projectile-rails
   :type 'string)
 
@@ -264,6 +282,11 @@
     ("task" (("lib/tasks/" "lib/tasks/\\(.+\\)\\.rake$")))))
 
 (defmacro projectile-rails-with-preloader (&rest cases)
+  "Checks for the presence of pre-loaders and returns corresponding value.
+
+CASES is a plist with props being :spring, :zeus or :vanilla.
+Each corresponds to a preloader (:vanilla means no preloader).
+If a preloader is running the value for the given prop is returned."
   `(cond ((projectile-rails-spring-p)
           ,(plist-get cases :spring))
          ((projectile-rails-zeus-p)
@@ -272,13 +295,15 @@
           ,(plist-get cases :vanilla))))
 
 (defmacro projectile-rails-with-root (body-form)
+  "Run BODY-FORM within DEFAULT-DIRECTORY set to `projectile-rails-root'"
   `(let ((default-directory (projectile-rails-root)))
      ,body-form))
 
 (defmacro projectile-rails-find-current-resource (dir re fallback)
   "RE will be the argument to `s-lex-format'.
 
-The bound variables are \"singular\" and \"plural\"."
+The bound variables are \"singular\" and \"plural\".
+Argument DIR is the directory to which the search should be narrowed."
   `(let* ((singular (projectile-rails-current-resource-name))
           (plural (pluralize-string singular))
           (abs-current-file (buffer-file-name (current-buffer)))
@@ -303,15 +328,24 @@ The bound variables are \"singular\" and \"plural\"."
       (concat (f-dirname (gethash (-first-item files) choices)) choice))))
 
 (defun projectile-rails-spring-p ()
-  (let ((path (concat temporary-file-directory "spring/%s"))
-        (ruby-version (shell-command-to-string "ruby -e 'print RUBY_VERSION'")))
+  "Returns t if spring is running."
+  (let ((root (directory-file-name (projectile-rails-root))))
     (or
-     (file-exists-p (f-canonical
-                     (format path (concat (md5 (projectile-rails-root) 0 -1) ".pid"))))
-     (file-exists-p (f-canonical
-                     (format path (md5 (concat ruby-version (projectile-rails-root)) 0 -1)))))))
+     ;; Older versions
+     (file-exists-p (format "%s/tmp/spring/spring.pid" root))
+     ;; 0.9.2+
+     (file-exists-p (format "%s/spring/%s.pid" temporary-file-directory (md5 root)))
+     ;; 1.2.0+
+     (let* ((path (or (getenv "XDG_RUNTIME_DIR") temporary-file-directory))
+            (ruby-version (shell-command-to-string "ruby -e 'print RUBY_VERSION'"))
+            (application-id (md5 (concat ruby-version root))))
+       (or
+        (file-exists-p (format "%s/spring/%s.pid" path application-id))
+        ;; 1.5.0+
+        (file-exists-p (format "%s/spring-%s/%s.pid" path (user-real-uid) application-id)))))))
 
 (defun projectile-rails-zeus-p ()
+  "Returns t if zeus is running."
   (unless projectile-rails-zeus-sock
     (setq
      projectile-rails-zeus-sock
@@ -380,6 +414,7 @@ The bound variable is \"filename\"."
          (projectile-rails-goto-file (s-lex-format ,newfile-template) t)))))
 
 (defun projectile-rails-find-model ()
+  "Find a model."
   (interactive)
   (projectile-rails-find-resource
    "model: "
@@ -387,6 +422,7 @@ The bound variable is \"filename\"."
    "app/models/${filename}.rb"))
 
 (defun projectile-rails-find-controller ()
+  "Find a controller."
   (interactive)
   (projectile-rails-find-resource
    "controller: "
@@ -394,6 +430,7 @@ The bound variable is \"filename\"."
    "app/controllers/${filename}_controller.rb"))
 
 (defun projectile-rails-find-serializer ()
+  "Find a serializer."
   (interactive)
   (projectile-rails-find-resource
    "serializer: "
@@ -401,6 +438,7 @@ The bound variable is \"filename\"."
    "app/serializers/${filename}_serializer.rb"))
 
 (defun projectile-rails-find-view ()
+  "Find a template or a partial."
   (interactive)
   (projectile-rails-find-resource
    "view: "
@@ -408,6 +446,7 @@ The bound variable is \"filename\"."
    "app/views/${filename}"))
 
 (defun projectile-rails-find-layout ()
+  "Find a layout file."
   (interactive)
   (projectile-rails-find-resource
    "layout: "
@@ -415,10 +454,12 @@ The bound variable is \"filename\"."
    "app/views/layouts/${filename}"))
 
 (defun projectile-rails-find-rake-task (arg)
+  "Find a file where a task is defined."
   (interactive "P")
   (rake-find-task arg))
 
 (defun projectile-rails-find-helper ()
+  "Find a helper."
   (interactive)
   (projectile-rails-find-resource
    "helper: "
@@ -426,6 +467,7 @@ The bound variable is \"filename\"."
    "app/helpers/${filename}_helper.rb"))
 
 (defun projectile-rails-find-lib ()
+  "Find a file within lib directory."
   (interactive)
   (projectile-rails-find-resource
    "lib: "
@@ -433,6 +475,7 @@ The bound variable is \"filename\"."
    "lib/${filename}.rb"))
 
 (defun projectile-rails-find-spec ()
+  "Find a spec."
   (interactive)
   (projectile-rails-find-resource
    "spec: "
@@ -440,6 +483,7 @@ The bound variable is \"filename\"."
    "spec/${filename}_spec.rb"))
 
 (defun projectile-rails-find-test ()
+  "Find a test."
   (interactive)
   (projectile-rails-find-resource
    "test: "
@@ -447,6 +491,7 @@ The bound variable is \"filename\"."
    "test/${filename}_test.rb"))
 
 (defun projectile-rails-find-fixture ()
+  "Find a fixture file."
   (interactive)
   (projectile-rails-find-resource
    "fixture: "
@@ -454,6 +499,7 @@ The bound variable is \"filename\"."
           projectile-rails-fixture-dirs)))
 
 (defun projectile-rails-find-feature ()
+  "Find a feature file."
   (interactive)
   (projectile-rails-find-resource
    "feature: "
@@ -461,22 +507,34 @@ The bound variable is \"filename\"."
    "features/${filename}.feature"))
 
 (defun projectile-rails-find-migration ()
+  "Find a migration."
   (interactive)
   (projectile-rails-find-resource "migration: " '(("db/migrate/" "db/migrate/\\(.+\\)\\.rb$"))))
 
 (defun projectile-rails-find-javascript ()
+  "Find a javascript file."
   (interactive)
   (projectile-rails-find-resource
    "javascript: "
    (--map (list it "/\\(.+\\)\\.[^.]+$") projectile-rails-javascript-dirs)))
 
+(defun projectile-rails-find-component ()
+  "Find a javascript component."
+  (interactive)
+  (projectile-rails-find-resource
+   "component: "
+   `((,projectile-rails-component-dir
+      ,(concat projectile-rails-component-dir "\\(.+\\.[^.]+\\)$")))))
+
 (defun projectile-rails-find-stylesheet ()
+  "Find a stylesheet file."
   (interactive)
   (projectile-rails-find-resource
    "stylesheet: "
    (--map (list it "/\\(.+\\)\\.[^.]+$") projectile-rails-stylesheet-dirs)))
 
 (defun projectile-rails-find-initializer ()
+  "Find an initializer file."
   (interactive)
   (projectile-rails-find-resource
    "initializer: "
@@ -484,12 +542,21 @@ The bound variable is \"filename\"."
    "config/initializers/${filename}.rb"))
 
 (defun projectile-rails-find-environment ()
+  "Find an environment file."
   (interactive)
   (projectile-rails-find-resource
    "environment: "
    '(("config/" "/\\(application\\|environment\\)\\.rb$") ("config/environments/" "/\\([^/]+\\)\\.rb$"))))
 
+(defun projectile-rails-find-webpack ()
+  "Find a webpack configuration"
+  (interactive)
+  (projectile-rails-find-resource
+   "webpack config: "
+   '(("config/webpack/" "config/webpack/\\(.+\\.[^.]+\\)$"))))
+
 (defun projectile-rails-find-locale ()
+  "Find a locale file."
   (interactive)
   (projectile-rails-find-resource
    "locale: "
@@ -498,6 +565,7 @@ The bound variable is \"filename\"."
    "config/locales/${filename}"))
 
 (defun projectile-rails-find-mailer ()
+  "Find a mailer."
   (interactive)
   (projectile-rails-find-resource
    "mailer: "
@@ -505,6 +573,7 @@ The bound variable is \"filename\"."
    "app/mailer/${filename}.rb"))
 
 (defun projectile-rails-find-validator ()
+  "Find a validator."
   (interactive)
   (projectile-rails-find-resource
    "validator: "
@@ -512,6 +581,7 @@ The bound variable is \"filename\"."
    "app/validators/${filename}_validator.rb"))
 
 (defun projectile-rails-find-job ()
+  "Find a job file."
   (interactive)
   (projectile-rails-find-resource
    "job: "
@@ -519,58 +589,68 @@ The bound variable is \"filename\"."
    "app/jobs/${filename}_job.rb"))
 
 (defun projectile-rails-find-current-model ()
+  "Find a model for the current resource."
   (interactive)
   (projectile-rails-find-current-resource "app/models/"
                                           "/${singular}\\.rb$"
                                           'projectile-rails-find-model))
 
 (defun projectile-rails-find-current-controller ()
+  "Find a controller for the current resource."
   (interactive)
   (projectile-rails-find-current-resource "app/controllers/"
                                           "app/controllers/\\(.*${plural}\\)_controller\\.rb$"
                                           'projectile-rails-find-controller))
 
 (defun projectile-rails-find-current-serializer ()
+  "Find a serializer for the current resource."
   (interactive)
   (projectile-rails-find-current-resource "app/serializers/"
                                           "app/serializers/\\(.*${singular}\\)_serializer\\.rb$"
                                           'projectile-rails-find-serializer))
 
 (defun projectile-rails-find-current-view ()
+  "Find a template for the current resource."
   (interactive)
   (projectile-rails-find-current-resource "app/views/"
                                           "/${plural}/\\(.+\\)$"
                                           'projectile-rails-find-view))
 
 (defun projectile-rails-find-current-helper ()
+  "Find a helper for the current resource."
   (interactive)
   (projectile-rails-find-current-resource "app/helpers/"
                                           "/\\(${plural}_helper\\)\\.rb$"
                                           'projectile-rails-find-helper))
 
 (defun projectile-rails-find-current-javascript ()
+  "Find a javascript for the current resource."
   (interactive)
   (projectile-rails-find-current-resource "app/assets/javascripts/"
                                           "/\\(?:.+/\\)\\(.*${plural}\\)${projectile-rails-javascript-re}"
                                           'projectile-rails-find-javascript))
 
 (defun projectile-rails-find-current-stylesheet ()
+  "Find a stylesheet for the current resource."
   (interactive)
   (projectile-rails-find-current-resource "app/assets/stylesheets/"
                                           "/\\(?:.+/\\)\\(.*${plural}\\)${projectile-rails-stylesheet-re}"
                                           'projectile-rails-find-stylesheet))
 
 (defun projectile-rails-find-current-spec ()
+  "Find a spec for the current resource."
   (interactive)
   (if (fboundp 'rspec-toggle-spec-and-target)
       (rspec-toggle-spec-and-target)
     (projectile-find-test-file)))
 
 (defun projectile-rails-find-current-test ()
+  "Find a test for the current resource."
   (interactive)
   (projectile-toggle-between-implementation-and-test))
 
 (defun projectile-rails-find-current-fixture ()
+  "Find a fixture for the current resource."
   (interactive)
   (projectile-rails-find-current-resource
    (first projectile-rails-fixture-dirs)
@@ -578,6 +658,7 @@ The bound variable is \"filename\"."
    'projectile-rails-find-fixture))
 
 (defun projectile-rails-find-current-migration ()
+  "Find a migration for the current resource."
   (interactive)
   (projectile-rails-find-current-resource "db/migrate/"
                                           "/[0-9]\\{14\\}.*_\\(${plural}\\|${singular}\\).*\\.rb$"
@@ -592,6 +673,7 @@ The bound variable is \"filename\"."
     ,(concat "/app/assets/stylesheets/\\(?:.+/\\)?\\(.+\\)" projectile-rails-stylesheet-re)
     "/db/migrate/.*create_\\(.+\\)\\.rb\\'"
     "/spec/.*/\\([a-z_]+?\\)\\(?:_controller\\)?_spec\\.rb\\'"
+    "/test/.*/\\([a-z_]+?\\)\\(?:_controller\\)?_test\\.rb\\'"
     "/\\(?:test\\|spec\\)/\\(?:fixtures\\|factories\\|fabricators\\)/\\(.+?\\)\\(?:_fabricator\\)?\\.\\(?:yml\\|rb\\)\\'")
   "List of regexps for extracting a resource name from a buffer file name."
   :group 'projectile-rails
@@ -608,11 +690,18 @@ The bound variable is \"filename\"."
          (singularize-string name))))
 
 (defun projectile-rails-list-entries (fun dir)
+  "Call FUN on DIR being a relative directory within a rails project.
+
+It is suspected that the result of FUN will be a list of filepaths.
+Each filepath will have the path to the project discarded."
   (--map
    (substring it (length (concat (projectile-rails-root) dir)))
    (funcall fun (projectile-rails-expand-root dir))))
 
 (defun projectile-rails-find-log ()
+  "Find a log file.
+
+The opened buffer will have `auto-revert-tail-mode' turned on."
   (interactive)
   (let ((logs-dir (loop for dir in '("log/" "spec/dummy/log/" "test/dummy/log/")
                        until (projectile-rails--file-exists-p dir)
@@ -634,14 +723,18 @@ The bound variable is \"filename\"."
         (projectile-rails-on)))
 
 (defun projectile-rails-rake (arg)
+  "Run a rake task.
+
+ARG will be passed to `rake' interactive command.
+The mode of the output buffer will be `projectile-rails-compilation-mode'."
   (interactive "P")
   (rake arg 'projectile-rails-compilation-mode))
 
 (defun projectile-rails-root ()
   "Returns rails root directory if this file is a part of a Rails application else nil"
   (ignore-errors
-    (let ((root (projectile-locate-dominating-file default-directory "Gemfile")))
-      (when (file-exists-p (expand-file-name "config/routes.rb" root))
+    (let ((root (projectile-locate-dominating-file default-directory projectile-rails-root-file)))
+      (when (file-exists-p (expand-file-name projectile-rails-verify-root-file root))
         root))))
 
 (defun projectile-rails-root-relative-to-project-root ()
@@ -657,23 +750,28 @@ The bound variable is \"filename\"."
   (projectile-expand-root (concat (projectile-rails-root) dir)))
 
 (defun projectile-rails--file-exists-p (filepath)
+  "Return t if relative FILEPATH exists within current project."
   (file-exists-p (projectile-rails-expand-root filepath)))
 
 (defun projectile-rails-console (arg)
+  "Start a rails console, asking for which if ARG is not nil."
   (interactive "P")
   (projectile-rails-with-root
    (let ((rails-console-command (projectile-rails-with-preloader
                                  :spring (concat projectile-rails-spring-command " rails console")
                                  :zeus "zeus console"
                                  :vanilla (concat projectile-rails-vanilla-command " console"))))
-     (with-current-buffer (run-ruby
-                           (if (>= (or (car arg) 0) 4)
-                               (read-string "rails console: " rails-console-command)
-                             rails-console-command))
-       (projectile-rails-mode +1)))))
+     (with-demoted-errors
+         (inf-ruby-console-run
+          (if (>= (or (car arg) 0) 4)
+              (read-string "rails console: " rails-console-command)
+            rails-console-command)
+          "rails"))
+     (projectile-rails-mode +1))))
 
 ;; Shamelessly stolen from rinari.el
 (defun projectile-rails--db-config ()
+  "Returns contents of config/database.yml as a list"
   (json-read-from-string
    (shell-command-to-string
     (format
@@ -701,9 +799,13 @@ The bound variable is \"filename\"."
     ("oracle"         "oracle")
     ("solid"          "solid")
     ("sybase"         "sybase")
-    ("vertica"        "vertica")))
+    ("vertica"        "vertica"))
+  "Mapping between ruby libraries and Emacs sql adapters.")
 
 (defun projectile-rails--determine-sql-product (env)
+  "Return Emacs sql adapter that should be used for the given project.
+
+ENV is the name of the rails environment."
   (intern
    (car
     (cdr
@@ -711,12 +813,18 @@ The bound variable is \"filename\"."
                    projectile-rails--sql-adapters->products)))))
 
 (defun projectile-rails--choose-env ()
+  "Return rails environment to use.
+
+The candidates are based on the files found in config/environments/"
   (projectile-completing-read
    "Choose env: "
    (--map (substring it 0 -3)
     (projectile-rails-list-entries 'f-files "config/environments/"))))
 
 (defun projectile-rails-dbconsole ()
+  "Run rails-dbconsole command.
+
+The buffer for interacting with SQL client is created via `sql-product-interactive'."
   (interactive)
   (require 'sql)
 
@@ -728,7 +836,7 @@ The bound variable is \"filename\"."
           (sqli-program    (sql-get-product-feature product :sqli-program))
           (sql-comint-func (sql-get-product-feature product :sqli-comint-func))
           (commands (s-split " " (projectile-rails-with-preloader
-                                  :spring (concat projectile-rails-spring-command " dbconsole")
+                                  :spring (concat projectile-rails-spring-command " rails dbconsole")
                                   :zeus (concat projectile-rails-zeus-command " dbconsole")
                                   :vanilla (concat projectile-rails-vanilla-command " dbconsole")))))
      (sql-set-product-feature product :sqli-login '())
@@ -745,12 +853,17 @@ The bound variable is \"filename\"."
      (sql-set-product-feature product :sqli-login sqli-login))))
 
 (defun projectile-rails-expand-snippet-maybe ()
-  (when (and (fboundp 'yas-expand-snippet)
+  "Expand snippet corresponding to the current file.
+
+This only works when yas package is installed."
+  (when (and projectile-rails-expand-snippet
+             (fboundp 'yas-expand-snippet)
              (and (buffer-file-name) (not (file-exists-p (buffer-file-name))))
              (s-blank? (buffer-string))
              (projectile-rails-expand-corresponding-snippet))))
 
 (defun projectile-rails--snippet-for-module (last-part name)
+  "Return snippet as string for a file that holds a module."
   (let ((parts (projectile-rails-classify (match-string 1 name))))
     (format
      (concat
@@ -759,11 +872,20 @@ The bound variable is \"filename\"."
       (s-join "" (make-list (1- (length parts)) "\nend")))
      (-last-item parts))))
 
+(defun projectile-rails--snippet-for-model (name)
+  (format
+   (if (projectile-rails--file-exists-p "app/models/application_record.rb")
+       "class %s < ${1:ApplicationRecord}\n$2\nend"
+     "class %s < ${1:ActiveRecord::Base}\n$2\nend")
+   (s-join "::" (projectile-rails-classify name))))
+
 (defun projectile-rails--expand-snippet (snippet)
+  "Turn on `yas-minor-mode' and expand SNIPPET."
   (yas-minor-mode +1)
   (yas-expand-snippet snippet))
 
 (defun projectile-rails-expand-corresponding-snippet ()
+  "Call `projectile-rails--expand-snippet' with a snippet corresponding to the current file."
   (let ((name (buffer-file-name)))
     (cond ((string-match "app/[^/]+/concerns/\\(.+\\)\\.rb$" name)
            (projectile-rails--expand-snippet
@@ -782,8 +904,11 @@ The bound variable is \"filename\"."
              (s-join "::" (projectile-rails-classify (match-string 1 name))))))
           ((string-match "app/models/\\(.+\\)\\.rb$" name)
            (projectile-rails--expand-snippet
+            (projectile-rails--snippet-for-model (match-string 1 name))))
+          ((string-match "app/helpers/\\(.+\\)_helper\\.rb$" name)
+           (projectile-rails--expand-snippet
             (format
-             "class %s < ${1:ActiveRecord::Base}\n$2\nend"
+             "module %sHelper\n$1\nend"
              (s-join "::" (projectile-rails-classify (match-string 1 name))))))
           ((string-match "lib/\\(.+\\)\\.rb$" name)
            (projectile-rails--expand-snippet
@@ -893,6 +1018,9 @@ The bound variable is \"filename\"."
     (bundle-open (car (s-split "/" gem)))))
 
 (defun projectile-rails-goto-asset-at-point (dirs)
+  "Try to find and go to an asset under the point.
+
+DIRS are directories where to look for assets."
   (let ((name
          (projectile-rails-sanitize-name (thing-at-point 'filename))))
     (projectile-rails-ff
@@ -904,7 +1032,7 @@ The bound variable is \"filename\"."
            finally return (and file (projectile-rails-expand-root file))))))
 
 (defun projectile-rails-goto-file-at-point ()
-  "Tries to find file at point"
+  "Try to find file at point."
   (interactive)
   (let ((name (projectile-rails-name-at-point))
         (line (projectile-rails-current-line))
@@ -942,10 +1070,11 @@ The bound variable is \"filename\"."
           ((string-match-p "^[a-z]" name)
            (projectile-rails-find-constant (singularize-string name)))
 
-          ((string-match-p "^[A-Z]" name)
+          ((string-match-p "^\\(::\\)?[A-Z]" name)
            (projectile-rails-goto-constant-at-point)))))
 
 (defun projectile-rails-goto-constant-at-point ()
+  "Try to find and go to a Ruby constant at point."
   (let ((bounds (projectile-rails--complete-bounds)))
     (projectile-rails-find-constant (buffer-substring (car bounds) (cdr bounds)))))
 
@@ -962,13 +1091,37 @@ The bound variable is \"filename\"."
      (point))))
 
 (defun projectile-rails-find-constant (name)
-  (let ((choices
-         (--filter (string-match-p (format ".*/%s\\.rb$" (projectile-rails-declassify name)) it)
-                   (-uniq
-                    (--mapcat (f-entries it #'f-file? t)
-                              (-filter #'f-exists?
-                                       (-map #'projectile-rails-expand-root
-                                             (projectile-rails--code-directories))))))))
+  (let* ((code-dirs (-filter #'f-exists? (-map #'projectile-rails-expand-root (projectile-rails--code-directories))))
+         (list-parent-dirs (lambda (some-file)
+                             (let ((parent-dirs '()))
+                               (f-traverse-upwards (lambda (parent-dir)
+                                                     (push (f-canonical parent-dir) parent-dirs)
+                                                     (equal (f-slash (f-canonical (projectile-rails-root))) (f-slash (f-canonical parent-dir))))
+                                                   (f-dirname some-file))
+                               parent-dirs)))
+         (file-name (format "%s.rb" (projectile-rails-declassify name)))
+         (lookup-dirs (if (f-absolute? file-name)
+                          ;; If top-level constant (e.g. ::Classname), i.e. derived filename (/classname) starts with a "/", then:
+                          ;; Look only in code directories
+                          code-dirs
+                        (-flatten (list
+                                   ;; Otherwise (relative constant):
+                                   ;; 1. Look in current file namespace
+                                   (f-no-ext buffer-file-name)
+                                   ;; 2. Look in local namespace hierarchy
+                                   (funcall list-parent-dirs buffer-file-name)
+                                   ;; 3. Look in code directories
+                                   code-dirs))))
+         ;; Strip leading "/" if present before generating lookup paths because it messes with f-join)
+         (relative-file-name (if (f-absolute? file-name)
+                                 (substring file-name 1)
+                               file-name))
+         (lookup-paths (--map (f-join it relative-file-name)
+                              lookup-dirs))
+         (choices
+          (-uniq
+           (-filter #'f-exists? lookup-paths))))
+
     (when (= (length choices) 0)
       (user-error "Could not find anything"))
 
@@ -992,6 +1145,9 @@ The bound variable is \"filename\"."
   (string-match-p "\\*\\(Minibuf-[0-9]+\\|helm mini\\)\\*" (buffer-name)))
 
 (defun projectile-rails-extract-region (partial-name)
+  "Extract region to a partial called PARTIAL-NAME.
+
+If called interactively will ask user for the PARTIAL-NAME."
   (interactive (list (file-truename (read-file-name "The name of the partial: " default-directory))))
   (let ((projectile-rails-expand-snippet nil)
         (snippet (cdr (assoc (f-ext partial-name) projectile-rails-extracted-region-snippet)))
@@ -1043,6 +1199,7 @@ The bound variable is \"filename\"."
                (projectile-rails-ff partial))))
 
 (defun projectile-rails-goto-template-at-point ()
+  "Visit a template or a partial under the point."
   (interactive)
   (let* ((template (projectile-rails-filename-at-point))
          (dir (projectile-rails-template-dir template))
@@ -1057,22 +1214,32 @@ The bound variable is \"filename\"."
       (dired dir))))
 
 (defun projectile-rails-goto-gemfile ()
+  "Visit Gemfile"
   (interactive)
   (projectile-rails-goto-file "Gemfile"))
 
+(defun projectile-rails-goto-package ()
+  "Visit package.json file."
+  (interactive)
+  (projectile-rails-goto-file "package.json"))
+
 (defun projectile-rails-goto-schema ()
+  "Visit db/schema.rb file."
   (interactive)
   (projectile-rails-goto-file "db/schema.rb"))
 
 (defun projectile-rails-goto-seeds ()
+  "Visit db/seed.rb file."
   (interactive)
   (projectile-rails-goto-file "db/seeds.rb"))
 
 (defun projectile-rails-goto-routes ()
+  "Visit config/routes.rb file."
   (interactive)
   (projectile-rails-goto-file "config/routes.rb"))
 
 (defun projectile-rails-goto-spec-helper ()
+  "Visit spec/spec_helper.rb file."
   (interactive)
   (projectile-rails-goto-file "spec/spec_helper.rb"))
 
@@ -1140,7 +1307,7 @@ If file does not exist and ASK in not nil it will ask user to proceed."
     (setq name (substring name 1 -1)))
   (when (s-starts-with? "./" name)
     (setq name (substring name 2)))
-  (when (or (s-starts-with? ":" name) (s-starts-with? "/" name))
+  (when (or (string-match-p "^:[^:]" name) (s-starts-with? "/" name))
     (setq name (substring name 1)))
   (when (s-ends-with? "," name)
     (setq name (substring name 0 -1)))
@@ -1179,6 +1346,7 @@ If file does not exist and ASK in not nil it will ask user to proceed."
     (define-key map (kbd "d") 'projectile-rails-goto-schema)
     (define-key map (kbd "s") 'projectile-rails-goto-seeds)
     (define-key map (kbd "h") 'projectile-rails-goto-spec-helper)
+    (define-key map (kbd "p") 'projectile-rails-goto-package)
     map)
   "A goto map for `projectile-rails-mode'.")
 (fset 'projectile-rails-mode-goto-map projectile-rails-mode-goto-map)
@@ -1230,11 +1398,14 @@ If file does not exist and ASK in not nil it will ask user to proceed."
     (define-key map (kbd "u") 'projectile-rails-find-fixture)
     (define-key map (kbd "U") 'projectile-rails-find-current-fixture)
 
+    (define-key map (kbd "w") 'projectile-rails-find-component)
+
     (define-key map (kbd "l") 'projectile-rails-find-lib)
     (define-key map (kbd "f") 'projectile-rails-find-feature)
     (define-key map (kbd "i") 'projectile-rails-find-initializer)
     (define-key map (kbd "o") 'projectile-rails-find-log)
     (define-key map (kbd "e") 'projectile-rails-find-environment)
+    (define-key map (kbd "W") 'projectile-rails-find-webpack)
     (define-key map (kbd "a") 'projectile-rails-find-locale)
     (define-key map (kbd "@") 'projectile-rails-find-mailer)
     (define-key map (kbd "!") 'projectile-rails-find-validator)
@@ -1268,6 +1439,7 @@ If file does not exist and ASK in not nil it will ask user to proceed."
     ["Find controller"          projectile-rails-find-controller]
     ["Find view"                projectile-rails-find-view]
     ["Find javascript"          projectile-rails-find-javascript]
+    ["Find component"           projectile-rails-find-component]
     ["Find stylesheet"          projectile-rails-find-stylesheet]
     ["Find helper"              projectile-rails-find-helper]
     ["Find spec"                projectile-rails-find-spec]
@@ -1278,6 +1450,7 @@ If file does not exist and ASK in not nil it will ask user to proceed."
     ["Find lib"                 projectile-rails-find-lib]
     ["Find initializer"         projectile-rails-find-initializer]
     ["Find environment"         projectile-rails-find-environment]
+    ["Find webpack config"      projectile-rails-find-webpack]
     ["Find log"                 projectile-rails-find-log]
     ["Find locale"              projectile-rails-find-locale]
     ["Find mailer"              projectile-rails-find-mailer]
@@ -1290,6 +1463,7 @@ If file does not exist and ASK in not nil it will ask user to proceed."
     ["Go to file at point"      projectile-rails-goto-file-at-point]
     "--"
     ["Go to Gemfile"            projectile-rails-goto-gemfile]
+    ["Go to package"            projectile-rails-goto-package]
     ["Go to routes"             projectile-rails-goto-routes]
     ["Go to schema"             projectile-rails-goto-schema]
     ["Go to seeds"              projectile-rails-goto-seeds]
@@ -1334,6 +1508,11 @@ If file does not exist and ASK in not nil it will ask user to proceed."
          (not (projectile-rails--ignore-buffer-p))
          (projectile-rails-root))
     (projectile-rails-mode +1)))
+
+;;;###autoload
+(define-globalized-minor-mode projectile-rails-global-mode
+  projectile-rails-mode
+  projectile-rails-on)
 
 (defun projectile-rails-off ()
   "Disable `projectile-rails-mode' minor mode."
@@ -1402,6 +1581,7 @@ Killing the buffer will terminate to server's process."
                      ("h" "helper"      projectile-rails-find-helper)
                      ("l" "lib"         projectile-rails-find-lib)
                      ("j" "javascript"  projectile-rails-find-javascript)
+                     ("w" "component"   projectile-rails-find-component)
                      ("s" "stylesheet"  projectile-rails-find-stylesheet)
                      ("p" "spec"        projectile-rails-find-spec)
                      ("u" "fixture"     projectile-rails-find-fixture)
@@ -1438,6 +1618,7 @@ Killing the buffer will terminate to server's process."
                     ("Go to"
                      ("f" "file at point" projectile-rails-goto-file-at-point)
                      ("g" "Gemfile"       projectile-rails-goto-gemfile)
+                     ("p" "package"       projectile-rails-goto-package)
                      ("r" "routes"        projectile-rails-goto-routes)
                      ("d" "schema"        projectile-rails-goto-schema)
                      ("s" "seeds"         projectile-rails-goto-seeds)
@@ -1469,6 +1650,7 @@ Killing the buffer will terminate to server's process."
       ("h" projectile-rails-find-helper      "helper")
       ("l" projectile-rails-find-lib         "lib")
       ("j" projectile-rails-find-javascript  "javascript")
+      ("w" projectile-rails-find-component  "component")
       ("s" projectile-rails-find-stylesheet  "stylesheet")
       ("p" projectile-rails-find-spec        "spec")
       ("u" projectile-rails-find-fixture     "fixture")
@@ -1500,6 +1682,7 @@ Killing the buffer will terminate to server's process."
       "Go to"
       ("f" projectile-rails-goto-file-at-point "file at point")
       ("g" projectile-rails-goto-gemfile       "Gemfile")
+      ("p" projectile-rails-goto-package       "package")
       ("r" projectile-rails-goto-routes        "routes")
       ("d" projectile-rails-goto-schema        "schema")
       ("s" projectile-rails-goto-seeds         "seeds")
