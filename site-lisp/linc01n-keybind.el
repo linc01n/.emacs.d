@@ -39,6 +39,9 @@
   (global-set-key (kbd "s-3")
                   'split-window-horizontally)
   (global-set-key (kbd "s-4")
-                  'delete-other-windows-vertically))
+                  'delete-other-windows-vertically)
+  (global-set-key (kbd "TAB")
+                  'company-complete-common)
+  )
 
 (global-set-key (kbd "C-a") 'smart-beginning-of-line)
