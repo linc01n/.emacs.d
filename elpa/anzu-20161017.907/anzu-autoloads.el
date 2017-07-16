@@ -1,9 +1,9 @@
 ;;; anzu-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "anzu" "anzu.el" (22424 29002 0 0))
+;;;### (autoloads nil "anzu" "anzu.el" (22887 32434 0 0))
 ;;; Generated autoloads from anzu.el
 
 (autoload 'anzu-mode "anzu" "\
@@ -12,8 +12,9 @@ minor-mode which display search information in mode-line.
 \(fn &optional ARG)" t nil)
 
 (defvar global-anzu-mode nil "\
-Non-nil if Global-Anzu mode is enabled.
-See the command `global-anzu-mode' for a description of this minor mode.
+Non-nil if Global Anzu mode is enabled.
+See the `global-anzu-mode' command
+for a description of this minor mode.
 Setting this variable directly does not take effect;
 either customize it (see the info node `Easy Customization')
 or call the function `global-anzu-mode'.")
@@ -22,7 +23,7 @@ or call the function `global-anzu-mode'.")
 
 (autoload 'global-anzu-mode "anzu" "\
 Toggle Anzu mode in all buffers.
-With prefix ARG, enable Global-Anzu mode if ARG is positive;
+With prefix ARG, enable Global Anzu mode if ARG is positive;
 otherwise, disable it.  If called from Lisp, enable the mode if
 ARG is omitted or nil.
 
@@ -33,37 +34,37 @@ See `anzu-mode' for more information on Anzu mode.
 \(fn &optional ARG)" t nil)
 
 (autoload 'anzu-query-replace-at-cursor "anzu" "\
-
+Replace symbol at cursor with to-string.
 
 \(fn)" t nil)
 
 (autoload 'anzu-query-replace-at-cursor-thing "anzu" "\
-
+Replace symbol at cursor within `anzu-replace-at-cursor-thing' area.
 
 \(fn)" t nil)
 
 (autoload 'anzu-query-replace "anzu" "\
-
+anzu version of `query-replace'.
 
 \(fn ARG)" t nil)
 
 (autoload 'anzu-query-replace-regexp "anzu" "\
-
+anzu version of `query-replace-regexp'.
 
 \(fn ARG)" t nil)
 
 (autoload 'anzu-replace-at-cursor-thing "anzu" "\
-
+anzu-query-replace-at-cursor-thing without query.
 
 \(fn)" t nil)
 
 (autoload 'anzu-isearch-query-replace "anzu" "\
-
+anzu version of `isearch-query-replace'.
 
 \(fn ARG)" t nil)
 
 (autoload 'anzu-isearch-query-replace-regexp "anzu" "\
-
+anzu version of `isearch-query-replace-regexp'.
 
 \(fn ARG)" t nil)
 
