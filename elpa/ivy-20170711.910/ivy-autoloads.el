@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "ivy" "ivy.el" (22437 63778 0 0))
+;;;### (autoloads nil "ivy" "ivy.el" (22887 32386 0 0))
 ;;; Generated autoloads from ivy.el
 
 (autoload 'ivy-resume "ivy" "\
@@ -16,7 +16,7 @@ Read a string in the minibuffer, with completion.
 
 PROMPT is a format string, normally ending in a colon and a
 space; %d anywhere in the string is replaced by the current
-number of matching candidates. For the literal % character,
+number of matching candidates.  For the literal % character,
 escape it with %%. See also `ivy-count-format'.
 
 COLLECTION is either a list of strings, a function, an alist, or
@@ -25,7 +25,7 @@ a hash table.
 PREDICATE is applied to filter out the COLLECTION immediately.
 This argument is for `completing-read' compat.
 
-When REQUIRE-MATCH is non-nil, only memebers of COLLECTION can be
+When REQUIRE-MATCH is non-nil, only members of COLLECTION can be
 selected, i.e. custom text.
 
 If INITIAL-INPUT is not nil, then insert that input in the
@@ -39,11 +39,13 @@ KEYMAP is composed with `ivy-minibuffer-map'.
 If PRESELECT is not nil, then select the corresponding candidate
 out of the ones that match the INITIAL-INPUT.
 
+DEF is for compatibility with `completing-read'.
+
 UPDATE-FN is called each time the current candidate(s) is changed.
 
 When SORT is t, use `ivy-sort-functions-alist' for sorting.
 
-ACTION is a lambda function to call after selecting a result. It
+ACTION is a lambda function to call after selecting a result.  It
 takes a single string argument.
 
 UNWIND is a lambda function to call before exiting.
@@ -60,7 +62,7 @@ CALLER is a symbol to uniquely identify the caller to `ivy-read'.
 It is used, along with COLLECTION, to determine which
 customizations apply to the current completion session.
 
-\(fn PROMPT COLLECTION &key PREDICATE REQUIRE-MATCH INITIAL-INPUT HISTORY PRESELECT KEYMAP UPDATE-FN SORT ACTION UNWIND RE-BUILDER MATCHER DYNAMIC-COLLECTION CALLER)" nil nil)
+\(fn PROMPT COLLECTION &key PREDICATE REQUIRE-MATCH INITIAL-INPUT HISTORY PRESELECT DEF KEYMAP UPDATE-FN SORT ACTION UNWIND RE-BUILDER MATCHER DYNAMIC-COLLECTION CALLER)" nil nil)
 
 (autoload 'ivy-completing-read "ivy" "\
 Read a string in the minibuffer, with completion.
@@ -113,15 +115,10 @@ Switch to another buffer in another window.
 
 \(fn)" t nil)
 
-(autoload 'ivy-recentf "ivy" "\
-Find a file on `recentf-list'.
-
-\(fn)" t nil)
-
 ;;;***
 
-;;;### (autoloads nil nil ("colir.el" "ivy-pkg.el") (22437 63778
-;;;;;;  0 0))
+;;;### (autoloads nil nil ("colir.el" "ivy-overlay.el" "ivy-pkg.el")
+;;;;;;  (22887 32386 0 0))
 
 ;;;***
 
