@@ -68,7 +68,7 @@ utf-8."
                  (const slant)
                  (const wave)
                  (const zigzag)
-		 (const utf-8)
+                 (const utf-8)
                  (const nil)))
 
 (defcustom powerline-utf-8-separator-left #xe0b0
@@ -109,6 +109,15 @@ This is needed to make sure that text is properly aligned."
 
 (defcustom powerline-buffer-size-suffix t
   "Display the buffer size suffix."
+  :group 'powerline
+  :type 'boolean)
+
+(defcustom powerline-image-apple-rgb nil
+  "When t, Use Apple RGB colors for image generation.
+
+On MacOS, sRGB colors are used for all GUI elements, except for image generation
+which uses Apple RGB color space.  When this option is set, theme colors are
+converted to equivalent Apple RGB colors before image generation."
   :group 'powerline
   :type 'boolean)
 
