@@ -575,9 +575,11 @@ from being executed if in multiple-cursors-mode."
            (overlay-put cursor 'kill-ring kill-ring)
            (overlay-put cursor 'kill-ring-yank-pointer kill-ring-yank-pointer)))))))
 
-(defvar mc/list-file (locate-user-emacs-file ".mc-lists.el")
+(defcustom mc/list-file (locate-user-emacs-file ".mc-lists.el")
   "The position of the file that keeps track of your preferences
-for running commands with multiple cursors.")
+for running commands with multiple cursors."
+  :type 'file
+  :group 'multiple-cursors)
 
 (defun mc/dump-list (list-symbol)
   "Insert (setq 'LIST-SYMBOL LIST-VALUE) to current buffer."
@@ -658,6 +660,7 @@ for running commands with multiple cursors.")
                                      hum/unhide-invisible-overlays
                                      save-buffer
                                      ido-exit-minibuffer
+                                     ivy-done
                                      exit-minibuffer
                                      minibuffer-complete-and-exit
                                      execute-extended-command
