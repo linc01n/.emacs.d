@@ -1,15 +1,16 @@
 ;;; git-commit-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "git-commit" "git-commit.el" (22334 23303 0
+;;;### (autoloads nil "git-commit" "git-commit.el" (22887 32403 0
 ;;;;;;  0))
 ;;; Generated autoloads from git-commit.el
 
 (defvar global-git-commit-mode t "\
-Non-nil if Global-Git-Commit mode is enabled.
-See the command `global-git-commit-mode' for a description of this minor mode.
+Non-nil if Global Git-Commit mode is enabled.
+See the `global-git-commit-mode' command
+for a description of this minor mode.
 Setting this variable directly does not take effect;
 either customize it (see the info node `Easy Customization')
 or call the function `global-git-commit-mode'.")
@@ -24,6 +25,17 @@ when Git uses the Emacsclient as $GIT_EDITOR to have the user
 provide such a commit message.
 
 \(fn &optional ARG)" t nil)
+
+(defconst git-commit-filename-regexp "/\\(\\(\\(COMMIT\\|NOTES\\|PULLREQ\\|TAG\\)_EDIT\\|MERGE_\\|\\)MSG\\|BRANCH_DESCRIPTION\\)\\'")
+
+(autoload 'git-commit-setup "git-commit" "\
+
+
+\(fn)" nil nil)
+
+;;;***
+
+;;;### (autoloads nil nil ("git-commit-pkg.el") (22887 32369 0 0))
 
 ;;;***
 
