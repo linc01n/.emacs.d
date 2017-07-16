@@ -1,9 +1,9 @@
 ;;; ht-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil nil ("ht.el") (22322 39033 334517 0))
+;;;### (autoloads nil nil ("ht.el") (22887 32394 0 0))
 
 ;;;***
 
