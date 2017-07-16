@@ -4,7 +4,7 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter-fringe
-;; Package-Version: 20160520.1656
+;; Package-Version: 20170112.2133
 ;; Version: 0.23
 ;; Package-Requires: ((git-gutter "0.88") (fringe-helper "0.1.1") (cl-lib "0.5") (emacs "24"))
 
@@ -45,17 +45,17 @@
 (require 'fringe-helper)
 
 (defface git-gutter-fr:modified
-    '((t (:inherit git-gutter:modified)))
+    '((t (:inherit (git-gutter:modified fringe))))
   "Face of modified"
   :group 'git-gutter)
 
 (defface git-gutter-fr:added
-    '((t (:inherit git-gutter:added)))
+    '((t (:inherit (git-gutter:added fringe))))
   "Face of added"
   :group 'git-gutter)
 
 (defface git-gutter-fr:deleted
-    '((t (:inherit git-gutter:deleted)))
+    '((t (:inherit (git-gutter:deleted fringe))))
   "Face of deleted"
   :group 'git-gutter)
 
@@ -149,7 +149,14 @@
 
 (defun git-gutter-fr:clear ()
   (dolist (ov (overlays-in (point-min) (point-max)))
-    (when (overlay-get ov 'git-gutter)
+    (when (or (overlay-get ov 'git-gutter)
+              (let ((parent (overlay-get ov 'fringe-helper-parent)))
+                (and parent
+                     (or
+                      ;; Parent has been deleted
+                      (null (overlay-buffer parent))
+                      ;; or parent was created by git-gutter
+                      (overlay-get parent 'git-gutter)))))
       (delete-overlay ov)))
   (setq git-gutter-fr:bitmap-references nil))
 
