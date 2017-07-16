@@ -91,7 +91,7 @@ given, and the match does not fail."
 
 ARGS can also include the `&rest' marker followed by a variable
 name to be bound to the rest of SEQUENCE."
-  (declare (indent 2) (debug t))
+  (declare (indent 2) (debug (sexp form body)))
   `(pcase-let ((,(seq--make-pcase-patterns args) ,sequence))
      ,@body))
 
@@ -131,7 +131,7 @@ Return SEQUENCE."
 
 (cl-defgeneric seq-subseq (sequence start &optional end)
   "Return the sequence of elements of SEQUENCE from START to END.
-END is inclusive.
+END is exclusive.
 
 If END is omitted, it defaults to the length of the sequence.  If
 START or END is negative, it counts from the end.  Signal an
@@ -171,7 +171,8 @@ Return a list of the results.
 
 \(fn FUNCTION SEQUENCES...)"
   (let ((result nil)
-        (sequences (seq-map (lambda (s) (seq-into s 'list))
+        (sequences (seq-map (lambda (s)
+                              (seq-into s 'list))
                             (cons sequence sequences))))
     (while (not (memq nil sequences))
       (push (apply function (seq-map #'car sequences)) result)
@@ -265,9 +266,9 @@ of sequence."
 TYPE can be one of the following symbols: vector, string or
 list."
   (pcase type
-    (`vector (vconcat sequence))
-    (`string (concat sequence))
-    (`list (append sequence nil))
+    (`vector (seq--into-vector sequence))
+    (`string (seq--into-string sequence))
+    (`list (seq--into-list sequence))
     (_ (error "Not a sequence type name: %S" type))))
 
 (cl-defgeneric seq-filter (pred sequence)
@@ -344,6 +345,12 @@ Equality is defined by TESTFN if non-nil or by `equal' if nil."
   (seq-some (lambda (e)
               (funcall (or testfn #'equal) elt e))
             sequence))
+
+(cl-defgeneric seq-set-equal-p (sequence1 sequence2 &optional testfn)
+  "Return non-nil if SEQUENCE1 and SEQUENCE2 contain the same elements, regardless of order.
+Equality is defined by TESTFN if non-nil or by `equal' if nil."
+  (and (seq-every-p (lambda (item1) (seq-contains sequence2 item1 testfn)) sequence1)
+       (seq-every-p (lambda (item2) (seq-contains sequence1 item2 testfn)) sequence2)))
 
 (cl-defgeneric seq-position (sequence elt &optional testfn)
   "Return the index of the first element in SEQUENCE that is equal to ELT.
@@ -461,6 +468,24 @@ SEQUENCE must be a sequence of numbers or markers."
   (null list))
 
 
+(defun seq--into-list (sequence)
+  "Concatenate the elements of SEQUENCE into a list."
+  (if (listp sequence)
+      sequence
+    (append sequence nil)))
+
+(defun seq--into-vector (sequence)
+  "Concatenate the elements of SEQUENCE into a vector."
+  (if (vectorp sequence)
+      sequence
+    (vconcat sequence)))
+
+(defun seq--into-string (sequence)
+  "Concatenate the elements of SEQUENCE into a string."
+  (if (stringp sequence)
+      sequence
+    (concat sequence)))
+
 (defun seq--make-pcase-bindings (args)
   "Return a list of bindings of the variables in ARGS to the elements of a sequence."
   (let ((bindings '())
@@ -493,6 +518,13 @@ SEQUENCE must be a sequence of numbers or markers."
   "Return element of SEQUENCE at the index N.
 If no element is found, return nil."
   (ignore-errors (seq-elt sequence n))))
+
+(cl-defgeneric seq-random-elt (sequence)
+  "Return a random element from SEQUENCE.
+Signal an error if SEQUENCE is empty."
+  (if (seq-empty-p sequence)
+      (error "Sequence cannot be empty")
+    (seq-elt sequence (random (seq-length sequence)))))
 
 (provide 'seq-25)
 ;;; seq-25.el ends here
