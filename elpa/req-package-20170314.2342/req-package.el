@@ -4,7 +4,7 @@
 
 ;; Author: Edward Knyshov <edvorg@gmail.com>
 ;; Created: 25 Dec 2013
-;; Version: 0.9
+;; Version: 1.0
 ;; Package-Requires: ((use-package "1.0") (dash "2.7.0") (log4e "0.2.0") (ht "0"))
 ;; Keywords: dotemacs startup speed config package
 ;; X-URL: https://github.com/edvorg/req-package
@@ -141,6 +141,7 @@
 ;;   │ (req-package flymake-custom
 ;;   │   :require flymake
 ;;   │   :loader :path ;; use package that is on load-path
+;;   │   :load-path "/path/to/file/directory"
 ;;   │   :config (...))
 ;;   └────
 
@@ -160,7 +161,7 @@
 
 ;;   `req-package' supports extensible package providers system.  This is
 ;;   alternative to `:ensure' keyword in `use-package'.  Use `:loader'
-;;   keyword with `:el-get', `:elpa', `:build-in' or `:path' value.  Extend
+;;   keyword with `:el-get', `:elpa', `:built-in' or `:path' value.  Extend
 ;;   `req-package-providers-map' if you want to introduce new provider.
 ;;   Tweak provider priorities using `req-package-providers-priority' map.
 
@@ -215,7 +216,7 @@
 ;;   • no need to use progn in :init and :config sections
 ;;   • no need to use list literal in :require section
 ;;   • `:loader' keyword now accepts loaders as keywords or as functions.
-;;     e.g. `:el-get', `:elpa', `:build-int', `:path' and `my-loader-fn'
+;;     e.g. `:el-get', `:elpa', `:built-in', `:path' and `my-loader-fn'
 ;;   • `req-package-force' replaced with `:force' keyword
 
 
@@ -395,18 +396,21 @@
             (list :config config)
             rest)))
 
-(defun req-package-schedule (PKG DEPS LOADER EVAL)
+(defun req-package-schedule (PKG DEPS LOADER EVAL LOAD-PATH)
   (let* ((DEPS-LEFT (gethash PKG req-package-deps-left 0))
          (BRANCHES (ht-get req-package-branches (car PKG))))
     (req-package--log-debug "package requested: %s %s" PKG EVAL)
     (puthash (car PKG) LOADER req-package-loaders)
     (puthash PKG EVAL req-package-evals)
     (ht-set req-package-branches (car PKG) (cons PKG BRANCHES))
+    (when LOAD-PATH
+      (ht-set req-package-paths (car PKG)
+              (use-package-normalize-paths :load-path LOAD-PATH)))
     (if (= DEPS-LEFT -1)
         (progn ;; package already been loaded before, just eval again
           (req-package-handle-loading PKG (lambda () (req-package-eval-form EVAL)))
           DEPS-LEFT)
-      (progn ;; insert package in dependency tree
+      (progn ;; insert package in dependency graph
         (puthash PKG 0 req-package-deps-left)
         (-each DEPS
           (lambda (req)
@@ -430,6 +434,8 @@
           (SPLIT5 (req-package-args-extract-arg :force (cadr SPLIT4) nil))
           (SPLIT6 (req-package-args-extract-arg :dep-init (cadr SPLIT5) nil))
           (SPLIT7 (req-package-args-extract-arg :dep-config (cadr SPLIT6) nil))
+          (SPLIT8 (req-package-args-extract-arg :load-path (cadr SPLIT7) nil))
+          (SPLIT9 (req-package-args-extract-arg :disabled (cadr SPLIT8) nil))
           (DEPS (-flatten (car SPLIT1)))
           (LOADER (caar SPLIT2))
           (INIT (cons 'progn (car SPLIT3)))
@@ -439,15 +445,19 @@
           (DEP-INIT (caar SPLIT6))
           (DEP-CONFIG (caar SPLIT7))
           (REST (cadr SPLIT7))
+          (LOAD-PATH (-flatten (car SPLIT8)))
+          (DISABLED (-flatten (car SPLIT9)))
           (EVAL (req-package-gen-eval PKG INIT CONFIG REST)))
-     (if (and LOADER (not (ht-get (req-package-providers-get-map) LOADER)))
-         (req-package--log-error "unable to find loader %s for package %s" LOADER PKG)
-       (if FORCE
-           (progn ;; load avoiding dependency management
-             (req-package--log-debug "package force-requested: %s %s" PKG EVAL)
-             (req-package-providers-prepare (car PKG) LOADER)
-             (req-package-handle-loading PKG (lambda () (req-package-eval-form EVAL))))
-         (req-package-schedule PKG DEPS LOADER EVAL)))))
+     (if DISABLED
+         (req-package--log-info "package %s is disabled. skipping" (car PKG))
+       (if (and LOADER (not (ht-get (req-package-providers-get-map) LOADER)))
+           (req-package--log-error "unable to find loader %s for package %s" LOADER PKG)
+         (if FORCE
+             (progn ;; load avoiding dependency management
+               (req-package--log-debug "package force-requested: %s %s" PKG EVAL)
+               (req-package-providers-prepare (car PKG) LOADER)
+               (req-package-handle-loading PKG (lambda () (req-package-eval-form EVAL))))
+           (req-package-schedule PKG DEPS LOADER EVAL LOAD-PATH))))))
 
 (defmacro req-package-force (pkg &rest args)
   `(let* ((PKG ',pkg)

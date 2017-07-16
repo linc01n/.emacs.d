@@ -10,6 +10,7 @@
   (ht (:elpa '(req-package-providers-install-elpa req-package-providers-present-elpa))
       (:el-get '(req-package-providers-install-el-get req-package-providers-present-el-get))
       (:built-in '(req-package-providers-install-built-in req-package-providers-present-built-in))
+      (:build-in '(req-package-providers-install-built-in req-package-providers-present-built-in))
       (:path '(req-package-providers-install-path req-package-providers-present-path)))
   "Providers map provider -> (installer available-checker)."
   :group 'req-package
@@ -19,10 +20,15 @@
   (ht (:elpa 0)
       (:el-get 1)
       (:built-in 2)
-      (:path 3))
+      (:build-in 3)
+      (:path 4))
   "Priority system for package providers."
   :group 'req-package
   :type 'list)
+
+
+(defvar req-package-paths (make-hash-table :size 200 :test 'equal)
+  "Package symbol -> custom load path.")
 
 (defun req-package-providers-get-map ()
   "Just get package providers list."
@@ -74,12 +80,15 @@
   (unless (package-built-in-p package)
     (error "package is not built-in")))
 
+(defun req-package--load-path (package)
+  (append (ht-get req-package-paths package nil) load-path))
+
 (defun req-package-providers-present-path (package)
-  (if (locate-file (symbol-name package) load-path '(".el" ".elc")) t nil))
+  (locate-file (symbol-name package) (req-package--load-path package) '(".el" ".elc")))
 
 (defun req-package-providers-install-path (package)
-  (unless (locate-file (symbol-name package) load-path '(".el" ".elc"))
-    (error "package is not on load path")))
+  (unless (req-package-providers-present-path package)
+     (error "package is not on load path")))
 
 (defun req-package-providers-prepare (package &optional loader)
   "Prepare PACKAGE - install if it is present using LOADER if specified."
@@ -98,7 +107,7 @@
           (if installer
               (funcall installer package)
             (when (not (require package nil t))
-              (error "cannot prepare package %s. no provider, no build-in, no file on load-path" package)))))
+              (error "cannot prepare package %s. no provider, no built-in, no file on load-path" package)))))
     (error (req-package--log-error (format "unable to install package %s : %s" package e)))))
 
 (provide 'req-package-providers)

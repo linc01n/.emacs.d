@@ -1,4 +1,4 @@
-(define-package "req-package" "20160603.401" "A use-package wrapper for package runtime dependencies management"
+(define-package "req-package" "20170314.2342" "A use-package wrapper for package runtime dependencies management"
   '((use-package "1.0")
     (dash "2.7.0")
     (log4e "0.2.0")
