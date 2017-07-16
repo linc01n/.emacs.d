@@ -1,9 +1,9 @@
 ;;; go-eldoc-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "go-eldoc" "go-eldoc.el" (22351 59099 0 0))
+;;;### (autoloads nil "go-eldoc" "go-eldoc.el" (22887 32397 0 0))
 ;;; Generated autoloads from go-eldoc.el
 
 (autoload 'go-eldoc-setup "go-eldoc" "\
