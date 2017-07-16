@@ -1,9 +1,9 @@
 ;;; zenburn-theme-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "zenburn-theme" "zenburn-theme.el" (22424 28974
+;;;### (autoloads nil "zenburn-theme" "zenburn-theme.el" (22887 32312
 ;;;;;;  0 0))
 ;;; Generated autoloads from zenburn-theme.el
 
