@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "projectile" "projectile.el" (22430 54892 0
+;;;### (autoloads nil "projectile" "projectile.el" (22887 32348 0
 ;;;;;;  0))
 ;;; Generated autoloads from projectile.el
 
@@ -75,8 +75,9 @@ Only buffers not visible in windows are returned.
 
 (autoload 'projectile-multi-occur "projectile" "\
 Do a `multi-occur' in the project's buffers.
+With a prefix argument, show NLINES of context.
 
-\(fn)" t nil)
+\(fn &optional NLINES)" t nil)
 
 (autoload 'projectile-find-other-file "projectile" "\
 Switch between files with the same name but different extensions.
@@ -394,7 +395,7 @@ Edit or create a .dir-locals.el file of the project.
 
 \(fn)" t nil)
 
-(defvar projectile-mode-line '(:eval (if (file-remote-p default-directory) " Projectile" (format " Projectile[%s]" (projectile-project-name)))) "\
+(defvar projectile-mode-line '(:eval (format " Projectile[%s]" (projectile-project-name))) "\
 Mode line lighter for Projectile.
 
 The value of this variable is a mode line template as in
@@ -407,6 +408,16 @@ name.  Set this variable to nil to disable the mode line
 entirely.")
 
 (custom-autoload 'projectile-mode-line "projectile" t)
+
+(defvar projectile-mode nil "\
+Non-nil if Projectile mode is enabled.
+See the `projectile-mode' command
+for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `projectile-mode'.")
+
+(custom-autoload 'projectile-mode "projectile" nil)
 
 (autoload 'projectile-mode "projectile" "\
 Minor mode to assist project management and navigation.
@@ -423,27 +434,7 @@ Otherwise behave as if called interactively.
 
 \(fn &optional ARG)" t nil)
 
-(defvar projectile-global-mode nil "\
-Non-nil if Projectile-Global mode is enabled.
-See the `projectile-global-mode' command
-for a description of this minor mode.
-Setting this variable directly does not take effect;
-either customize it (see the info node `Easy Customization')
-or call the function `projectile-global-mode'.")
-
-(custom-autoload 'projectile-global-mode "projectile" nil)
-
-(autoload 'projectile-global-mode "projectile" "\
-Toggle Projectile mode in all buffers.
-With prefix ARG, enable Projectile-Global mode if ARG is positive;
-otherwise, disable it.  If called from Lisp, enable the mode if
-ARG is omitted or nil.
-
-Projectile mode is enabled in all buffers where
-`projectile-mode' would do it.
-See `projectile-mode' for more information on Projectile mode.
-
-\(fn &optional ARG)" t nil)
+(define-obsolete-function-alias 'projectile-global-mode 'projectile-mode)
 
 ;;;***
 
