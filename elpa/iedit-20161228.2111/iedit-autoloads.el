@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "iedit" "iedit.el" (22430 54896 0 0))
+;;;### (autoloads nil "iedit" "iedit.el" (22887 32391 0 0))
 ;;; Generated autoloads from iedit.el
 
 (autoload 'iedit-mode "iedit" "\
@@ -21,7 +21,7 @@ propagated to all other occurrences simultaneously.
 If region is not active, `iedit-default-occurrence' is called to
 get an occurrence candidate, according to the thing at point.  It
 might be url, email address, markup tag or current symbol(or
-word) .
+word).
 
 In the above two situations, with digit prefix argument 0, only
 occurrences in current function are matched.  This is good for
@@ -71,7 +71,7 @@ Toggle Iedit mode on current function.
 
 ;;;***
 
-;;;### (autoloads nil "iedit-rect" "iedit-rect.el" (22430 54896 0
+;;;### (autoloads nil "iedit-rect" "iedit-rect.el" (22887 32391 0
 ;;;;;;  0))
 ;;; Generated autoloads from iedit-rect.el
 
@@ -89,8 +89,8 @@ Commands:
 
 ;;;***
 
-;;;### (autoloads nil nil ("iedit-lib.el" "iedit-pkg.el") (22430
-;;;;;;  54896 0 0))
+;;;### (autoloads nil nil ("iedit-lib.el" "iedit-pkg.el") (22887
+;;;;;;  32391 0 0))
 
 ;;;***
 
