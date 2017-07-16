@@ -4,9 +4,9 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter
-;; Package-Version: 20160702.354
-;; Version: 0.89
-;; Package-Requires: ((cl-lib "0.5") (emacs "24"))
+;; Package-Version: 20161105.656
+;; Version: 0.90
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -219,17 +219,17 @@ gutter information of other windows."
        (zerop (apply #'git-gutter:execute-command cmd nil check-subcmd))
        (not (string-match-p (regexp-quote (concat "/" repodir "/")) default-directory))))
 
-(defsubst git-gutter:vcs-check-function (vcs)
+(defun git-gutter:vcs-check-function (vcs)
   (cl-case vcs
     (git (git-gutter:in-git-repository-p))
     (svn (git-gutter:in-repository-common-p "svn" '("info") ".svn"))
     (hg (git-gutter:in-repository-common-p "hg" '("root") ".hg"))
     (bzr (git-gutter:in-repository-common-p "bzr" '("root") ".bzr"))))
 
-(defsubst git-gutter:in-repository-p ()
+(defun git-gutter:in-repository-p ()
   (cl-loop for vcs in git-gutter:handled-backends
            when (git-gutter:vcs-check-function vcs)
-           return (set (make-local-variable 'git-gutter:vcs-type) vcs)))
+           return (setq-local git-gutter:vcs-type vcs)))
 
 (defsubst git-gutter:changes-to-number (str)
   (if (string= str "")
@@ -321,7 +321,8 @@ gutter information of other windows."
     (nreverse (cons file args))))
 
 (defsubst git-gutter:start-hg-diff-process (file proc-buf)
-  (let ((args (git-gutter:hg-diff-arguments file)))
+  (let ((args (git-gutter:hg-diff-arguments file))
+        (process-environment (cons "HGPLAIN=1" process-environment)))
     (apply #'start-file-process "git-gutter" proc-buf "hg" "diff" "-U0" args)))
 
 (defun git-gutter:bzr-diff-arguments (file)
@@ -504,7 +505,7 @@ gutter information of other windows."
         (set-window-margins curwin margin (cdr (window-margins curwin)))))))
 
 (defun git-gutter:linum-init ()
-  (set (make-local-variable 'git-gutter:linum-enabled) t)
+  (setq-local git-gutter:linum-enabled t)
   (make-local-variable 'git-gutter:linum-prev-window-margin))
 
 ;;;###autoload
@@ -539,9 +540,9 @@ gutter information of other windows."
             (when git-gutter:init-function
               (funcall git-gutter:init-function))
             (make-local-variable 'git-gutter:enabled)
-            (set (make-local-variable 'git-gutter:has-indirect-buffers) nil)
+            (setq-local git-gutter:has-indirect-buffers nil)
             (make-local-variable 'git-gutter:diffinfos)
-            (set (make-local-variable 'git-gutter:start-revision) nil)
+            (setq-local git-gutter:start-revision nil)
             (add-hook 'kill-buffer-hook 'git-gutter:kill-buffer-hook nil t)
             (add-hook 'pre-command-hook 'git-gutter:pre-command-hook)
             (add-hook 'post-command-hook 'git-gutter:post-command-hook nil t)
@@ -840,6 +841,13 @@ gutter information of other windows."
   "Move to previous diff hunk"
   (interactive "p")
   (git-gutter:next-hunk (- arg)))
+
+(defun git-gutter:end-of-hunk ()
+  "Move to end of current diff hunk"
+  (interactive)
+  (git-gutter:awhen (git-gutter:search-here-diffinfo git-gutter:diffinfos)
+    (let ((lines (- (git-gutter-hunk-end-line it) (line-number-at-pos))))
+      (forward-line lines))))
 
 (defalias 'git-gutter:next-diff 'git-gutter:next-hunk)
 (make-obsolete 'git-gutter:next-diff 'git-gutter:next-hunk "0.60")
