@@ -1,9 +1,9 @@
 ;;; smartparens-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "smartparens" "smartparens.el" (22421 32607
+;;;### (autoloads nil "smartparens" "smartparens.el" (22887 32337
 ;;;;;;  0 0))
 ;;; Generated autoloads from smartparens.el
 
@@ -12,7 +12,7 @@ Generate a cheat sheet of all the smartparens interactive functions.
 
 Without a prefix argument, print only the short documentation and examples.
 
-With non-nil prefix argument, show the full documentation for each function.
+With non-nil prefix argument ARG, show the full documentation for each function.
 
 You can follow the links to the function or variable help page.
 To get back to the full list, use \\[help-go-back].
@@ -29,15 +29,12 @@ better orientation.
 Keymap used for `smartparens-mode'.")
 
 (autoload 'sp-use-paredit-bindings "smartparens" "\
-Initiate `smartparens-mode-map' with paredit-compatible bindings for
-corresponding functions provided by smartparens.  See variable
-`sp-paredit-bindings'.
+Initiate `smartparens-mode-map' with `sp-paredit-bindings'.
 
 \(fn)" t nil)
 
 (autoload 'sp-use-smartparens-bindings "smartparens" "\
-Initiate `smartparens-mode-map' with smartparens bindings for navigation functions.
-See variable `sp-smartparens-bindings'.
+Initiate `smartparens-mode-map' with `sp-smartparens-bindings'.
 
 \(fn)" t nil)
 
@@ -70,7 +67,8 @@ after the smartparens indicator in the mode list.
 
 (defvar smartparens-global-strict-mode nil "\
 Non-nil if Smartparens-Global-Strict mode is enabled.
-See the command `smartparens-global-strict-mode' for a description of this minor mode.
+See the `smartparens-global-strict-mode' command
+for a description of this minor mode.
 Setting this variable directly does not take effect;
 either customize it (see the info node `Easy Customization')
 or call the function `smartparens-global-strict-mode'.")
@@ -96,7 +94,8 @@ Turn on `smartparens-strict-mode'.
 
 (defvar smartparens-global-mode nil "\
 Non-nil if Smartparens-Global mode is enabled.
-See the command `smartparens-global-mode' for a description of this minor mode.
+See the `smartparens-global-mode' command
+for a description of this minor mode.
 Setting this variable directly does not take effect;
 either customize it (see the info node `Easy Customization')
 or call the function `smartparens-global-mode'.")
@@ -147,7 +146,8 @@ support custom pairs.
 
 (defvar show-smartparens-global-mode nil "\
 Non-nil if Show-Smartparens-Global mode is enabled.
-See the command `show-smartparens-global-mode' for a description of this minor mode.
+See the `show-smartparens-global-mode' command
+for a description of this minor mode.
 Setting this variable directly does not take effect;
 either customize it (see the info node `Easy Customization')
 or call the function `show-smartparens-global-mode'.")
@@ -179,10 +179,12 @@ Turn off `show-smartparens-mode'.
 ;;;***
 
 ;;;### (autoloads nil nil ("smartparens-clojure.el" "smartparens-config.el"
-;;;;;;  "smartparens-haskell.el" "smartparens-html.el" "smartparens-latex.el"
-;;;;;;  "smartparens-lua.el" "smartparens-pkg.el" "smartparens-python.el"
-;;;;;;  "smartparens-racket.el" "smartparens-ruby.el" "smartparens-rust.el"
-;;;;;;  "smartparens-scala.el") (22421 32607 710258 0))
+;;;;;;  "smartparens-elixir.el" "smartparens-ess.el" "smartparens-haskell.el"
+;;;;;;  "smartparens-html.el" "smartparens-javascript.el" "smartparens-latex.el"
+;;;;;;  "smartparens-lua.el" "smartparens-markdown.el" "smartparens-ml.el"
+;;;;;;  "smartparens-pkg.el" "smartparens-python.el" "smartparens-racket.el"
+;;;;;;  "smartparens-ruby.el" "smartparens-rust.el" "smartparens-scala.el")
+;;;;;;  (22887 32337 0 0))
 
 ;;;***
 

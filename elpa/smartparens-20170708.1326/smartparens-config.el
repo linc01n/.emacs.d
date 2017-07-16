@@ -45,13 +45,9 @@
 
 (require 'smartparens)
 
-;; do not autoinsert ' pair if the point is preceeded by word.  This
-;; will handle the situation when ' is used as a contraction symbol in
-;; natural language.  Nil for second argument means to keep the
-;; original definition of closing pair.
-(sp-pair "'" nil :unless '(sp-point-after-word-p))
-
-(defun sp-lisp-invalid-hyperlink-p (_1 action _2)
+(defun sp-lisp-invalid-hyperlink-p (id action context)
+  "Test if there is an invalid hyperlink in a Lisp docstring.
+ID, ACTION, CONTEXT."
   (when (eq action 'navigate)
     ;; Ignore errors due to us being at the start or end of the
     ;; buffer.
@@ -71,7 +67,9 @@
 ;; lisp modes too
 (sp-with-modes sp-lisp-modes
   ;; disable ', it's the quote character!
-  (sp-local-pair "'" nil :actions nil)
+  (sp-local-pair "'" nil :actions nil))
+
+(sp-with-modes (-difference sp-lisp-modes sp-clojure-modes)
   ;; also only use the pseudo-quote inside strings where it serve as
   ;; hyperlink.
   (sp-local-pair "`" "'"
@@ -102,21 +100,28 @@
 ;; automatically.  If you want to call sp-local-pair outside this
 ;; macro, you MUST supply the major mode argument.
 
+(eval-after-load 'clojure-mode             '(require 'smartparens-clojure))
+(eval-after-load 'elixir-mode              '(require 'smartparens-elixir))
+(eval-after-load 'enh-ruby-mode            '(require 'smartparens-ruby))
+(eval-after-load 'ess                      '(require 'smartparens-ess))
+(eval-after-load 'haskell-interactive-mode '(require 'smartparens-haskell))
+(eval-after-load 'haskell-mode             '(require 'smartparens-haskell))
 (--each sp--html-modes
-  (eval-after-load (symbol-name it) '(require 'smartparens-html)))
-(eval-after-load "latex"         '(require 'smartparens-latex))
-(eval-after-load "tex-mode"      '(require 'smartparens-latex))
-(eval-after-load "lua-mode"      '(require 'smartparens-lua))
-(eval-after-load "ruby-mode"     '(require 'smartparens-ruby))
-(eval-after-load "enh-ruby-mode" '(require 'smartparens-ruby))
-(eval-after-load "rust-mode"     '(require 'smartparens-rust))
-(eval-after-load "haskell-mode"     '(require 'smartparens-haskell))
-(eval-after-load "haskell-interactive-mode"     '(require 'smartparens-haskell))
-(--each '("python-mode" "python")
-  (eval-after-load it '(require 'smartparens-python)))
-(eval-after-load "scala-mode" '(require 'smartparens-scala))
-(eval-after-load "racket-mode" '(require 'smartparens-racket))
-
+  (eval-after-load it                      '(require 'smartparens-html)))
+(eval-after-load 'latex                    '(require 'smartparens-latex))
+(eval-after-load 'lua-mode                 '(require 'smartparens-lua))
+(eval-after-load 'markdown-mode            '(require 'smartparens-markdown))
+(--each '(python-mode python)
+  (eval-after-load it                      '(require 'smartparens-python)))
+(eval-after-load 'racket-mode              '(require 'smartparens-racket))
+(eval-after-load 'ruby-mode                '(require 'smartparens-ruby))
+(eval-after-load 'rust-mode                '(require 'smartparens-rust))
+(eval-after-load 'scala-mode               '(require 'smartparens-scala))
+(eval-after-load 'tex-mode                 '(require 'smartparens-latex))
+(eval-after-load 'tuareg                   '(require 'smartparens-ml))
+(eval-after-load 'fsharp-mode              '(require 'smartparens-ml))
+(--each '(javascript-mode js2-mode)
+  (eval-after-load it                      '(require 'smartparens-javascript)))
 (provide 'smartparens-config)
 
 ;;; smartparens-config.el ends here
