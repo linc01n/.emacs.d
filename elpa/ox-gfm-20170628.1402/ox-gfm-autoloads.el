@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "ox-gfm" "ox-gfm.el" (22437 63762 0 0))
+;;;### (autoloads nil "ox-gfm" "ox-gfm.el" (22887 32353 0 0))
 ;;; Generated autoloads from ox-gfm.el
 
 (autoload 'org-gfm-export-as-markdown "ox-gfm" "\
@@ -61,6 +61,15 @@ contents of hidden elements.
 Return output file's name.
 
 \(fn &optional ASYNC SUBTREEP VISIBLE-ONLY)" t nil)
+
+(autoload 'org-gfm-publish-to-gfm "ox-gfm" "\
+Publish an org file to Markdown.
+FILENAME is the filename of the Org file to be published.  PLIST
+is the property list for the given project.  PUB-DIR is the
+publishing directory.
+Return output file name.
+
+\(fn PLIST FILENAME PUB-DIR)" nil nil)
 
 ;;;***
 

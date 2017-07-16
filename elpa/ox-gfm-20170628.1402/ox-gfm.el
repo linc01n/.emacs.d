@@ -1,25 +1,25 @@
 ;;; ox-gfm.el --- Github Flavored Markdown Back-End for Org Export Engine
 
-;; Copyright (C) 2014 Lars Tveito
+;; Copyright (C) 2014-2017 Lars Tveito
 
 ;; Author: Lars Tveito
 ;; Keywords: org, wp, markdown, github
-;; Package-Version: 20160804.909
+;; Package-Version: 20170628.1402
 
 ;; This file is not part of GNU Emacs.
 
-;; GNU Emacs is free software: you can redistribute it and/or modify
+;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -29,8 +29,7 @@
 ;;; Code:
 
 (require 'ox-md)
-
-
+(require 'ox-publish)
 
 ;;; User-Configurable Variables
 
@@ -238,11 +237,41 @@ plist used as a communication channel."
                  (org-export-get-alt-title headline info) info))
          (level (1- (org-element-property :level headline)))
          (indent (concat (make-string (* level 2) ? )))
-         (anchor (or (org-element-property :custom_id headline)
+         (anchor (or (org-element-property :CUSTOM_ID headline)
                      (org-export-get-reference headline info))))
     (concat indent "- [" title "]" "(#" anchor ")")))
 
 
+;;;; Footnote section
+
+(defun org-gfm-footnote-section (info)
+  "Format the footnote section.
+INFO is a plist used as a communication channel."
+  (let* ((fn-alist (org-export-collect-footnote-definitions info))
+         (fn-alist
+          (cl-loop for (n type raw) in fn-alist collect
+                   (cons n (org-trim (org-export-data raw info))))))
+    (when fn-alist
+      (format
+       "## %s\n%s"
+       "Footnotes"
+       (format
+        "\n%s\n"
+        (mapconcat
+         (lambda (fn)
+           (let ((n (car fn)) (def (cdr fn)))
+             (format
+              "%s %s\n"
+              (format
+               (plist-get info :html-footnote-format)
+               (org-html--anchor
+                (format "fn.%d" n)
+                n
+                (format " class=\"footnum\" href=\"#fnr.%d\"" n)
+                info))
+              def)))
+         fn-alist
+         "\n"))))))
 
 
 ;;;; Template
@@ -255,7 +284,9 @@ holding export options."
          (headlines (and depth (org-export-collect-headlines info depth)))
          (toc-string (or (mapconcat 'org-gfm-format-toc headlines "\n") ""))
          (toc-tail (if headlines "\n\n" "")))
-    (concat toc-string toc-tail contents)))
+    (org-trim (concat toc-string toc-tail contents "\n" (org-gfm-footnote-section info)))))
+        
+
 
 
 
@@ -323,6 +354,15 @@ Return output file's name."
   (interactive)
   (let ((outfile (org-export-output-file-name ".md" subtreep)))
     (org-export-to-file 'gfm outfile async subtreep visible-only)))
+
+;;;###autoload
+(defun org-gfm-publish-to-gfm (plist filename pub-dir)
+  "Publish an org file to Markdown.
+FILENAME is the filename of the Org file to be published.  PLIST
+is the property list for the given project.  PUB-DIR is the
+publishing directory.
+Return output file name."
+  (org-publish-org-to 'gfm filename ".md" plist pub-dir))
 
 (provide 'ox-gfm)
 
