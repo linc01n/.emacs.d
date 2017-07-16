@@ -1,13 +1,13 @@
 ;;; company.el --- Modular text completion framework  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2009-2016  Free Software Foundation, Inc.
+;; Copyright (C) 2009-2017  Free Software Foundation, Inc.
 
 ;; Author: Nikolaj Schumacher
 ;; Maintainer: Dmitry Gutov <dgutov@yandex.ru>
 ;; URL: http://company-mode.github.io/
-;; Version: 0.9.0
+;; Version: 0.9.3
 ;; Keywords: abbrev, convenience, matching
-;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is part of GNU Emacs.
 
@@ -63,28 +63,9 @@
 (require 'newcomment)
 (require 'pcase)
 
-;; FIXME: Use `user-error'.
-(add-to-list 'debug-ignored-errors "^.* frontend cannot be used twice$")
-(add-to-list 'debug-ignored-errors "^Echo area cannot be used twice$")
-(add-to-list 'debug-ignored-errors "^No \\(document\\|loc\\)ation available$")
-(add-to-list 'debug-ignored-errors "^Company not ")
-(add-to-list 'debug-ignored-errors "^No candidate number ")
-(add-to-list 'debug-ignored-errors "^Cannot complete at point$")
-(add-to-list 'debug-ignored-errors "^No other backend$")
-
 ;;; Compatibility
 (eval-and-compile
-  ;; `defvar-local' for Emacs 24.2 and below
-  (unless (fboundp 'defvar-local)
-    (defmacro defvar-local (var val &optional docstring)
-      "Define VAR as a buffer-local variable with default value VAL.
-Like `defvar' but additionally marks the variable as being automatically
-buffer-local wherever it is set."
-      (declare (debug defvar) (doc-string 3))
-      `(progn
-         (defvar ,var ,val ,docstring)
-         (make-variable-buffer-local ',var))))
-
+  ;; Defined in Emacs 24.4
   (unless (fboundp 'string-suffix-p)
     (defun string-suffix-p (suffix string  &optional ignore-case)
       "Return non-nil if SUFFIX is a suffix of STRING.
@@ -118,8 +99,12 @@ attention to case differences."
   "Face used for the selection in the tooltip.")
 
 (defface company-tooltip-search
-  '((default :inherit company-tooltip-selection))
+  '((default :inherit highlight))
   "Face used for the search string in the tooltip.")
+
+(defface company-tooltip-search-selection
+  '((default :inherit highlight))
+  "Face used for the search string inside the selection in the tooltip.")
 
 (defface company-tooltip-mouse
   '((default :inherit highlight))
@@ -202,15 +187,20 @@ attention to case differences."
                   (memq 'company-pseudo-tooltip-frontend value))
              (and (memq 'company-pseudo-tooltip-unless-just-one-frontend-with-delay value)
                   (memq 'company-pseudo-tooltip-unless-just-one-frontend value)))
-         (error "Pseudo tooltip frontend cannot be used more than once"))
-    (and (memq 'company-preview-if-just-one-frontend value)
-         (memq 'company-preview-frontend value)
-         (error "Preview frontend cannot be used twice"))
+         (user-error "Pseudo tooltip frontend cannot be used more than once"))
+    (and (or (and (memq 'company-preview-if-just-one-frontend value)
+                  (memq 'company-preview-frontend value))
+             (and (memq 'company-preview-if-just-one-frontend value)
+                  (memq 'company-preview-common-frontend value))
+             (and (memq 'company-preview-frontend value)
+                  (memq 'company-preview-common-frontend value))
+             )
+         (user-error "Preview frontend cannot be used twice"))
     (and (memq 'company-echo value)
          (memq 'company-echo-metadata-frontend value)
-         (error "Echo area cannot be used twice"))
+         (user-error "Echo area cannot be used twice"))
     ;; Preview must come last.
-    (dolist (f '(company-preview-if-just-one-frontend company-preview-frontend))
+    (dolist (f '(company-preview-if-just-one-frontend company-preview-frontend company-preview-common-frontend))
       (when (cdr (memq f value))
         (setq value (append (delq f value) (list f)))))
     (set variable value)))
@@ -252,6 +242,8 @@ The visualized data is stored in `company-prefix', `company-candidates',
                          (const :tag "preview" company-preview-frontend)
                          (const :tag "preview, unique only"
                                 company-preview-if-just-one-frontend)
+                         (const :tag "preview, common"
+                                company-preview-common-frontend)
                          (function :tag "custom function" nil))))
 
 (defcustom company-tooltip-limit 10
@@ -349,7 +341,7 @@ of the following:
 `prefix': The backend should return the text to be completed.  It must be
 text immediately before point.  Returning nil from this command passes
 control to the next backend.  The function should return `stop' if it
-should complete but cannot (e.g. if it is in the middle of a string).
+should complete but cannot (e.g. when in the middle of a symbol).
 Instead of a string, the backend may return a cons (PREFIX . LENGTH)
 where LENGTH is a number used in place of PREFIX's length when
 comparing against `company-minimum-prefix-length'.  LENGTH can also
@@ -693,6 +685,12 @@ asynchronous call into synchronous.")
       (unless (keywordp b)
         (company-init-backend b))))))
 
+(defun company--maybe-init-backend (backend)
+  (or (not (symbolp backend))
+      (eq t (get backend 'company-init))
+      (unless (get backend 'company-init)
+        (company-init-backend backend))))
+
 (defcustom company-lighter-base "company"
   "Base string to use for the `company-mode' lighter."
   :type 'string
@@ -785,7 +783,7 @@ means that `company-mode' is always turned on except in `message-mode' buffers."
 (defsubst company-assert-enabled ()
   (unless company-mode
     (company-uninstall-map)
-    (error "Company not enabled")))
+    (user-error "Company not enabled")))
 
 ;;; keymaps ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -928,8 +926,8 @@ matches IDLE-BEGIN-AFTER-RE, return it wrapped in a cons."
 
 (defun company--multi-backend-adapter (backends command &rest args)
   (let ((backends (cl-loop for b in backends
-                           when (not (and (symbolp b)
-                                          (eq 'failed (get b 'company-init))))
+                           when (or (keywordp b)
+                                    (company--maybe-init-backend b))
                            collect b))
         (separate (memq :separate backends)))
 
@@ -1095,7 +1093,7 @@ can retrieve meta-data for them."
 
 (defun company--should-complete ()
   (and (eq company-idle-delay 'now)
-       (not (or buffer-read-only overriding-terminal-local-map
+       (not (or buffer-read-only
                 overriding-local-map))
        ;; Check if in the middle of entering a key combination.
        (or (equal (this-command-keys-vector) [])
@@ -1427,7 +1425,7 @@ prefix match (same case) will be prioritized."
       (when (ignore-errors (company-begin-backend backend))
         (cl-return t))))
   (unless company-candidates
-    (error "No other backend")))
+    (user-error "No other backend")))
 
 (defun company-require-match-p ()
   (let ((backend-value (company-call-backend 'require-match)))
@@ -1438,7 +1436,7 @@ prefix match (same case) will be prioritized."
                (eq company-require-match t))))))
 
 (defun company-auto-complete-p (input)
-  "Return non-nil, if input starts with punctuation or parentheses."
+  "Return non-nil if INPUT should trigger auto-completion."
   (and (if (functionp company-auto-complete)
            (funcall company-auto-complete)
          company-auto-complete)
@@ -1447,7 +1445,8 @@ prefix match (same case) will be prioritized."
          (if (consp company-auto-complete-chars)
              (memq (char-syntax (string-to-char input))
                    company-auto-complete-chars)
-           (string-match (substring input 0 1) company-auto-complete-chars)))))
+           (string-match (regexp-quote (substring input 0 1))
+                          company-auto-complete-chars)))))
 
 (defun company--incremental-p ()
   (and (> (point) company-point)
@@ -1458,32 +1457,24 @@ prefix match (same case) will be prioritized."
               company-prefix)))
 
 (defun company--continue-failed (new-prefix)
-  (let ((input (buffer-substring-no-properties (point) company-point)))
-    (cond
-     ((company-auto-complete-p input)
-      ;; auto-complete
-      (save-excursion
-        (goto-char company-point)
-        (let ((company--auto-completion t))
-          (company-complete-selection))
-        nil))
-     ((and (or (not (company-require-match-p))
-               ;; Don't require match if the new prefix
-               ;; doesn't continue the old one, and the latter was a match.
-               (not (stringp new-prefix))
-               (<= (length new-prefix) (length company-prefix)))
-           (member company-prefix company-candidates))
-      ;; Last input was a success,
-      ;; but we're treating it as an abort + input anyway,
-      ;; like the `unique' case below.
-      (company-cancel 'non-unique))
-     ((company-require-match-p)
-      ;; Wrong incremental input, but required match.
-      (delete-char (- (length input)))
-      (ding)
-      (message "Matching input is required")
-      company-candidates)
-     (t (company-cancel)))))
+  (cond
+   ((and (or (not (company-require-match-p))
+             ;; Don't require match if the new prefix
+             ;; doesn't continue the old one, and the latter was a match.
+             (not (stringp new-prefix))
+             (<= (length new-prefix) (length company-prefix)))
+         (member company-prefix company-candidates))
+    ;; Last input was a success,
+    ;; but we're treating it as an abort + input anyway,
+    ;; like the `unique' case below.
+    (company-cancel 'non-unique))
+   ((company-require-match-p)
+    ;; Wrong incremental input, but required match.
+    (delete-char (- company-point (point)))
+    (ding)
+    (message "Matching input is required")
+    company-candidates)
+   (t (company-cancel))))
 
 (defun company--good-prefix-p (prefix)
   (and (stringp (company--prefix-str prefix)) ;excludes 'stop
@@ -1518,6 +1509,15 @@ prefix match (same case) will be prioritized."
       (setq company-prefix new-prefix)
       (company-update-candidates c)
       c)
+     ((and (> (point) company-point)
+           (company-auto-complete-p (buffer-substring-no-properties
+                                     (point) company-point)))
+      ;; auto-complete
+      (save-excursion
+        (goto-char company-point)
+        (let ((company--auto-completion t))
+          (company-complete-selection))
+        nil))
      ((not (company--incremental-p))
       (company-cancel))
      (t (company--continue-failed new-prefix)))))
@@ -1531,10 +1531,7 @@ prefix match (same case) will be prioritized."
       (setq prefix
             (if (or (symbolp backend)
                     (functionp backend))
-                (when (or (not (symbolp backend))
-                          (eq t (get backend 'company-init))
-                          (unless (get backend 'company-init)
-                            (company-init-backend backend)))
+                (when (company--maybe-init-backend backend)
                   (funcall backend 'prefix))
               (company--multi-backend-adapter backend 'prefix)))
       (when prefix
@@ -1774,7 +1771,7 @@ each one wraps a part of the input string."
                company-search-filtering
                (lambda (candidate) (string-match re candidate))))
          (cc (company-calculate-candidates company-prefix)))
-    (unless cc (error "No match"))
+    (unless cc (user-error "No match"))
     (company-update-candidates cc)))
 
 (defun company--search-update-string (new)
@@ -1787,7 +1784,7 @@ each one wraps a part of the input string."
 (defun company--search-assert-input ()
   (company--search-assert-enabled)
   (when (string= company-search-string "")
-    (error "Empty search string")))
+    (user-error "Empty search string")))
 
 (defun company-search-repeat-forward ()
   "Repeat the incremental search in completion candidates forward."
@@ -1914,7 +1911,7 @@ Don't start this directly, use `company-search-candidates' or
   (company-assert-enabled)
   (unless company-search-mode
     (company-uninstall-map)
-    (error "Company not in search mode")))
+    (user-error "Company not in search mode")))
 
 (defun company-search-candidates ()
   "Start searching the completion candidates incrementally.
@@ -2100,6 +2097,9 @@ With ARG, move by that many elements."
   (cond
    ((use-region-p)
     (indent-region (region-beginning) (region-end)))
+   ((memq indent-line-function
+          '(indent-relative indent-relative-maybe))
+    (company-complete-common))
    ((let ((old-point (point))
           (old-tick (buffer-chars-modified-tick))
           (tab-always-indent t))
@@ -2148,7 +2148,7 @@ character, stripping the modifiers.  That character must be a digit."
   (when (company-manual-begin)
     (and (or (< n 1) (> n (- company-candidates-length
                              company-tooltip-offset)))
-         (error "No candidate number %d" n))
+         (user-error "No candidate number %d" n))
     (cl-decf n)
     (company-finish (nth (+ n company-tooltip-offset)
                          company-candidates))))
@@ -2240,7 +2240,7 @@ character, stripping the modifiers.  That character must be a digit."
     (company--electric-do
       (let* ((selected (nth company-selection company-candidates))
              (doc-buffer (or (company-call-backend 'doc-buffer selected)
-                             (error "No documentation available")))
+                             (user-error "No documentation available")))
              start)
         (when (consp doc-buffer)
           (setq start (cdr doc-buffer)
@@ -2257,7 +2257,7 @@ character, stripping the modifiers.  That character must be a digit."
     (company--electric-do
       (let* ((selected (nth company-selection company-candidates))
              (location (company-call-backend 'location selected))
-             (pos (or (cdr location) (error "No location available")))
+             (pos (or (cdr location) (user-error "No location available")))
              (buffer (or (and (bufferp (car location)) (car location))
                          (find-file-noselect (car location) t))))
         (setq other-window-scroll-buffer (get-buffer buffer))
@@ -2294,7 +2294,7 @@ character, stripping the modifiers.  That character must be a digit."
   (setq company-backend backend)
   ;; Return non-nil if active.
   (or (company-manual-begin)
-      (error "Cannot complete at point")))
+      (user-error "Cannot complete at point")))
 
 (defun company-begin-with (candidates
                            &optional prefix-length require-match callback)
@@ -2340,13 +2340,14 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
   "Pop a buffer with information about completions at point."
   (interactive)
   (let* ((bb company-backends)
+         (mode (symbol-name major-mode))
          backend
          (prefix (cl-loop for b in bb
                           thereis (let ((company-backend b))
                                     (setq backend b)
                                     (company-call-backend 'prefix))))
          cc annotations)
-    (when (stringp prefix)
+    (when (or (stringp prefix) (consp prefix))
       (let ((company-backend backend))
         (setq cc (company-call-backend 'candidates prefix)
               annotations
@@ -2364,6 +2365,8 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
     (insert "company-backends: " (pp-to-string bb))
     (insert "\n")
     (insert "Used backend: " (pp-to-string backend))
+    (insert "\n")
+    (insert "Major mode: " mode)
     (insert "\n")
     (insert "Prefix: " (pp-to-string prefix))
     (insert "\n")
@@ -2475,22 +2478,24 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
                                          'company-tooltip-common-selection
                                        'company-tooltip-common)
                                      line)
-    (when selected
-      (if (let ((re (funcall company-search-regexp-function
+    (when (let ((re (funcall company-search-regexp-function
                              company-search-string)))
             (and (not (string= re ""))
                  (string-match re value (length company-prefix))))
-          (pcase-dolist (`(,mbeg . ,mend) (company--search-chunks))
-            (let ((beg (+ margin mbeg))
-                  (end (+ margin mend))
-                  (width (- width (length right))))
-              (when (< beg width)
-                (font-lock-prepend-text-property beg (min end width)
-                                                 'face 'company-tooltip-search
-                                                 line))))
-        (font-lock-append-text-property 0 width 'face
-                                        'company-tooltip-selection
-                                        line)))
+      (pcase-dolist (`(,mbeg . ,mend) (company--search-chunks))
+        (let ((beg (+ margin mbeg))
+              (end (+ margin mend))
+              (width (- width (length right))))
+          (when (< beg width)
+            (font-lock-prepend-text-property beg (min end width) 'face
+                                             (if selected
+                                                 'company-tooltip-search-selection
+                                               'company-tooltip-search)
+                                             line)))))
+    (when selected
+      (font-lock-append-text-property 0 width 'face
+                                      'company-tooltip-selection
+                                      line))
     (font-lock-append-text-property 0 width 'face
                                     'company-tooltip
                                     line)
@@ -2566,11 +2571,6 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
   (concat (company-safe-substring old 0 offset)
           new
           (company-safe-substring old (+ offset (length new)))))
-
-(defsubst company--length-limit (lst limit)
-  (if (nthcdr limit lst)
-      limit
-    (length lst)))
 
 (defsubst company--window-height ()
   (if (fboundp 'window-screen-lines)
@@ -2847,8 +2847,9 @@ Returns a negative number if the tooltip should be displayed above point."
       (overlay-put ov 'window (selected-window)))))
 
 (defun company-pseudo-tooltip-guard ()
-  (cons
+  (list
    (save-excursion (beginning-of-visual-line))
+   (window-width)
    (let ((ov company-pseudo-tooltip-overlay)
          (overhang (save-excursion (end-of-visual-line)
                                    (- (line-end-position) (point)))))
@@ -2915,14 +2916,13 @@ Delay is determined by `company-tooltip-idle-delay'."
 
 (defvar-local company-preview-overlay nil)
 
-(defun company-preview-show-at-point (pos)
+(defun company-preview-show-at-point (pos completion)
   (company-preview-hide)
 
-  (let ((completion (nth company-selection company-candidates)))
-    (setq completion (copy-sequence (company--pre-render completion)))
-    (font-lock-append-text-property 0 (length completion)
-                                    'face 'company-preview
-                                    completion)
+  (setq completion (copy-sequence (company--pre-render completion)))
+  (font-lock-append-text-property 0 (length completion)
+                                  'face 'company-preview
+                                  completion)
     (font-lock-prepend-text-property 0 (length company-common)
                                      'face 'company-preview-common
                                      completion)
@@ -2959,7 +2959,7 @@ Delay is determined by `company-tooltip-idle-delay'."
       (let ((ov company-preview-overlay))
         (overlay-put ov (if ptf-workaround 'display 'after-string)
                      completion)
-        (overlay-put ov 'window (selected-window))))))
+        (overlay-put ov 'window (selected-window)))))
 
 (defun company-preview-hide ()
   (when company-preview-overlay
@@ -2970,7 +2970,8 @@ Delay is determined by `company-tooltip-idle-delay'."
   "`company-mode' frontend showing the selection as if it had been inserted."
   (pcase command
     (`pre-command (company-preview-hide))
-    (`post-command (company-preview-show-at-point (point)))
+    (`post-command (company-preview-show-at-point (point)
+                                                  (nth company-selection company-candidates)))
     (`hide (company-preview-hide))))
 
 (defun company-preview-if-just-one-frontend (command)
@@ -2990,6 +2991,21 @@ Delay is determined by `company-tooltip-idle-delay'."
   (when (overlayp company-pseudo-tooltip-overlay)
     (not (overlay-get company-pseudo-tooltip-overlay 'invisible))))
 
+(defun company-preview-common--show-p ()
+  "Returns whether the preview of common can be showed or not"
+  (and company-common
+       (or (eq (company-call-backend 'ignore-case) 'keep-prefix)
+           (string-prefix-p company-prefix company-common))))
+
+(defun company-preview-common-frontend (command)
+  "`company-mode' frontend preview the common part of candidates."
+  (when (or (not (eq command 'post-command))
+            (company-preview-common--show-p))
+    (pcase command
+      (`pre-command (company-preview-hide))
+      (`post-command (company-preview-show-at-point (point) company-common))
+      (`hide (company-preview-hide)))))
+
 ;;; echo ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar-local company-echo-last-msg nil)
@@ -2998,10 +3014,16 @@ Delay is determined by `company-tooltip-idle-delay'."
 
 (defvar company-echo-delay .01)
 
+(defcustom company-echo-truncate-lines t
+  "Whether frontend messages written to the echo area should be truncated."
+  :type 'boolean
+  :package-version '(company . "0.9.3"))
+
 (defun company-echo-show (&optional getter)
   (when getter
     (setq company-echo-last-msg (funcall getter)))
-  (let ((message-log-max nil))
+  (let ((message-log-max nil)
+        (message-truncate-lines company-echo-truncate-lines))
     (if company-echo-last-msg
         (message "%s" company-echo-last-msg)
       (message ""))))
