@@ -1,11 +1,13 @@
 ;;; whitespace-cleanup-mode-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
 ;;;### (autoloads nil "whitespace-cleanup-mode" "whitespace-cleanup-mode.el"
-;;;;;;  (22322 39117 0 0))
+;;;;;;  (22887 32322 0 0))
 ;;; Generated autoloads from whitespace-cleanup-mode.el
+
+(let ((loads (get 'whitespace-cleanup 'custom-loads))) (if (member '"whitespace-cleanup-mode" loads) nil (put 'whitespace-cleanup 'custom-loads (cons '"whitespace-cleanup-mode" loads))))
 
 (autoload 'whitespace-cleanup-mode "whitespace-cleanup-mode" "\
 Automatically call `whitespace-cleanup' on save.
@@ -15,8 +17,9 @@ Automatically call `whitespace-cleanup' on save.
 (put 'whitespace-cleanup-mode 'safe-local-variable 'booleanp)
 
 (defvar global-whitespace-cleanup-mode nil "\
-Non-nil if Global-Whitespace-Cleanup mode is enabled.
-See the command `global-whitespace-cleanup-mode' for a description of this minor mode.
+Non-nil if Global Whitespace-Cleanup mode is enabled.
+See the `global-whitespace-cleanup-mode' command
+for a description of this minor mode.
 Setting this variable directly does not take effect;
 either customize it (see the info node `Easy Customization')
 or call the function `global-whitespace-cleanup-mode'.")
@@ -25,7 +28,7 @@ or call the function `global-whitespace-cleanup-mode'.")
 
 (autoload 'global-whitespace-cleanup-mode "whitespace-cleanup-mode" "\
 Toggle Whitespace-Cleanup mode in all buffers.
-With prefix ARG, enable Global-Whitespace-Cleanup mode if ARG is positive;
+With prefix ARG, enable Global Whitespace-Cleanup mode if ARG is positive;
 otherwise, disable it.  If called from Lisp, enable the mode if
 ARG is omitted or nil.
 
