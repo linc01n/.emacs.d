@@ -1,17 +1,23 @@
 ;;; ido-completing-read+-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
 ;;;### (autoloads nil "ido-completing-read+" "ido-completing-read+.el"
-;;;;;;  (22380 60376 0 0))
+;;;;;;  (22887 32393 0 0))
 ;;; Generated autoloads from ido-completing-read+.el
 
-(defvar ido-cr+-enable-next-call nil "\
-If non-nil, then the next call to `ido-completing-read' is by `ido-completing-read+'.")
+(defvar ido-cr+-minibuffer-depth -1 "\
+Minibuffer depth of the most recent ido-cr+ activation.
 
-(defvar ido-cr+-enable-this-call nil "\
-If non-nil, then the current call to `ido-completing-read' is by `ido-completing-read+'")
+If this equals the current minibuffer depth, then the minibuffer
+is currently being used by ido-cr+, and ido-cr+ feature will be
+active. Otherwise, something else is using the minibuffer and
+ido-cr+ features will be deactivated to avoid interfering with
+the other command.
+
+This is set to -1 by default, since `(minibuffer-depth)' should
+never return this value.")
 
 (defvar ido-cr+-replace-completely nil "\
 If non-nil, replace `ido-completeing-read' completely with ido-cr+.
@@ -22,6 +28,9 @@ incompatibilities, please file a bug report at
 https://github.com/DarwinAwardWinner/ido-ubiquitous/issues")
 
 (custom-autoload 'ido-cr+-replace-completely "ido-completing-read+" t)
+
+(defsubst ido-cr+-active nil "\
+Returns non-nil if ido-cr+ is currently using the minibuffer." (>= ido-cr+-minibuffer-depth (minibuffer-depth)))
 
 (autoload 'ido-completing-read+ "ido-completing-read+" "\
 ido-based method for reading from the minibuffer with completion.
@@ -36,16 +45,12 @@ completion for them.
 \(fn PROMPT COLLECTION &optional PREDICATE REQUIRE-MATCH INITIAL-INPUT HIST DEF INHERIT-INPUT-METHOD)" nil nil)
 
 (defadvice ido-completing-read (around ido-cr+ activate) "\
-This advice handles application of ido-completing-read+ features.
+This advice is the implementation of `ido-cr+-replace-completely'." (when (not (featurep (quote ido-completing-read+))) (require (quote ido-completing-read+))) (if (or (ido-cr+-active) (not ido-cr+-replace-completely)) ad-do-it (setq ad-return-value (apply (function ido-completing-read+) (ad-get-args 0)))))
 
-First, it ensures that `ido-cr+-enable-this-call' is set
-properly. This variable should be non-nil during execution of
-`ido-completing-read' if it was called from
-`ido-completing-read+'.
+(defadvice call-interactively (around ido-cr+-record-command-name activate) "\
+Record the command being interactively called.
 
-Second, if `ido-cr+-replace-completely' is non-nil, then this
-advice completely replaces `ido-completing-read' with
-`ido-completing-read+'." (when (not (featurep (quote ido-completing-read+))) (require (quote ido-completing-read+))) (let ((ido-cr+-enable-this-call ido-cr+-enable-next-call) (ido-cr+-enable-next-call nil)) (if (or ido-cr+-enable-this-call (not ido-cr+-replace-completely)) ad-do-it (message "Replacing ido-completing-read") (setq ad-return-value (apply (function ido-completing-read+) (ad-get-args 0))))))
+See `ido-cr+-current-command'." (let ((ido-cr+-current-command (ad-get-arg 0))) ad-do-it))
 
 (defvar ido-context-switch-command nil "\
 Variable holding the command used for switching to another completion mode.
@@ -58,6 +63,25 @@ Emacs 25. Setting another package's variable is not safe in
 general, but in this case it should be, because ido always
 let-binds this variable before using it, so the initial value
 shouldn't matter.")
+
+(defvar ido-ubiquitous-mode nil "\
+Non-nil if Ido-Ubiquitous mode is enabled.
+See the `ido-ubiquitous-mode' command
+for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `ido-ubiquitous-mode'.")
+
+(custom-autoload 'ido-ubiquitous-mode "ido-completing-read+" nil)
+
+(autoload 'ido-ubiquitous-mode "ido-completing-read+" "\
+Use ido completion instead of standard completion almost everywhere.
+
+If this mode causes problems for a function, you can customize
+when ido completion is or is not used by customizing
+`ido-cr+-function-blacklist'.
+
+\(fn &optional ARG)" t nil)
 
 ;;;***
 
