@@ -6,9 +6,9 @@
 ;;         Marshall T. Vandegrift <llasram@gmail.com>
 ;; Maintainer: Vasilij Schneidermann <v.schneidermann@gmail.com>
 ;; Package-Requires: ((emacs "24.1"))
-;; Package-Version: 20160528.1400
+;; Package-Version: 20170406.241
 ;; Keywords: data yaml
-;; Version: 0.0.12
+;; Version: 0.0.13
 
 ;; This file is not part of Emacs
 
@@ -118,7 +118,7 @@ that key is pressed to begin a block literal."
 
 ;; Constants
 
-(defconst yaml-mode-version "0.0.12" "Version of `yaml-mode'.")
+(defconst yaml-mode-version "0.0.13" "Version of `yaml-mode'.")
 
 (defconst yaml-blank-line-re "^ *$"
   "Regexp matching a line containing only (valid) whitespace.")
@@ -149,7 +149,7 @@ that key is pressed to begin a block literal."
 (defconst yaml-scalar-context-re
   (concat "\\(?:^\\(?:--- \\)?\\|{\\|\\(?: *[-,] +\\)+\\) *"
           "\\(?:" yaml-bare-scalar-re " *: \\)?")
-  "Regexp indicating the begininng of a scalar context.")
+  "Regexp indicating the beginning of a scalar context.")
 
 (defconst yaml-nested-map-re
   (concat ".*: *\\(?:&.*\\|{ *\\|" yaml-tag-re " *\\)?$")
@@ -191,7 +191,7 @@ that key is pressed to begin a block literal."
     (define-key map ">" 'yaml-electric-bar-and-angle)
     (define-key map "-" 'yaml-electric-dash-and-dot)
     (define-key map "." 'yaml-electric-dash-and-dot)
-    (define-key map [backspace] 'yaml-electric-backspace)
+    (define-key map (kbd "DEL") 'yaml-electric-backspace)
     map)
   "Keymap used in `yaml-mode' buffers.")
 
@@ -202,8 +202,10 @@ that key is pressed to begin a block literal."
     (modify-syntax-entry ?# "<" syntax-table)
     (modify-syntax-entry ?\n ">" syntax-table)
     (modify-syntax-entry ?\\ "\\" syntax-table)
-    (modify-syntax-entry ?- "w" syntax-table)
+    (modify-syntax-entry ?- "_" syntax-table)
     (modify-syntax-entry ?_ "_" syntax-table)
+    (modify-syntax-entry ?& "." syntax-table)
+    (modify-syntax-entry ?* "." syntax-table)
     (modify-syntax-entry ?\( "." syntax-table)
     (modify-syntax-entry ?\) "." syntax-table)
     (modify-syntax-entry ?\{ "(}" syntax-table)
@@ -427,13 +429,13 @@ cross boundaries of block literals."
 
 
 (defun yaml-mode-version ()
-  "Diplay version of `yaml-mode'."
+  "Display version of `yaml-mode'."
   (interactive)
   (message "yaml-mode %s" yaml-mode-version)
   yaml-mode-version)
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.e?ya?ml\\'" . yaml-mode))
+(add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-mode))
 
 (provide 'yaml-mode)
 
