@@ -18,11 +18,11 @@
 ;;; Commentary:
 
 ;; This file contains a variety of segments that may be of general interest in
-;; many people's modelines. It contains both "stock" segments which are usable
+;; many people's modelines.  It contains both "stock" segments which are usable
 ;; without any additional packages, as well as a number of segments which depend
 ;; on optional third-party packages.
 
-;; Note: The `global' segment is defined in spaceline.el, not here. It's the
+;; Note: The `global' segment is defined in spaceline.el, not here.  It's the
 ;; only exception.
 
 ;;; Code:
@@ -145,14 +145,19 @@
 (declare-function pdf-cache-number-of-pages 'pdf-view)
 
 (defun spaceline--pdfview-page-number ()
+  "The current `pdf-view-mode' page number to display in the mode-line.
+Return a formated string containing the current and last page number for the
+currently displayed pdf file in `pdf-view-mode'."
   (format "(%d/%d)"
-	  (pdf-view-current-page)
-	  (pdf-cache-number-of-pages)))
+          ;; `pdf-view-current-page' is a macro in an optional dependency
+          ;; any better solutions?
+          (eval `(pdf-view-current-page))
+          (pdf-cache-number-of-pages)))
 
 (spaceline-define-segment line-column
   "The current line and column numbers, or `(current page/number of pages)`
 in pdf-view mode (enabled by the `pdf-tools' package)."
-  (if (eq 'pdf-view-mode major-mode)
+  (if (eq major-mode 'pdf-view-mode)
       (spaceline--pdfview-page-number)
     "%l:%2c"))
 
@@ -233,8 +238,8 @@ segment.  Otherwise only show the active input method, if any."
     ("*helm-ag*" . (lambda ()
                      (format "HELM Ag: Using %s"
                              (car (split-string helm-ag-base-command))))))
-  "Alist of custom helm buffer names to use. The cdr can also be
-a function that returns a name to use.")
+  "Alist of custom helm buffer names to use.
+The cdr can also be a function that returns a name to use.")
 (spaceline-define-segment helm-buffer-id
   "Helm session identifier."
   (when (bound-and-true-p helm-alive-p)
@@ -281,7 +286,7 @@ a function that returns a name to use.")
         (propertize (format "C-u %s" arg) 'face 'helm-prefarg)))))
 
 (defvar spaceline--helm-current-source nil
-  "The currently active helm source")
+  "The currently active helm source.")
 (spaceline-define-segment helm-follow
   "Helm follow indicator."
   (when (and (bound-and-true-p helm-alive-p)
@@ -325,7 +330,9 @@ a function that returns a name to use.")
 (declare-function nyan-create 'nyan-mode)
 (declare-function safe-persp-name 'persp-mode)
 (declare-function get-frame-persp 'persp-mode)
+(declare-function winum-get-number 'winum)
 (declare-function window-numbering-get-number 'window-numbering)
+(declare-function purpose--modeline-string 'window-purpose)
 (declare-function pyenv-mode-version 'pyenv-mode)
 (declare-function pyenv-mode-full-path 'pyenv-mode)
 
@@ -382,7 +389,7 @@ package."
        (t (concat (if (string= "AC" type) " AC" "") percentage time))))))
 
 (defun spaceline--fancy-battery-face ()
-  "Return a face appropriate for powerline"
+  "Return a face appropriate for powerline."
   (let ((type (cdr (assq ?L fancy-battery-last-status))))
     (if (and type (string= "AC" type))
         'fancy-battery-charging
@@ -398,8 +405,9 @@ package."
 This segment overrides the modeline functionality of
 `fancy-battery-mode'."
   (when (bound-and-true-p fancy-battery-mode)
-    (powerline-raw (s-trim (spaceline--fancy-battery-mode-line))
-                   (spaceline--fancy-battery-face)))
+    (let ((text (spaceline--fancy-battery-mode-line)))
+      (and text (powerline-raw (s-trim text)
+                               (spaceline--fancy-battery-face)))))
   :global-override fancy-battery-mode-line)
 
 (defvar spaceline-org-clock-format-function
@@ -443,16 +451,23 @@ This segment overrides the modeline functionality of `org-pomodoro' itself."
    ((string= "7" str) "➐")
    ((string= "8" str) "➑")
    ((string= "9" str) "➒")
-   ((string= "0" str) "➓")))
+   ((string= "10" str) "➓")
+   (t str)))
 
 (defvar spaceline-window-numbers-unicode nil
   "Set to true to enable unicode display in the `window-number' segment.")
 
 (spaceline-define-segment window-number
-  "The current window number. Requires `window-numbering-mode' to be enabled."
-  (when (bound-and-true-p window-numbering-mode)
-    (let* ((num (window-numbering-get-number))
-           (str (when num (int-to-string num))))
+  "The current window number.
+Requires either `winum-mode' or `window-numbering-mode' to be enabled."
+  (let* ((num (cond
+               ((bound-and-true-p winum-mode)
+                (winum-get-number))
+               ((bound-and-true-p window-numbering-mode)
+                (window-numbering-get-number))
+               (t nil)))
+         (str (when num (int-to-string num))))
+    (when num
       (if spaceline-window-numbers-unicode
           (spaceline--unicode-number str)
         (propertize str 'face 'bold)))))
@@ -463,7 +478,8 @@ This segment overrides the modeline functionality of `org-pomodoro' itself."
 (spaceline-define-segment workspace-number
   "The current workspace name or number. Requires `eyebrowse-mode' to be
 enabled."
-  (when (bound-and-true-p eyebrowse-mode)
+  (when (and (bound-and-true-p eyebrowse-mode)
+             (< 1 (length (eyebrowse--get 'window-configs))))
     (let* ((num (eyebrowse--get 'current-slot))
            (tag (when num (nth 2 (assoc num (eyebrowse--get 'window-configs)))))
            (str (if (and tag (< 0 (length tag)))
@@ -508,9 +524,10 @@ enabled."
   :group 'spaceline)
 
 (defvar spaceline-flycheck-bullet "•%s"
-  "The bullet used for the flycheck segment. This should be a
-  format string with a single `%s'-expression corresponding to
-  the number of errors.")
+  "The bullet used for the flycheck segment.
+This should be a format string with a single `%s'-expression corresponding to
+the number of errors.")
+
 (defmacro spaceline--flycheck-lighter (state)
   "Return flycheck information for the given error type STATE."
   `(let* ((counts (flycheck-count-errors flycheck-current-errors))
@@ -541,6 +558,14 @@ enabled."
   "Face for highlighting the python venv."
   :group 'spaceline)
 
+(spaceline-define-segment purpose
+  "The current window purpose. Requires `purpose-mode' to be
+enabled."
+  (when (bound-and-true-p purpose-mode)
+    (propertize (substring (purpose--modeline-string) 2 -1)
+                'face 'spaceline-python-venv
+                'help-echo "Window purpose")))
+
 (spaceline-define-segment python-pyvenv
   "The current python venv.  Works with `pyvenv'."
   (when (and active
@@ -562,6 +587,12 @@ enabled."
                   'face 'spaceline-python-venv
                   'help-echo "Virtual environment (via pyenv)"))))
 
+(spaceline-define-segment paradox-menu
+  "The current package info including upgradable, new, installed
+and total packages"
+  (when (and active (derived-mode-p 'paradox-menu-mode))
+    mode-line-buffer-identification))
+
 (spaceline-define-segment which-function
   (when (and active
              (bound-and-true-p which-function-mode)
@@ -569,6 +600,7 @@ enabled."
     (let* ((current (format-mode-line which-func-current)))
       (when (string-match "{\\(.*\\)}" current)
         (setq current (match-string 1 current)))
+      (setq current (replace-regexp-in-string "%" "%%" current))
       (propertize current
                   'local-map which-func-keymap
                   'face 'which-func

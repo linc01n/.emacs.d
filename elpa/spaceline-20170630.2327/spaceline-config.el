@@ -25,35 +25,39 @@
 
 (defun spaceline--theme (left second-left &rest additional-segments)
   "Convenience function for the spacemacs and emacs themes."
-  (spaceline-install `(,left
-                anzu
-                auto-compile
-                ,second-left
-                major-mode
-                (process :when active)
-                ((flycheck-error flycheck-warning flycheck-info)
-                 :when active)
-                (minor-modes :when active)
-                (mu4e-alert-segment :when active)
-                (erc-track :when active)
-                (version-control :when active)
-                (org-pomodoro :when active)
-                (org-clock :when active)
-                nyan-cat)
-
-              `(which-function
-                (python-pyvenv :fallback python-pyenv)
-                (battery :when active)
-                selection-info
-                input-method
-                ((buffer-encoding-abbrev
-                  point-position
-                  line-column)
-                 :separator " | ")
-                (global :when active)
-                ,@additional-segments
-                buffer-position
-                hud))
+  (spaceline-install
+    `(,left
+      (anzu :priority 4)
+      auto-compile
+      ,second-left
+      major-mode
+      (process :when active)
+      ((flycheck-error flycheck-warning flycheck-info)
+       :when active
+       :priority 3)
+      (minor-modes :when active)
+      (mu4e-alert-segment :when active)
+      (erc-track :when active)
+      (version-control :when active
+                       :priority 7)
+      (org-pomodoro :when active)
+      (org-clock :when active)
+      nyan-cat)
+    `(which-function
+      (python-pyvenv :fallback python-pyenv)
+      purpose
+      (battery :when active)
+      (selection-info :priority 2)
+      input-method
+      ((buffer-encoding-abbrev
+        point-position
+        line-column)
+       :separator " | "
+       :priority 3)
+      (global :when active)
+      ,@additional-segments
+      (buffer-position :priority 0)
+      (hud :priority 0)))
 
   (setq-default mode-line-format '("%e" (:eval (spaceline-ml-main)))))
 
@@ -67,9 +71,10 @@ ADDITIONAL-SEGMENTS are inserted on the right, between `global' and
             workspace-number
             window-number)
            :fallback evil-state
-           :separator "|"
-           :face highlight-face)
-         '(buffer-modified buffer-size buffer-id remote-host)
+           :face highlight-face
+           :priority 0)
+         '((buffer-modified buffer-size buffer-id remote-host)
+           :priority 5)
          additional-segments))
 
 (defun spaceline-emacs-theme (&rest additional-segments)
@@ -83,12 +88,16 @@ ADDITIONAL-SEGMENTS are inserted on the right, between `global' and
               window-number) :separator "|")
             buffer-modified
             buffer-size)
-           :face highlight-face)
-         '(buffer-id remote-host)
+           :face highlight-face
+           :priority 0)
+         '((buffer-id remote-host)
+           :priority 5)
          additional-segments))
 
 ;; Helm custom mode
 ;; ================
+
+(defvar helm-ag-show-status-function)
 
 (defun spaceline--helm-ag-update ()
   (setq mode-line-format '("%e" (:eval (spaceline-ml-helm-done)))))
@@ -100,17 +109,17 @@ ADDITIONAL-SEGMENTS are inserted on the right, between `global' and
   (if spaceline-helm-mode
       (progn
         (spaceline-install 'helm
-                    '((helm-buffer-id :face highlight-face)
-                      helm-number
-                      helm-follow
-                      helm-prefix-argument)
-                    '(helm-help))
+          '((helm-buffer-id :face highlight-face)
+            helm-number
+            helm-follow
+            helm-prefix-argument)
+          '(helm-help))
         (spaceline-install 'helm-done
-                    '(((helm-buffer-id helm-done) :face highlight-face)
-                      helm-number
-                      helm-follow
-                      helm-prefix-argument)
-                    '(helm-help))
+          '(((helm-buffer-id helm-done) :face highlight-face)
+            helm-number
+            helm-follow
+            helm-prefix-argument)
+          '(helm-help))
         (defadvice helm-display-mode-line (after spaceline-helm)
           "Set up a custom helm modeline."
           (setq spaceline--helm-current-source source
