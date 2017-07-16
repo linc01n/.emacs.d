@@ -3,11 +3,11 @@
 ;; Copyright (C) 2010 Chris Wanstrath
 
 ;; Version: 0.6.3
-;; Package-Version: 20160520.146
+;; Package-Version: 20170324.240
 ;; Keywords: CoffeeScript major mode
 ;; Author: Chris Wanstrath <chris@ozmm.org>
 ;; URL: http://github.com/defunkt/coffee-mode
-;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -112,6 +112,10 @@ with CoffeeScript."
 (defcustom coffee-indent-tabs-mode nil
   "Indentation can insert tabs if this is t."
   :type 'boolean)
+
+(defcustom coffee-show-mode 'js-mode
+  "Major mode to used to show the compiled Javascript."
+  :type 'function)
 
 (defcustom coffee-after-compile-hook nil
   "Hook called after compile to Javascript"
@@ -281,10 +285,10 @@ called `coffee-compiled-buffer-name'."
                 (coffee-parse-error-output compile-output)))
           (let ((props (list :sourcemap (coffee--map-file-name file)
                              :line line :column column :source file)))
-            (let ((buffer-file-name "tmp.js"))
-              (setq buffer-read-only t)
-              (set-auto-mode)
-              (run-hook-with-args 'coffee-after-compile-hook props))))))))
+            (setq buffer-read-only t)
+            (when (fboundp coffee-show-mode)
+              (funcall coffee-show-mode))
+            (run-hook-with-args 'coffee-after-compile-hook props)))))))
 
 (defun coffee-start-compile-process (curbuf line column)
   (lambda (start end)
@@ -447,7 +451,7 @@ called `coffee-compiled-buffer-name'."
 (defvar coffee-js-keywords
   '("if" "else" "new" "return" "try" "catch"
     "finally" "throw" "break" "continue" "for" "in" "while"
-    "delete" "instanceof" "typeof" "switch" "super" "extends"
+    "delete" "instanceof" "package" "typeof" "switch" "super" "extends"
     "class" "until" "loop" "yield"))
 
 ;; Reserved keywords either by JS or CS.
@@ -483,15 +487,16 @@ called `coffee-compiled-buffer-name'."
   `((,coffee-regexp-regexp . font-lock-constant-face)
     (,coffee-this-regexp . font-lock-variable-name-face)
     (,coffee-prototype-regexp . font-lock-type-face)
+    (,coffee-keywords-regexp 1 font-lock-keyword-face)
+    (,coffee-boolean-regexp 1 font-lock-constant-face)
     (,coffee-assign-regexp . font-lock-type-face)
     (,coffee-local-assign-regexp 1 font-lock-variable-name-face)
-    (,coffee-boolean-regexp 1 font-lock-constant-face)
     (,coffee-lambda-regexp 1 font-lock-function-name-face)
-    (,coffee-keywords-regexp 1 font-lock-keyword-face)
     (,(lambda (limit)
         (let ((res nil)
               start)
-          (while (and (not res) (search-forward "#{" limit t))
+          (while (and (not res) (search-forward "#{" limit t)
+                      (not (coffee-in-comment-p)))
             (let ((restart-pos (match-end 0)))
               (setq start (match-beginning 0))
               (let (finish)
@@ -1258,38 +1263,31 @@ comments such as the following:
   (setq font-lock-defaults '((coffee-font-lock-keywords)))
 
   ;; fix comment filling function
-  (set (make-local-variable 'comment-line-break-function)
-        #'coffee-comment-line-break-fn)
-  (set (make-local-variable 'normal-auto-fill-function) #'coffee-auto-fill-fn)
+  (setq-local comment-line-break-function #'coffee-comment-line-break-fn)
+  (setq-local normal-auto-fill-function #'coffee-auto-fill-fn)
 
-  (set (make-local-variable 'comment-start) "#")
+  (setq-local comment-start "#")
 
   ;; indentation
   (make-local-variable 'coffee-tab-width)
   (make-local-variable 'coffee-indent-tabs-mode)
-  (set (make-local-variable 'indent-line-function) 'coffee-indent-line)
-  (set (make-local-variable 'indent-region-function) 'coffee-indent-region)
-  (set (make-local-variable 'tab-width) coffee-tab-width)
+  (setq-local indent-line-function 'coffee-indent-line)
+  (setq-local indent-region-function 'coffee-indent-region)
+  (setq-local tab-width coffee-tab-width)
 
-  (set (make-local-variable 'syntax-propertize-function)
-       'coffee-syntax-propertize-function)
+  (setq-local syntax-propertize-function 'coffee-syntax-propertize-function)
 
   ;; fill
-  (set (make-local-variable 'fill-forward-paragraph-function)
-       'coffee-fill-forward-paragraph-function)
+  (setq-local fill-forward-paragraph-function 'coffee-fill-forward-paragraph-function)
 
-  (set (make-local-variable 'beginning-of-defun-function)
-       'coffee-beginning-of-defun)
-  (set (make-local-variable 'end-of-defun-function)
-       'coffee-end-of-block)
+  (setq-local beginning-of-defun-function 'coffee-beginning-of-defun)
+  (setq-local end-of-defun-function 'coffee-end-of-block)
 
   ;; imenu
-  (set (make-local-variable 'imenu-create-index-function)
-       'coffee-imenu-create-index)
+  (setq-local imenu-create-index-function 'coffee-imenu-create-index)
 
   ;; Don't let electric-indent-mode break coffee-mode.
-  (set (make-local-variable 'electric-indent-functions)
-       (list (lambda (_arg) 'no-indent)))
+  (setq-local electric-indent-functions (list (lambda (_arg) 'no-indent)))
 
   ;; no tabs
   (setq indent-tabs-mode coffee-indent-tabs-mode))
