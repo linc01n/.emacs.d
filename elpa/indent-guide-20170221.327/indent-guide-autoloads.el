@@ -1,9 +1,9 @@
 ;;; indent-guide-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "indent-guide" "indent-guide.el" (22367 25278
+;;;### (autoloads nil "indent-guide" "indent-guide.el" (22887 32390
 ;;;;;;  0 0))
 ;;; Generated autoloads from indent-guide.el
 
@@ -14,7 +14,8 @@ show vertical lines to guide indentation
 
 (defvar indent-guide-global-mode nil "\
 Non-nil if Indent-Guide-Global mode is enabled.
-See the command `indent-guide-global-mode' for a description of this minor mode.
+See the `indent-guide-global-mode' command
+for a description of this minor mode.
 Setting this variable directly does not take effect;
 either customize it (see the info node `Easy Customization')
 or call the function `indent-guide-global-mode'.")
