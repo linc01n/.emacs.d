@@ -48,7 +48,8 @@ Return t if search has been at least partially successful."
                                  vlf-start-pos)
                                vlf-file-size)))
   (or time (setq time (float-time)))
-  (let* ((tramp-verbose (if (boundp 'tramp-verbose)
+  (let* ((tramp-verbose (if (and (boundp 'tramp-verbose)
+                                 tramp-verbose)
                             (min tramp-verbose 1)))
          (case-fold-search t)
          (match-chunk-start vlf-start-pos)
@@ -139,10 +140,10 @@ Return t if search has been at least partially successful."
        (let ((result
               (if backward
                   (vlf-goto-match match-chunk-start match-chunk-end
-                                  match-end-pos match-start-pos
+                                  match-start-pos match-end-pos
                                   count to-find time highlight)
                 (vlf-goto-match match-chunk-start match-chunk-end
-                                match-start-pos match-end-pos
+                                match-end-pos match-start-pos
                                 count to-find time highlight))))
          (run-hook-with-args 'vlf-after-batch-functions 'search)
          result)))))
@@ -215,7 +216,8 @@ Search is performed chunk by chunk in `vlf-batch-size' memory."
       (vlf-goto-line-hexl n)
     (run-hook-with-args 'vlf-before-batch-functions 'goto-line)
     (vlf-verify-size)
-    (let ((tramp-verbose (if (boundp 'tramp-verbose)
+    (let ((tramp-verbose (if (and (boundp 'tramp-verbose)
+                                  tramp-verbose)
                              (min tramp-verbose 1)))
           (start-pos vlf-start-pos)
           (end-pos vlf-end-pos)
