@@ -1,12 +1,15 @@
 ;;; load-dir.el --- Load all Emacs Lisp files in a given directory
 
-;; Copyright (C) 2011 Free Software Foundation, Inc
+;; Copyright (C) 2011, 2017 Free Software Foundation, Inc
 
 ;; Authors: Teodor Zlatanov <tzz@lifelogs.com>,
 ;;          Ben Key <bkey76@gmail.com>
-;; With-Help-From: Evans Winner <ego111@gmail.com>, PJ Weisberg <pj@irregularexpressions.net>
-;; Version: 0.0.3
+;; With-Help-From: Evans Winner <ego111@gmail.com>,
+;;          PJ Weisberg <pj@irregularexpressions.net>
+;; Maintainer: Teodor Zlatanov <tzz@lifelogs.com>
+;; Version: 0.0.5
 ;; Keywords: lisp, files, convenience
+;; Package-Requires: ((cl-lib "0.5"))
 
 ;; This file is part of GNU Emacs.
 
@@ -41,7 +44,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(require 'cl-lib)
 
 (defgroup load-dir nil
   "Automatically load all Emacs Lisp files in given directories."
@@ -61,6 +64,13 @@
   "Whether errors in the loaded files should be ignored."
   :group 'load-dir
   :type 'boolean)
+
+(defcustom load-dir-ignored '("\\.dir-locals")
+  "This list of regular expressions tells load-dir to ignore some filenames.
+The match is a substring check against the whole filename."
+  :group 'load-dir
+  :tag "Ignore these regexps while loading a directory"
+  :type '(repeat :tag "Filename regexp" string))
 
 (defcustom load-dirs nil
   "This variable allows you to define which directories should be loaded.
@@ -107,18 +117,22 @@ Clears the list of loaded files and just calls `load-dir-load'."
 Recurses into subdirectories if `load-dir-recursive' is t."
   (load-dir-debug "Loading Emacs Lisp code from %s" dir)
   (let ((suffixes (get-load-suffixes)))
-    (dolist (f (and (file-exists-p dir)
-                    (file-directory-p dir)
-                    (directory-files dir t)))
-      (when (and (not (file-directory-p f))
-                 (member (file-name-extension f t) suffixes))
-        (setq f (file-name-sans-extension f))
-        (if (member f load-dir-loaded)
-            (load-dir-debug "Skipping %s, it's already loaded." f)
-          (if load-dir-ignore-errors
-              (with-demoted-errors (load f))
-            (load f))
-          (add-to-list 'load-dir-loaded f))))
+    (dolist (full (and (file-exists-p dir)
+                       (file-directory-p dir)
+                       (directory-files dir t)))
+      (when (and (not (file-directory-p full))
+                 (member (file-name-extension full t) suffixes))
+        (let ((f (file-name-sans-extension full)))
+          (cond
+           ((member f load-dir-loaded)
+            (load-dir-debug "Skipping %s, it's already loaded." f))
+           ((cl-some (lambda (regexp) (string-match-p regexp full)) load-dir-ignored)
+            (load-dir-debug "Ignoring %s as per `load-dir-ignored'." full))
+           (t
+            (if load-dir-ignore-errors
+                (with-demoted-errors (load f))
+              (load f))
+            (add-to-list 'load-dir-loaded f))))))
 
     (when load-dir-recursive
       (dolist (f (directory-files dir t directory-files-no-dot-files-regexp))
@@ -135,13 +149,43 @@ Recurses into subdirectories if `load-dir-recursive' is t."
 
 ;;;; ChangeLog:
 
+;; 2017-03-20  Ted Zlatanov  <tzz@lifelogs.com>
+;; 
+;; 	* packages/load-dir/load-dir.el: require just cl-lib 0.5
+;; 
+;; 2017-03-20  Stefan Monnier  <monnier@iro.umontreal.ca>
+;; 
+;; 	* load-dir.el: Add `Maintainer:`.
+;; 
+;; 2017-03-20  Ted Zlatanov  <tzz@lifelogs.com>
+;; 
+;; 	load-dir: no need for let f
+;; 
+;; 2017-03-20  Ted Zlatanov  <tzz@lifelogs.com>
+;; 
+;; 	load-dir: fix CL and free variable warnings
+;; 
+;; 2017-03-17  Stefan Monnier  <monnier@iro.umontreal.ca>
+;; 
+;; 	* load-dir/load-dir.el (load-dir-one): Don't set global `f`.
+;; 
+;; 2017-03-14  Ted Zlatanov  <tzz@lifelogs.com>
+;; 
+;; 	load-dir: allow ignoring some files
+;; 
+;; 	* packages/load-dir/load-dir.el: Update copyright.
+;; 	(load-dir-ignored): New defcustom to ignore regexps; by default ignores
+;; 	.dir-locals.
+;; 	(load-dir-one): Use it.
+;; 
 ;; 2011-08-28  Chong Yidong  <cyd@stupidchicken.com>
 ;; 
 ;; 	Bump load-dir version number to 0.0.3.
 ;; 
-;; 2011-08-28  Chong Yidong  <cyd@stupidchicken.com>
+;; 2011-08-28  PJ Weisberg	 <pjweisberg@gmail.com>
 ;; 
-;; 	* packages/load-dir/load-dir.el (load-dir-one): Avoid infinite recursion.
+;; 	* packages/load-dir/load-dir.el (load-dir-one): Avoid infinite
+;; 	recursion.
 ;; 
 ;; 2011-07-08  Chong Yidong  <cyd@stupidchicken.com>
 ;; 
@@ -149,13 +193,8 @@ Recurses into subdirectories if `load-dir-recursive' is t."
 ;; 
 ;; 2011-07-01  Chong Yidong  <cyd@stupidchicken.com>
 ;; 
-;; 	Reorganize repository layout, allowing site installation.
-;; 	
-;; 	A Makefile with "site", "archive" and "archive-full" rules can now be
-;; 	used for site-installation, partial archive deployment, and full
-;; 	archive deployment respectively.
-;; 	
-;; 	Rewrite the admin/archive-contents.el script to handle these changes.
+;; 	Give every package its own directory in packages/ including single-file
+;; 	packages.
 ;; 
 
 
