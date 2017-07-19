@@ -4,7 +4,7 @@
 (add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
 ;;;### (autoloads nil "ido-completing-read+" "ido-completing-read+.el"
-;;;;;;  (22887 32393 0 0))
+;;;;;;  (22895 29504 0 0))
 ;;; Generated autoloads from ido-completing-read+.el
 
 (defvar ido-cr+-minibuffer-depth -1 "\
@@ -44,25 +44,23 @@ completion for them.
 
 \(fn PROMPT COLLECTION &optional PREDICATE REQUIRE-MATCH INITIAL-INPUT HIST DEF INHERIT-INPUT-METHOD)" nil nil)
 
-(defadvice ido-completing-read (around ido-cr+ activate) "\
-This advice is the implementation of `ido-cr+-replace-completely'." (when (not (featurep (quote ido-completing-read+))) (require (quote ido-completing-read+))) (if (or (ido-cr+-active) (not ido-cr+-replace-completely)) ad-do-it (setq ad-return-value (apply (function ido-completing-read+) (ad-get-args 0)))))
+(autoload 'ido-completing-read@ido-cr+-replace "ido-completing-read+" "\
+This advice allows ido-cr+ to coompletely replace `ido-completing-read'.
 
-(defadvice call-interactively (around ido-cr+-record-command-name activate) "\
-Record the command being interactively called.
+See the varaible `ido-cr+-replace-completely' for more information.
 
-See `ido-cr+-current-command'." (let ((ido-cr+-current-command (ad-get-arg 0))) ad-do-it))
+\(fn ORIG-FUN &rest ARGS)" nil nil)
 
-(defvar ido-context-switch-command nil "\
-Variable holding the command used for switching to another completion mode.
+(advice-add 'ido-completing-read :around #'ido-completing-read@ido-cr+-replace)
 
-This variable is originally declared in `ido.el', but it is not
-given a value (or a docstring). This documentation comes from a
-re-declaration in `ido-completing-read+.el' that initializes it
-to nil, which should suppress some byte-compilation warnings in
-Emacs 25. Setting another package's variable is not safe in
-general, but in this case it should be, because ido always
-let-binds this variable before using it, so the initial value
-shouldn't matter.")
+(autoload 'call-interactively@ido-cr+-record-current-command "ido-completing-read+" "\
+Let-bind the command being interactively called.
+
+See `ido-cr+-current-command' for more information.
+
+\(fn ORIG-FUN COMMAND &rest ARGS)" nil nil)
+
+(advice-add 'call-interactively :around #'call-interactively@ido-cr+-record-current-command)
 
 (defvar ido-ubiquitous-mode nil "\
 Non-nil if Ido-Ubiquitous mode is enabled.
