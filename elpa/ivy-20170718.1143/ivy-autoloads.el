@@ -3,7 +3,7 @@
 ;;; Code:
 (add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "ivy" "ivy.el" (22887 32386 0 0))
+;;;### (autoloads nil "ivy" "ivy.el" (22895 29502 0 0))
 ;;; Generated autoloads from ivy.el
 
 (autoload 'ivy-resume "ivy" "\
@@ -110,6 +110,11 @@ Switch to another buffer.
 
 \(fn)" t nil)
 
+(autoload 'ivy-switch-view "ivy" "\
+Switch to one of the window views stored by `ivy-push-view'.
+
+\(fn)" t nil)
+
 (autoload 'ivy-switch-buffer-other-window "ivy" "\
 Switch to another buffer in another window.
 
@@ -118,7 +123,7 @@ Switch to another buffer in another window.
 ;;;***
 
 ;;;### (autoloads nil nil ("colir.el" "ivy-overlay.el" "ivy-pkg.el")
-;;;;;;  (22887 32386 0 0))
+;;;;;;  (22895 29502 0 0))
 
 ;;;***
 
