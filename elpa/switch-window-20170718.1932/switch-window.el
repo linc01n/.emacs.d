@@ -52,9 +52,15 @@
 ;; | "j" | Move the border left  |
 ;; | "k" | Move the border right |
 ;; | "b" | Balance windows       |
+;; |"SPC"| Resume auto-resize    |
 ;;
 ;; If you want to customize this feature, please see variable:
 ;; `switch-window-extra-map'.
+;;
+;; Note: if you use auto-resize window feature, you *must* know
+;; that when you execute above window operate commands, auto-resize
+;; feature will be disabled temporarily, you should use above "SPC"
+;; key to resume.
 ;;
 ;; ** Tips
 ;;
@@ -79,6 +85,23 @@
 ;; #+BEGIN_EXAMPLE
 ;; (setq switch-window-minibuffer-shortcut ?z)
 ;; #+END_EXAMPLE
+;;
+;; *** I want to auto resize a window when switch to it
+;; #+BEGIN_EXAMPLE
+;; (setq switch-window-auto-resize-window t)
+;; (setq switch-window-default-window-size 0.8) ;80% of frame size
+;; (switch-window-mouse-mode) ;auto resize when switch window with mouse
+;; #+END_EXAMPLE
+;;
+;; Advanced usage:
+;; #+BEGIN_EXAMPLE
+;; (setq switch-window-auto-resize-window
+;;       (lambda ()
+;;         (equal (buffer-name) "*scratch*"))) ;when return t, run auto switch
+;; (setq switch-window-default-window-size '(0.8 . 0.6)) ;80% width and 60% height of frame
+;; #+END_EXAMPLE
+;;
+;; By the way, you can use package [[https://github.com/roman/golden-ratio.el][golden-ratio]] also.
 ;;
 ;; *** Switch-window seem to conflict with Exwm, how to do?
 ;; By default, switch-window get user's input with the help
@@ -260,6 +283,28 @@ Note: this feature only works when the value of `switch-window-input-style' is '
                  (character "m"))
   :group 'switch-window)
 
+(defcustom switch-window-auto-resize-window nil
+  "Auto resize window's size when switch to a window.
+1. If its value is t, auto resize the selected window.
+2. If its value is a function without arguments,
+   when the returned value it non-nil, auto resize
+   the selected window."
+  :group 'switch-window)
+
+(defcustom switch-window-default-window-size 0.7
+  "The default auto resize window's size.
+1. If its value is nil, disable auto resize feature.
+2. If its value is a number (0<x<1), resize selected window to % of frame size.
+3. If its value is a number (0<x<1) cons, resize selected window to
+   car% of frame width and cdr% of frame height."
+  :group 'switch-window)
+
+(defcustom switch-window-finish-hook nil
+  "A hook, run when `switch-window--then' is finishd.
+Its hook function have no arguments."
+  :group 'switch-window
+  :type 'hook)
+
 (defvar switch-window-extra-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "i") 'switch-window-mvborder-up)
@@ -267,6 +312,7 @@ Note: this feature only works when the value of `switch-window-input-style' is '
     (define-key map (kbd "j") 'switch-window-mvborder-left)
     (define-key map (kbd "l") 'switch-window-mvborder-right)
     (define-key map (kbd "b") 'balance-windows)
+    (define-key map (kbd "SPC") 'switch-window-resume-auto-resize-window)
     map)
   "Extra keymap for switch-window input.
 Note: at the moment, it cannot bind commands, which will
@@ -277,6 +323,9 @@ increase or decrease window's number, for example:
   "Whether inhibit `window-configuration-change-hook' during switch-window."
   :type 'boolean
   :group 'switch-window)
+
+(defvar switch-window--temp-disable-auto-resize nil
+  "Disable auto resize window feature temporarily.")
 
 ;; Fix warn when compile switch-window with emacs-no-x
 (defvar image-types)
@@ -507,7 +556,9 @@ then call `function2'.
       (when (and return-original-window
                  (window-live-p orig-window))
         (select-window orig-window))
-      (switch-window--restore-eobp eobps))))
+      (switch-window--restore-eobp eobps)))
+  (switch-window--auto-resize-window)
+  (run-hooks 'switch-window-finish-hook))
 
 (defun switch-window--get-input (prompt-message minibuffer-num eobps)
   "Get user's input with the help of `read-event'."
@@ -535,7 +586,12 @@ then call `function2'.
                                 (char-to-string input))))
               (cond
                (extra-function
-                (call-interactively extra-function))
+                (call-interactively extra-function)
+                ;; Commands in `switch-window-extra-map' mainly are window-resize commands.
+                ;; If we use these commands, theirs effects should not be override by
+                ;; auto-resize feature.
+                (unless (eq extra-function 'switch-window-resume-auto-resize-window)
+                  (setq switch-window--temp-disable-auto-resize t)))
                (pos (setq key (1+ pos)))
                (t (switch-window--restore-eobp eobps)
                   (keyboard-quit))))))))
@@ -571,7 +627,12 @@ then call `function2'.
                  (lookup-key switch-window-extra-map input)))
             (cond
              (extra-function
-              (call-interactively extra-function))
+              (call-interactively extra-function)
+              ;; Commands in `switch-window-extra-map' mainly are window resize commands.
+              ;; If we use these commands, theirs effects should not be override by
+              ;; auto-resize feature.
+              (unless (eq extra-function 'switch-window-resume-auto-resize-window)
+                (setq switch-window--temp-disable-auto-resize t)))
              (pos (setq key (1+ pos)))
              (t (switch-window--restore-eobp eobps)))))))
     key))
@@ -627,6 +688,66 @@ ask user for the window to select"
       (dolist (w dedicated-windows)
         (set-window-dedicated-p (car w) (cdr w))))
     key))
+
+(define-minor-mode switch-window-mouse-mode
+  "Enable auto resize window when switch window with mouse."
+  :global t
+  (if switch-window-mouse-mode
+      (add-hook 'mouse-leave-buffer-hook
+                #'switch-window--mouse-auto-resize-window)
+    (remove-hook 'mouse-leave-buffer-hook
+                 #'switch-window--mouse-auto-resize-window)))
+
+(defun switch-window--mouse-auto-resize-window ()
+  "Auto resize window when switch window with mouse."
+  (run-at-time 0.1 nil #'switch-window--auto-resize-window))
+
+(defun switch-window-resume-auto-resize-window ()
+  "Resume auto resize window feature, which is temporarily
+disabled by commands in `switch-window-extra-map'."
+  (interactive)
+  (setq switch-window--temp-disable-auto-resize nil))
+
+(defun switch-window--auto-resize-window ()
+  "Auto resize window's size when switch to window."
+  (when (and (not switch-window--temp-disable-auto-resize)
+             (if (functionp switch-window-auto-resize-window)
+                 (funcall switch-window-auto-resize-window)
+               switch-window-auto-resize-window)
+             (not (window-minibuffer-p))
+             (not (one-window-p)))
+    (let ((arg switch-window-default-window-size)
+          n1 n2)
+      (cond ((and (numberp arg) (< 0 arg 1))
+             (setq n1 arg)
+             (setq n2 arg))
+            ((and (consp arg)
+                  (numberp (car arg))
+                  (numberp (cdr arg))
+                  (< 0 (car arg) 1)
+                  (< 0 (cdr arg) 1))
+             (setq n1 (car arg))
+             (setq n2 (cdr arg)))
+            (t (setq n1 nil)
+               (setq n2 nil)
+               (message "The value of `switch-window-default-window-size' is invalid.")))
+      (when (and n1 n2)
+        (with-selected-window (selected-window)
+          (let ((ncol (floor (- (* (frame-width) n1)
+                                (window-width))))
+                (nrow (floor (- (* (frame-height) n2)
+                                (window-height)))))
+            (when (window-resizable-p (selected-window) nrow)
+              (enlarge-window nrow))
+            (when (window-resizable-p (selected-window) ncol t)
+              (enlarge-window ncol t)))))))
+  (when (and switch-window-auto-resize-window
+             switch-window--temp-disable-auto-resize)
+    (message
+     (substitute-command-keys
+      "Switch-window: resume auto-resize with `\\[switch-window-resume-auto-resize-window]'"))
+    (message "")))
+
 
 (provide 'switch-window)
 ;;; switch-window.el ends here
