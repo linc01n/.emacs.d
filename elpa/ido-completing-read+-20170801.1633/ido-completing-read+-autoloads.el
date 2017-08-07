@@ -4,7 +4,7 @@
 (add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
 ;;;### (autoloads nil "ido-completing-read+" "ido-completing-read+.el"
-;;;;;;  (22895 29504 0 0))
+;;;;;;  (22920 25186 0 0))
 ;;; Generated autoloads from ido-completing-read+.el
 
 (defvar ido-cr+-minibuffer-depth -1 "\
@@ -25,7 +25,7 @@ If non-nil, replace `ido-completeing-read' completely with ido-cr+.
 Enabling this may interfere with or cause errors in other
 packages that use `ido-completing-read'. If you discover any such
 incompatibilities, please file a bug report at
-https://github.com/DarwinAwardWinner/ido-ubiquitous/issues")
+https://github.com/DarwinAwardWinner/ido-completing-read-plus/issues")
 
 (custom-autoload 'ido-cr+-replace-completely "ido-completing-read+" t)
 
@@ -45,7 +45,7 @@ completion for them.
 \(fn PROMPT COLLECTION &optional PREDICATE REQUIRE-MATCH INITIAL-INPUT HIST DEF INHERIT-INPUT-METHOD)" nil nil)
 
 (autoload 'ido-completing-read@ido-cr+-replace "ido-completing-read+" "\
-This advice allows ido-cr+ to coompletely replace `ido-completing-read'.
+This advice allows ido-cr+ to completely replace `ido-completing-read'.
 
 See the varaible `ido-cr+-replace-completely' for more information.
 
