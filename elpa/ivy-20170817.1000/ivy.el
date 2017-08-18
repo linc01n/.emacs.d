@@ -468,7 +468,8 @@ When non-nil, it should contain at least one %d.")
   "Temporary modifications to the prompt.")
 
 (defvar ivy--old-re nil
-  "Store the old regexp.")
+  "Store the old regexp.
+Either a string or a list for `ivy-re-match'.")
 
 (defvar ivy--old-cands nil
   "Store the candidates matched by `ivy--old-re'.")
@@ -499,6 +500,11 @@ When non-nil, it should contain at least one %d.")
   "Store the current overriding `case-fold-search'.")
 
 (defvar Info-current-file)
+
+(defun ivy-re-to-str (re)
+  (if (stringp re)
+      re
+    (caar re)))
 
 (eval-and-compile
   (unless (fboundp 'defvar-local)
@@ -1278,6 +1284,14 @@ On error (read-only), call `ivy-on-del-error-function'."
 (declare-function avy--process "ext:avy")
 (declare-function avy--style-fn "ext:avy")
 
+(defcustom ivy-format-function 'ivy-format-function-default
+  "Function to transform the list of candidates into a string.
+This string is inserted into the minibuffer."
+  :type '(choice
+          (const :tag "Default" ivy-format-function-default)
+          (const :tag "Arrow prefix" ivy-format-function-arrow)
+          (const :tag "Full line" ivy-format-function-line)))
+
 (eval-after-load 'avy
   '(add-to-list 'avy-styles-alist '(ivy-avy . pre)))
 
@@ -1426,7 +1440,8 @@ like.")
 
 (defvar ivy-highlight-functions-alist
   '((ivy--regex-ignore-order . ivy--highlight-ignore-order)
-    (ivy--regex-fuzzy . ivy--highlight-fuzzy))
+    (ivy--regex-fuzzy . ivy--highlight-fuzzy)
+    (ivy--regex-plus . ivy--highlight-default))
   "An alist of highlighting functions for each regex buidler function.")
 
 (defvar ivy-initial-inputs-alist
@@ -1678,15 +1693,9 @@ This is useful for recursive `ivy-read'."
     (setq ivy--index 0)
     (setq ivy-calling nil)
     (setq ivy-use-ignore ivy-use-ignore-default)
-    (let (reb)
-      (setq ivy--highlight-function
-            (if (and (eq ivy--regex-function 'swiper--re-builder)
-                     (setq reb (cdr (assoc t ivy-re-builders-alist)))
-                     (setq reb (cdr (assoc reb ivy-highlight-functions-alist))))
-                reb
-              (or (cdr (assoc ivy--regex-function
-                              ivy-highlight-functions-alist))
-                  #'ivy--highlight-default))))
+    (setq ivy--highlight-function
+          (or (cdr (assoc ivy--regex-function ivy-highlight-functions-alist))
+              #'ivy--highlight-default))
     (let (coll sort-fn)
       (cond ((eq collection 'Info-read-node-name-1)
              (if (equal Info-current-file "dir")
@@ -2637,8 +2646,10 @@ Otherwise, the car must not match."
   "Return all items that match NAME in CANDIDATES.
 CANDIDATES are assumed to be static."
   (let ((re (funcall ivy--regex-function name)))
-    (if (and (equal re ivy--old-re)
-             ivy--old-cands)
+    (if (and
+         ivy--old-re
+         ivy--old-cands
+         (equal re ivy--old-re))
         ;; quick caching for "C-n", "C-p" etc.
         ivy--old-cands
       (let* ((re-str (if (listp re) (caar re) re))
@@ -2676,12 +2687,7 @@ CANDIDATES are assumed to be static."
               (setq ivy--old-cands (ivy--sort name cands)))
           (setq ivy--old-cands (ivy--sort name cands))
           (ivy--recompute-index name re-str ivy--old-cands))
-        (setq ivy--old-re
-              (if (eq ivy--highlight-function 'ivy--highlight-ignore-order)
-                  re
-                (if ivy--old-cands
-                    re-str
-                  "")))
+        (setq ivy--old-re re)
         ivy--old-cands))))
 
 (defun ivy--set-candidates (x)
@@ -3000,14 +3006,6 @@ no sorting is done.")
     (error
      cands)))
 
-(defcustom ivy-format-function 'ivy-format-function-default
-  "Function to transform the list of candidates into a string.
-This string is inserted into the minibuffer."
-  :type '(choice
-          (const :tag "Default" ivy-format-function-default)
-          (const :tag "Arrow prefix" ivy-format-function-arrow)
-          (const :tag "Full line" ivy-format-function-line)))
-
 (defun ivy--truncate-string (str width)
   "Truncate STR to WIDTH."
   (if (> (string-width str) width)
@@ -3168,6 +3166,7 @@ CANDS is a list of strings."
         res))))
 
 (defvar recentf-list)
+(defvar bookmark-alist)
 
 (defcustom ivy-virtual-abbreviate 'name
   "The mode of abbreviation for virtual buffer names."
@@ -3176,25 +3175,21 @@ CANDS is a list of strings."
           (const :tag "Full path" full)
           ;; eventually, uniquify
           ))
+(declare-function bookmark-maybe-load-default-file "bookmark")
+(declare-function bookmark-get-filename "bookmark")
 
 (defun ivy--virtual-buffers ()
   "Adapted from `ido-add-virtual-buffers-to-list'."
+  (require 'bookmark)
   (unless recentf-mode
     (recentf-mode 1))
-  (let ((bookmarks (and (boundp 'bookmark-alist)
-                        (copy-sequence bookmark-alist)))
-        virtual-buffers)
+  (let (virtual-buffers)
+    (bookmark-maybe-load-default-file)
     (dolist (head (append
                    (copy-sequence recentf-list)
-                   (delq nil (mapcar
-                              (lambda (bookmark)
-                                (let (file)
-                                  (when (setq file (assoc 'filename bookmark))
-                                    (unless (string= (cdr file)
-                                                     "   - no file -")
-                                      (cons (car bookmark)
-                                            (cdr file))))))
-                              bookmarks))))
+                   (delete "   - no file -"
+                           (delq nil (mapcar #'bookmark-get-filename
+                                             (copy-sequence bookmark-alist))))))
       (let ((file-name (if (stringp head)
                            head
                          (cdr head)))
@@ -3694,8 +3689,15 @@ When `ivy-calling' isn't nil, call `ivy-occur-press'."
 (defvar ivy-occur-grep-mode-map
   (let ((map (copy-keymap ivy-occur-mode-map)))
     (define-key map (kbd "C-x C-q") 'ivy-wgrep-change-to-wgrep-mode)
+    (define-key map (kbd "C-d") 'ivy-occur-delete-candidate)
     map)
   "Keymap for Ivy Occur Grep mode.")
+
+(defun ivy-occur-delete-candidate ()
+  (interactive)
+  (let ((inhibit-read-only t))
+    (delete-region (line-beginning-position)
+                   (1+ (line-end-position)))))
 
 (define-derived-mode ivy-occur-grep-mode grep-mode "Ivy-Occur"
   "Major mode for output from \\[ivy-occur].
