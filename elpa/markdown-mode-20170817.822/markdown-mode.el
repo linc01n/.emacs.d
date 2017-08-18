@@ -7,7 +7,7 @@
 ;; Maintainer: Jason R. Blevins <jblevins@xbeta.org>
 ;; Created: May 24, 2007
 ;; Version: 2.3-dev
-;; Package-Version: 20170812.1201
+;; Package-Version: 20170817.822
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: http://jblevins.org/projects/markdown-mode/
@@ -64,7 +64,16 @@
 
 ;;; Installation:
 
-;; The recommended way to install markdown-mode is to install the package
+;; _Note:_ To use all of the features of `markdown-mode', you'll need
+;; to install the Emacs package itself and also have a local Markdown
+;; processor installed (e.g., Markdown.pl, MultiMarkdown, or Pandoc).
+;; The external processor is not required for editing, but will be
+;; used for rendering HTML for preview and export. After installing
+;; the Emacs package, be sure to configure `markdown-command' to point
+;; to the preferred Markdown executable on your system.  See the
+;; Customization section below for more details.
+
+;; The recommended way to install `markdown-mode' is to install the package
 ;; from [MELPA Stable](https://stable.melpa.org/#/markdown-mode)
 ;; using `package.el'. First, configure `package.el' and the MELPA Stable
 ;; repository by adding the following to your `.emacs', `init.el',
@@ -345,7 +354,7 @@
 ;;     `markdown-live-preview-window-function' can be customized to open
 ;;     in a browser other than `eww'.  If you want to force the
 ;;     preview window to appear at the bottom or right, you can
-;;     customize `markdown-split-window-direction`.
+;;     customize `markdown-split-window-direction'.
 ;;
 ;;     To summarize:
 ;;
@@ -766,6 +775,11 @@
 ;;      the variable `markdown-code-lang-modes'.  This can be toggled
 ;;      interactively by pressing `C-c C-x C-f`
 ;;      (`markdown-toggle-fontify-code-blocks-natively').
+;;
+;;   * `markdown-gfm-uppercase-checkbox' - When non-nil, complete GFM
+;;     task list items with `[X]` instead of `[x]` (default: `nil').
+;;     This is useful for compatibility with `org-mode', which doesn't
+;;     recognize the lowercase variant.
 ;;
 ;; Additionally, the faces used for syntax highlighting can be modified to
 ;; your liking by issuing `M-x customize-group RET markdown-faces`
@@ -1347,6 +1361,12 @@ This applies to insertions done with
 `markdown-electric-backquote'."
   :group 'markdown
   :type 'boolean)
+
+(defcustom markdown-gfm-uppercase-checkbox nil
+  "If non-nil, use [X] for completed checkboxes, [x] otherwise."
+  :group 'markdown
+  :type 'boolean
+  :safe 'booleanp)
 
 (defcustom markdown-hide-urls nil
   "Hide URLs of inline links and reference tags of reference links.
@@ -2288,7 +2308,15 @@ is non-nil.
 Set this to a non-nil value to turn this feature on by default.
 You can interactively toggle the value of this variable with
 `markdown-toggle-markup-hiding', \\[markdown-toggle-markup-hiding],
-or from the Markdown > Show & Hide menu."
+or from the Markdown > Show & Hide menu.
+
+Markup hiding works by adding text properties to positions in the
+buffer---either the `invisible' property or the `display' property
+in cases where alternative glyphs are used (e.g., list bullets).
+This does not, however, affect printing or other output.
+Functions such as `htmlfontify-buffer' and `ps-print-buffer' will
+not honor these text properties.  For printing, it would be better
+to first convert to HTML or PDF (e.g,. using Pandoc)."
   :group 'markdown
   :type 'boolean
   :safe 'booleanp
@@ -2298,7 +2326,8 @@ or from the Markdown > Show & Hide menu."
 (defun markdown-toggle-markup-hiding (&optional arg)
   "Toggle the display or hiding of markup.
 With a prefix argument ARG, enable markup hiding if ARG is positive,
-and disable it otherwise."
+and disable it otherwise.
+See `markdown-hide-markup' for additional details."
   (interactive (list (or current-prefix-arg 'toggle)))
   (setq markdown-hide-markup
         (if (eq arg 'toggle)
@@ -8496,7 +8525,9 @@ Returns nil if there is no task list item at the point."
           ;; Advance to column of first non-whitespace after marker
           (forward-char (cl-fourth bounds))
           (cond ((looking-at "\\[ \\]")
-                 (replace-match "[x]" nil t)
+                 (replace-match
+                  (if markdown-gfm-uppercase-checkbox "[X]" "[x]")
+                  nil t)
                  (match-string-no-properties 0))
                 ((looking-at "\\[[xX]\\]")
                  (replace-match "[ ]" nil t)
