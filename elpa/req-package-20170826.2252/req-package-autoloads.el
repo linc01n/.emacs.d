@@ -5,7 +5,7 @@
 
 ;;;### (autoloads nil nil ("req-package-args.el" "req-package-cycles.el"
 ;;;;;;  "req-package-hooks.el" "req-package-pkg.el" "req-package-providers.el"
-;;;;;;  "req-package.el") (22887 32344 0 0))
+;;;;;;  "req-package.el") (22976 20383 0 0))
 
 ;;;***
 
