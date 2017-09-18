@@ -66,6 +66,14 @@ Should take same args as `message'."
   :group 'dired-async
   :type 'string)
 
+(defcustom dired-async-mode-lighter '(:eval
+                                      (when (eq major-mode 'dired-mode)
+                                        " Async"))
+  "Mode line lighter used for `dired-async-mode'."
+  :group 'dired-async
+  :risky t
+  :type 'sexp)
+
 (defface dired-async-message
     '((t (:foreground "yellow")))
   "Face used for mode-line message."
@@ -182,7 +190,8 @@ See `dired-create-files' for the behavior of arguments."
     (let (to)
       (dolist (from fn-list)
         (setq to (funcall name-constructor from))
-        (if (equal to from)
+        (if (and (equal to from)
+                 (null (eq file-creator 'backup-file)))
             (progn
               (setq to nil)
               (dired-log "Cannot %s to same file: %s\n"
@@ -283,7 +292,7 @@ ESC or `q' to not overwrite any of the remaining files,
                             ;; Inline `backup-file' as long as it is not
                             ;; available in emacs.
                             (defalias 'backup-file
-                                ;; Same feature as "cp --backup=numbered from to"
+                                ;; Same feature as "cp -f --backup=numbered from to"
                                 ;; Symlinks are copied as file from source unlike
                                 ;; `dired-copy-file' which is same as cp -d.
                                 ;; Directories are omitted.
@@ -337,8 +346,9 @@ ESC or `q' to not overwrite any of the remaining files,
 
 ;;;###autoload
 (define-minor-mode dired-async-mode
-    "Do dired actions asynchronously."
+  "Do dired actions asynchronously."
   :group 'dired-async
+  :lighter dired-async-mode-lighter
   :global t
   (if dired-async-mode
       (if (fboundp 'advice-add)
