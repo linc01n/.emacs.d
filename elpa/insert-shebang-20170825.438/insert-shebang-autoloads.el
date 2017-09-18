@@ -1,10 +1,10 @@
 ;;; insert-shebang-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (or (file-name-directory #$) (car load-path)))
+(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "insert-shebang" "insert-shebang.el" (22386
-;;;;;;  5308 0 0))
+;;;### (autoloads nil "insert-shebang" "insert-shebang.el" (22976
+;;;;;;  20400 0 0))
 ;;; Generated autoloads from insert-shebang.el
 
 (autoload 'insert-shebang "insert-shebang" "\
