@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/swiper
-;; Package-Version: 20170911.1036
+;; Package-Version: 20171107.1041
 ;; Version: 0.9.1
 ;; Package-Requires: ((emacs "24.1") (ivy "0.9.0"))
 ;; Keywords: matching
@@ -112,8 +112,9 @@
        (lambda (_)
          (with-ivy-window
            (move-beginning-of-line 1)
-           (perform-replace from to
-                            t t nil)))))))
+           (let ((inhibit-read-only t))
+             (perform-replace from to
+                              t t nil))))))))
 
 (defun swiper-all-query-replace ()
   "Start `query-replace' with string to replace from last search string."
@@ -247,7 +248,8 @@
     (recenter-top-bottom arg)))
 
 (defvar swiper-font-lock-exclude
-  '(bookmark-bmenu-mode
+  '(bbdb-mode
+    bookmark-bmenu-mode
     package-menu-mode
     gnus-summary-mode
     gnus-article-mode
@@ -276,8 +278,11 @@
     occur-edit-mode
     bongo-mode
     bongo-library-mode
+    magit-popup-mode
+    adoc-mode
     bongo-playlist-mode
     eww-mode
+    treemacs-mode
     twittering-mode
     vc-dir-mode
     rcirc-mode
