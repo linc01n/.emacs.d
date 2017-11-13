@@ -5,11 +5,11 @@
 ;; Author: Natalie Weizenbaum
 ;; URL: https://github.com/nex3/haml-mode
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
-;; Package-Version: 20170624.2148
+;; Package-Version: 20170923.2153
 ;; Package-X-Original-Version: 0
 ;; Created: 2007-03-08
 ;; By: Natalie Weizenbaum
-;; Keywords: markup, language, html
+;; Keywords: markup, languages, html
 
 ;;; Commentary:
 
@@ -477,11 +477,8 @@ changes in the initial region."
     (define-key map "\C-c\C-l" 'haml-output-buffer)
     map))
 
-(defalias 'haml-parent-mode
-  (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
-
 ;;;###autoload
-(define-derived-mode haml-mode haml-parent-mode "Haml"
+(define-derived-mode haml-mode prog-mode "Haml"
   "Major mode for editing Haml files.
 
 \\{haml-mode-map}"
