@@ -719,7 +719,7 @@ When ARG is t, exit with current text, ignoring the candidates."
   (let (dir)
     (cond
       ((equal ivy-text "/sudo::")
-       (setq dir (concat ivy-text ivy--directory))
+       (setq dir (concat ivy-text (expand-file-name ivy--directory)))
        (ivy--cd dir)
        (ivy--exhibit))
       ((and
@@ -1340,12 +1340,9 @@ This string is inserted into the minibuffer."
              (nreverse candidates)
              (avy--style-fn avy-style)))))
     (when (number-or-marker-p candidate)
-      (goto-char candidate)
-      (when (eq ivy-format-function 'ivy-format-function-arrow)
-        (forward-char 2))
       (ivy--done
-       (buffer-substring-no-properties
-        (point) (line-end-position))))))
+       (substring-no-properties
+        (nth (- (line-number-at-pos candidate) 2) ivy--old-cands))))))
 
 (defun ivy-sort-file-function-default (x y)
   "Compare two files X and Y.
@@ -1465,7 +1462,7 @@ like.")
     (counsel-M-x . "^")
     (counsel-describe-function . "^")
     (counsel-describe-variable . "^")
-    (man . "^")
+    (Man-completion-table . "^")
     (woman . "^"))
   "Command to initial input table.")
 
@@ -1659,7 +1656,8 @@ customizations apply to the current completion session."
                                                (cdr (symbol-value hist))))))))
                  (ivy-state-current ivy-last)))
           (remove-hook 'post-command-hook #'ivy--exhibit)
-          (ivy-overlay-cleanup)
+          (when (eq ivy-display-function 'ivy-display-function-overlay)
+            (ivy-overlay-cleanup))
           (when (setq unwind (ivy-state-unwind ivy-last))
             (funcall unwind))
           (unless (eq ivy-exit 'done)
@@ -1793,6 +1791,8 @@ This is useful for recursive `ivy-read'."
              (setq coll (all-completions "" collection predicate)))
             (t
              (setq coll collection)))
+      (unless (ivy-state-dynamic-collection ivy-last)
+        (setq coll (delete "" coll)))
       (when def
         (cond ((listp def)
                (setq coll (cl-union def coll :test 'equal)))
@@ -2002,36 +2002,53 @@ See `completion-in-region' for further information."
          (ivy--prompts-list (if (window-minibuffer-p)
                                 ivy--prompts-list
                               '(ivy-completion-in-region (lambda nil)))))
-    (if (null comps)
-        (message "No matches")
-      (let ((len (min (ivy-completion-common-length (car comps))
-                      (length str))))
-        (nconc comps nil)
-        (setq ivy-completion-beg (- end len))
-        (setq ivy-completion-end end)
-        (if (null (cdr comps))
-            (if (string= str (car comps))
-                (message "Sole match")
-              (unless (minibuffer-window-active-p (selected-window))
-                (setf (ivy-state-window ivy-last) (selected-window)))
-              (ivy-completion-in-region-action
-               (substring-no-properties
-                (car comps))))
-          (let* ((w (1+ (floor (log (length comps) 10))))
-                 (ivy-count-format (if (string= ivy-count-format "")
-                                       ivy-count-format
-                                     (format "%%-%dd " w)))
-                 (prompt (format "(%s): " str)))
-            (and
-             (ivy-read (if (string= ivy-count-format "")
-                           prompt
-                         (replace-regexp-in-string "%" "%%" prompt))
-                       ;; remove 'completions-first-difference face
-                       (mapcar #'substring-no-properties comps)
-                       :predicate predicate
-                       :action #'ivy-completion-in-region-action
-                       :caller 'ivy-completion-in-region)
-             t)))))))
+    (cond ((null comps)
+           (message "No matches"))
+          ((progn
+             (nconc comps nil)
+             (and (null (cdr comps))
+                  (string= str (car comps))))
+           (message "Sole match"))
+          (t
+           (let* ((len (ivy-completion-common-length (car comps)))
+                  (str-len (length str))
+                  (initial (cond ((= len 0)
+                                  "")
+                                 ((> len str-len)
+                                  (setq len str-len)
+                                  str)
+                                 (t
+                                  (substring str (- len))))))
+             (delete-region (- end len) end)
+             (setq ivy-completion-beg (- end len))
+             (setq ivy-completion-end ivy-completion-beg)
+             (if (null (cdr comps))
+                 (progn
+                   (unless (minibuffer-window-active-p (selected-window))
+                     (setf (ivy-state-window ivy-last) (selected-window)))
+                   (ivy-completion-in-region-action
+                    (substring-no-properties
+                     (car comps))))
+               (let* ((w (1+ (floor (log (length comps) 10))))
+                      (ivy-count-format (if (string= ivy-count-format "")
+                                            ivy-count-format
+                                          (format "%%-%dd " w)))
+                      (prompt (format "(%s): " str)))
+                 (and
+                  (ivy-read (if (string= ivy-count-format "")
+                                prompt
+                              (replace-regexp-in-string "%" "%%" prompt))
+                            ;; remove 'completions-first-difference face
+                            (mapcar #'substring-no-properties comps)
+                            :predicate predicate
+                            :initial-input initial
+                            :action #'ivy-completion-in-region-action
+                            :unwind (lambda ()
+                                      (unless (eq ivy-exit 'done)
+                                        (goto-char ivy-completion-beg)
+                                        (insert initial)))
+                            :caller 'ivy-completion-in-region)
+                  t))))))))
 
 (defcustom ivy-do-completion-in-region t
   "When non-nil `ivy-mode' will set `completion-in-region-function'."
@@ -2393,12 +2410,12 @@ STD-PROPS is a property list containing the default text properties."
                                  counsel-find-symbol))
       (setq ivy--prompt-extra ""))
     (let (head tail)
-      (if (string-match "\\(.*\\): \\'" ivy--prompt)
+      (if (string-match "\\(.*?\\)\\(:? ?\\)\\'" ivy--prompt)
           (progn
             (setq head (match-string 1 ivy--prompt))
-            (setq tail ": "))
-        (setq head (substring ivy--prompt 0 -1))
-        (setq tail " "))
+            (setq tail (match-string 2 ivy--prompt)))
+        (setq head ivy--prompt)
+        (setq tail ""))
       (let ((inhibit-read-only t)
             (std-props '(front-sticky t rear-nonsticky t field t read-only t))
             (n-str
@@ -2570,7 +2587,8 @@ Should be run via minibuffer `post-command-hook'."
                     (ivy--sort-maybe
                      (funcall (ivy-state-collection ivy-last) ivy-text)))
               (setq ivy--old-text ivy-text)))
-          (when ivy--all-candidates
+          (when (or ivy--all-candidates
+                    (not (get-process " *counsel*")))
             (ivy--insert-minibuffer
              (ivy--format ivy--all-candidates))))
       (cond (ivy--directory
@@ -3720,6 +3738,7 @@ buffer would modify `ivy-last'.")
     (define-key map (kbd "o") 'ivy-occur-dispatch)
     (define-key map (kbd "c") 'ivy-occur-toggle-calling)
     (define-key map (kbd "q") 'quit-window)
+    (define-key map (kbd "R") 'read-only-mode)
     map)
   "Keymap for Ivy Occur mode.")
 
