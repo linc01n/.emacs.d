@@ -2,7 +2,7 @@
 ;; Author: Vegard Øye <vegard_oye at hotmail.com>
 ;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
 
-;; Version: 1.2.12
+;; Version: 1.2.13
 
 ;;
 ;; This file is NOT part of GNU Emacs.
@@ -175,7 +175,7 @@ To enable Evil globally, do (evil-mode 1)."
     (evil-local-mode 1)
     (evil-initialize-state)))
 
-;;;###autoload (autoload 'evil-mode "evil")
+;;;###autoload (autoload 'evil-mode "evil" nil t)
 (define-globalized-minor-mode evil-mode
   evil-local-mode evil-initialize)
 

@@ -2,7 +2,7 @@
 ;; Author: Vegard Øye <vegard_oye at hotmail.com>
 ;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
 
-;; Version: 1.2.12
+;; Version: 1.2.13
 
 ;;
 ;; This file is NOT part of GNU Emacs.
@@ -2474,12 +2474,18 @@ The tracked insertion is set to `evil-last-insertion'."
       (unless (eq register ?_)
         (kill-new text)))))
 
+(defun evil-remove-yank-excluded-properties (text)
+  "Removes `yank-excluded-properties' from TEXT."
+  (if (eq yank-excluded-properties t)
+      (set-text-properties 0 (length text) nil text)
+    (remove-list-of-text-properties 0 (length text)
+                                    yank-excluded-properties text)))
+
 (defun evil-yank-line-handler (text)
   "Inserts the current text linewise."
   (let ((text (apply #'concat (make-list (or evil-paste-count 1) text)))
         (opoint (point)))
-    (remove-list-of-text-properties
-     0 (length text) yank-excluded-properties text)
+    (evil-remove-yank-excluded-properties text)
     (cond
      ((eq this-command 'evil-paste-before)
       (evil-move-beginning-of-line)
@@ -2545,13 +2551,12 @@ The tracked insertion is set to `evil-last-insertion'."
           (if (< (evil-column (line-end-position)) col)
               (move-to-column (+ col begextra) t)
             (move-to-column col t)
-            (insert (make-string begextra ? )))
-          (remove-list-of-text-properties 0 (length text)
-                                          yank-excluded-properties text)
+            (insert (make-string begextra ?\s)))
+          (evil-remove-yank-excluded-properties text)
           (insert text)
           (unless (eolp)
             ;; text follows, so we have to insert spaces
-            (insert (make-string endextra ? )))
+            (insert (make-string endextra ?\s)))
           (setq epoint (point)))
         (forward-line 1)))
     (setq evil-last-paste
@@ -2941,12 +2946,10 @@ This can be overridden with TYPE."
 (defun evil-select-inner-object (thing beg end type &optional count line)
   "Return an inner text object range of COUNT objects.
 If COUNT is positive, return objects following point; if COUNT is
-negative, return objects preceding point.  FORWARD is a function
-which moves to the end of an object, and BACKWARD is a function
-which moves to the beginning.  If one is unspecified, the other
-is used with a negative argument.  THING is a symbol understood
-by thing-at-point. BEG, END and TYPE specify the current
-selection. If LINE is non-nil, the text object should be
+negative, return objects preceding point.  If one is unspecified,
+the other is used with a negative argument.  THING is a symbol
+understood by thing-at-point.  BEG, END and TYPE specify the
+current selection.  If LINE is non-nil, the text object should be
 linewise, otherwise it is character wise."
   (let* ((count (or count 1))
          (bnd (or (let ((b (bounds-of-thing-at-point thing)))
@@ -2973,12 +2976,10 @@ linewise, otherwise it is character wise."
 (defun evil-select-an-object (thing beg end type count &optional line)
   "Return an outer text object range of COUNT objects.
 If COUNT is positive, return objects following point; if COUNT is
-negative, return objects preceding point.  FORWARD is a function
-which moves to the end of an object, and BACKWARD is a function
-which moves to the beginning.  If one is unspecified, the other
-is used with a negative argument.  THING is a symbol understood
-by thing-at-point. BEG, END and TYPE specify the current
-selection. If LINE is non-nil, the text object should be
+negative, return objects preceding point.  If one is unspecified,
+the other is used with a negative argument.  THING is a symbol
+understood by thing-at-point.  BEG, END and TYPE specify the
+current selection.  If LINE is non-nil, the text object should be
 linewise, otherwise it is character wise."
   (let* ((dir (if (> (or count 1) 0) +1 -1))
          (count (abs (or count 1)))
@@ -3453,7 +3454,7 @@ is stored in `evil-temporary-undo' instead of `buffer-undo-list'."
            (debug t))
   `(unwind-protect
        (let (buffer-undo-list)
-         (prog1
+         (unwind-protect
              (progn ,@body)
            (setq evil-temporary-undo buffer-undo-list)
            ;; ensure evil-temporary-undo starts with exactly one undo
@@ -3615,26 +3616,26 @@ transformations, usually `regexp-quote' or `replace-quote'."
         (cons repl str)))))
 
 (defconst evil-vim-regexp-replacements
-  '((?n . "\n")           (?r . "\r")
-    (?t . "\t")           (?b . "\b")
-    (?s . "[[:space:]]")  (?S . "[^[:space:]]")
-    (?d . "[[:digit:]]")  (?D . "[^[:digit:]]")
-    (?x . "[[:xdigit:]]") (?X . "[^[:xdigit:]]")
-    (?o . "[0-7]")        (?O . "[^0-7]")
-    (?a . "[[:alpha:]]")  (?A . "[^[:alpha:]]")
-    (?l . "[a-z]")        (?L . "[^a-z]")
-    (?u . "[A-Z]")        (?U . "[^A-Z]")
-    (?y . "\\s")          (?Y . "\\S")
-    (?( . "\\(")          (?) . "\\)")
-    (?{ . "\\{")          (?} . "\\}")
-    (?[ . "[")            (?] . "]")
-    (?< . "\\<")          (?> . "\\>")
-    (?_ . "\\_")
-    (?* . "*")            (?+ . "+")
-    (?? . "?")            (?= . "?")
-    (?. . ".")
-    (?` . "`")            (?^ . "^")
-    (?$ . "$")            (?| . "\\|")))
+  '((?n  . "\n")           (?r  . "\r")
+    (?t  . "\t")           (?b  . "\b")
+    (?s  . "[[:space:]]")  (?S  . "[^[:space:]]")
+    (?d  . "[[:digit:]]")  (?D  . "[^[:digit:]]")
+    (?x  . "[[:xdigit:]]") (?X  . "[^[:xdigit:]]")
+    (?o  . "[0-7]")        (?O  . "[^0-7]")
+    (?a  . "[[:alpha:]]")  (?A  . "[^[:alpha:]]")
+    (?l  . "[a-z]")        (?L  . "[^a-z]")
+    (?u  . "[A-Z]")        (?U  . "[^A-Z]")
+    (?y  . "\\s")          (?Y  . "\\S")
+    (?\( . "\\(")          (?\) . "\\)")
+    (?{  . "\\{")          (?}  . "\\}")
+    (?\[ . "[")            (?\] . "]")
+    (?<  . "\\<")          (?>  . "\\>")
+    (?_  . "\\_")
+    (?*  . "*")            (?+  . "+")
+    (??  . "?")            (?=  . "?")
+    (?.  . ".")
+    (?`  . "`")            (?^  . "^")
+    (?$  . "$")            (?|  . "\\|")))
 
 (defconst evil-regexp-magic "[][(){}<>_dDsSxXoOaAlLuUwWyY.*+?=^$`|nrtb]")
 

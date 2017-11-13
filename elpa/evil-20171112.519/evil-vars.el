@@ -3,7 +3,7 @@
 ;; Author: Vegard Øye <vegard_oye at hotmail.com>
 ;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
 
-;; Version: 1.2.12
+;; Version: 1.2.13
 
 ;;
 ;; This file is NOT part of GNU Emacs.
@@ -1320,7 +1320,7 @@ type.")
 (evil-define-local-var evil-this-register nil
   "Current register.")
 
-(evil-define-local-var evil-this-macro nil
+(defvar evil-this-macro nil
   "Current macro register.")
 
 (evil-define-local-var evil-this-operator nil
@@ -1650,7 +1650,14 @@ Elements have the form (NAME . FUNCTION).")
      :toggle     ,(lambda () (origami-toggle-node (current-buffer) (point)))
      :open       ,(lambda () (origami-open-node (current-buffer) (point)))
      :open-rec   ,(lambda () (origami-open-node-recursively (current-buffer) (point)))
-     :close      ,(lambda () (origami-close-node (current-buffer) (point)))))
+     :close      ,(lambda () (origami-close-node (current-buffer) (point))))
+    ((vdiff-mode)
+     :open-all   vdiff-open-all-folds
+     :close-all  vdiff-close-all-folds
+     :toggle     nil
+     :open       ,(lambda () (call-interactively 'vdiff-open-fold))
+     :open-rec   ,(lambda () (call-interactively 'vdiff-open-fold))
+     :close      ,(lambda () (call-interactively 'vdiff-close-fold))))
   "Actions to be performed for various folding operations.
 
 The value should be a list of fold handlers, were a fold handler has
@@ -1823,6 +1830,7 @@ Otherwise the previous command is assumed as substitute.")
 
 (defvar evil-ex-search-keymap (make-sparse-keymap)
   "Keymap used in ex-search-mode.")
+(define-key evil-ex-search-keymap [escape] 'abort-recursive-edit)
 (set-keymap-parent evil-ex-search-keymap minibuffer-local-map)
 
 (defconst evil-version
@@ -1842,7 +1850,7 @@ Otherwise the previous command is assumed as substitute.")
                       (buffer-substring (point-min)
                                         (line-end-position))))
           ;; no repo, use plain version
-          "1.2.12"))))
+          "1.2.13"))))
   "The current version of Evil")
 
 (defun evil-version ()

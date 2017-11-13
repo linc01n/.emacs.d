@@ -3,7 +3,7 @@
 ;; Author: Frank Fischer <frank fischer at mathematik.tu-chemnitz.de>
 ;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
 
-;; Version: 1.2.12
+;; Version: 1.2.13
 
 ;;
 ;; This file is NOT part of GNU Emacs.
@@ -458,6 +458,13 @@ in case of incomplete or unknown commands."
 (defun evil-ex-argument-completion-at-point ()
   (let ((context (evil-ex-syntactic-context (1- (point)))))
     (when (memq 'argument context)
+      ;; if it's an autoload, load the function; this allows external
+      ;; packages to register autoloaded ex commands which will be
+      ;; loaded when ex argument completion is triggered
+      (let ((binding-definition (symbol-function (evil-ex-binding evil-ex-cmd))))
+        (when (autoloadp binding-definition)
+          (autoload-do-load binding-definition)))
+
       (let* ((beg (or (and evil-ex-argument
                            (get-text-property 0 'ex-index evil-ex-argument))
                       (point)))
