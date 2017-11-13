@@ -1,10 +1,10 @@
-;;; avy.el --- tree-based completion -*- lexical-binding: t -*-
+;;; avy.el --- Jump to arbitrary positions in visible text and select text quickly. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015  Free Software Foundation, Inc.
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/avy
-;; Package-Version: 20170819.1039
+;; Package-Version: 20171111.921
 ;; Version: 0.4.0
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: point, location
@@ -26,15 +26,23 @@
 
 ;;; Commentary:
 ;;
-;; This package provides a generic completion method based on building
-;; a balanced decision tree with each candidate being a leaf.  To
-;; traverse the tree from the root to a desired leaf, typically a
-;; sequence of `read-key' can be used.
+;; With Avy, you can move point to any position in Emacs – even in a
+;; different window – using very few keystrokes. For this, you look at
+;; the position where you want point to be, invoke Avy, and then enter
+;; the sequence of characters displayed at that position.
 ;;
-;; In order for `read-key' to make sense, the tree needs to be
-;; visualized appropriately, with a character at each branch node.  So
-;; this completion method works only for things that you can see on
-;; your screen, all at once:
+;; If the position you want to jump to can be determined after only
+;; issuing a single keystroke, point is moved to the desired position
+;; immediately after that keystroke. In case this isn't possible, the
+;; sequence of keystrokes you need to enter is comprised of more than
+;; one character. Avy uses a decision tree where each candidate position
+;; is a leaf and each edge is described by a character which is distinct
+;; per level of the tree. By entering those characters, you navigate the
+;; tree, quickly arriving at the desired candidate position, such that
+;; Avy can move point to it.
+;;
+;; Note that this only makes sense for positions you are able to see
+;; when invoking Avy. These kinds of positions are supported:
 ;;
 ;; * character positions
 ;; * word or subword start positions
@@ -124,7 +132,8 @@ keys different than the following: a, e, i, o, u, y"
   "Words to use in case `avy-style' is set to `words'.
 Every word should contain at least one vowel i.e. one of the following
 characters: a, e, i, o, u, y
-They do not have to be sorted but no word should be a prefix of another one.")
+They do not have to be sorted but no word should be a prefix of another one."
+  :type '(repeat string))
 
 (defcustom avy-style 'at-full
   "The default method of displaying the overlays.
