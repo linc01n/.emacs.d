@@ -3,8 +3,15 @@
 ;;; Code:
 (add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
 
-;;;### (autoloads nil "rake" "rake.el" (22887 32345 0 0))
+;;;### (autoloads nil "rake" "rake.el" (22995 36375 0 0))
 ;;; Generated autoloads from rake.el
+
+(autoload 'rake-compile "rake" "\
+Runs TASK-NAME from the directory returned by `rake--root'.
+The optional MODE can be passed to specify
+which mode the compilation buffer should run in.
+
+\(fn TASK-NAME &optional MODE)" nil nil)
 
 (autoload 'rake-rerun "rake" "\
 Re-runs the last task
