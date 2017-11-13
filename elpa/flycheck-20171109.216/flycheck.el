@@ -9,7 +9,7 @@
 ;;             fmdkdd <fmdkdd@gmail.com>
 ;; URL: http://www.flycheck.org
 ;; Keywords: convenience, languages, tools
-;; Version: 31-cvs
+;; Version: 32-cvs
 ;; Package-Requires: ((dash "2.12.1") (pkg-info "0.4") (let-alist "1.0.4") (seq "1.11") (emacs "24.3"))
 
 ;; This file is not part of GNU Emacs.
@@ -203,6 +203,7 @@ attention to case differences."
     javascript-standard
     json-jsonlint
     json-python-json
+    jsonnet
     less
     less-stylelint
     llvm-llc
@@ -3268,7 +3269,7 @@ nil."
                    (if (or .error .warning)
                        (format ":%s/%s" (or .error 0) (or .warning 0))
                      "")))
-                (`interrupted "-")
+                (`interrupted ".")
                 (`suspicious "?"))))
     (concat " " flycheck-mode-line-prefix text)))
 
@@ -5524,15 +5525,26 @@ Wrapper around `xml-parse-region' which transforms the return
 value of this function into one compatible to
 `libxml-parse-xml-region' by simply returning the first element
 from the node list."
-  (car (xml-parse-region beg end)))
+  (ignore-errors (car (xml-parse-region beg end))))
 
-(defvar flycheck-xml-parser
-  (if (fboundp 'libxml-parse-xml-region)
-      'libxml-parse-xml-region 'flycheck-parse-xml-region)
-  "Parse an xml string from a region.
+(defun flycheck-parse-xml-region-with-fallback (beg end)
+  "Parse the xml region between BEG and END.
 
-Use libxml if Emacs is built with libxml support.  Otherwise fall
-back to `xml-parse-region', via `flycheck-parse-xml-region'.")
+Try parsing with libxml first; if that fails, revert to
+`flycheck-parse-xml-region'.  Failures can be caused by incorrect
+XML (see URL `https://github.com/flycheck/flycheck/issues/1298'),
+or on Windows by a missing libxml DLL with a libxml-enabled Emacs
+\(see URL `https://github.com/flycheck/flycheck/issues/1330')."
+  ;; FIXME use `libxml-available-p' when it gets implemented.
+  (or (and (fboundp 'libxml-parse-xml-region)
+           (libxml-parse-xml-region beg end))
+      (flycheck-parse-xml-region beg end)))
+
+(defvar flycheck-xml-parser 'flycheck-parse-xml-region-with-fallback
+  "Function used to parse an xml string from a region.
+
+The default uses libxml if available, and falls back to
+`flycheck-parse-xml-region' otherwise.")
 
 (defun flycheck-parse-xml-string (xml)
   "Parse an XML string.
@@ -6511,6 +6523,18 @@ non-nil, pass the standards via one or more `--std=' options."
   :package-version '(flycheck . "28"))
 (make-variable-buffer-local 'flycheck-cppcheck-standards)
 
+(flycheck-def-option-var flycheck-cppcheck-suppressions-file nil c/c++-cppcheck
+  "The suppressions file to use in cppcheck.
+
+The value of this variable is a file with the suppressions to
+use, or nil to pass nothing to cppcheck.  When non-nil, pass the
+suppressions file via the `--suppressions-list=' option."
+  :type '(choice (const :tag "Default" nil)
+                 (file :tag "Suppressions file"))
+  :safe #'stringp
+  :package-version '(flycheck . "32"))
+(make-variable-buffer-local 'flycheck-cppcheck-suppressions-file)
+
 (flycheck-def-option-var flycheck-cppcheck-suppressions nil c/c++-cppcheck
   "The suppressions to use in cppcheck.
 
@@ -6556,6 +6580,7 @@ See URL `http://cppcheck.sourceforge.net/'."
             (option-list "-I" flycheck-cppcheck-include-path)
             (option-list "--std=" flycheck-cppcheck-standards concat)
             (option-list "--suppress=" flycheck-cppcheck-suppressions concat)
+            (option "--suppressions-list=" flycheck-cppcheck-suppressions-file concat)
             "-x" (eval
                   (pcase major-mode
                     (`c++-mode "c++")
@@ -7194,7 +7219,7 @@ See Info Node `(elisp)Byte Compilation'."
 
 Variables are taken from `flycheck-emacs-lisp-checkdoc-variables'."
   `(progn
-     ,@(seq-map (lambda (opt) `(setq-default ,opt ,(symbol-value opt)))
+     ,@(seq-map (lambda (opt) `(setq-default ,opt ',(symbol-value opt)))
                 (seq-filter #'boundp flycheck-emacs-lisp-checkdoc-variables))))
 
 (flycheck-define-checker emacs-lisp-checkdoc
@@ -7698,7 +7723,8 @@ See URL `http://haml.info'."
   :command ("haml" "-c" "--stdin")
   :standard-input t
   :error-patterns
-  ((error line-start "Syntax error on line " line ": " (message) line-end))
+  ((error line-start "Syntax error on line " line ": " (message) line-end)
+   (error line-start ":" line ": syntax error, " (message) line-end))
   :modes haml-mode)
 
 (flycheck-define-checker handlebars
@@ -9068,7 +9094,10 @@ Otherwise report style issues as well."
 You need at least RuboCop 0.34 for this syntax checker.
 
 See URL `http://batsov.com/rubocop/'."
-  :command ("rubocop" "--display-cop-names" "--format" "emacs"
+  :command ("rubocop"
+            "--display-cop-names"
+            "--force-exclusion"
+            "--format" "emacs"
             ;; Explicitly disable caching to prevent Rubocop 0.35.1 and earlier
             ;; from caching standard input.  Later versions of Rubocop
             ;; automatically disable caching with --stdin, see
@@ -9991,6 +10020,16 @@ See URL `http://www.ruby-doc.org/stdlib-2.0.0/libdoc/yaml/rdoc/YAML.html'."
   ((error line-start "stdin:" (zero-or-more not-newline) ":" (message)
           "at line " line " column " column line-end))
   :modes yaml-mode)
+
+(flycheck-define-checker jsonnet
+  "A Jsonnet syntax checker using the jsonnet binary.
+
+See URL `https://jsonnet.org'."
+  :command ("jsonnet" source-inplace)
+  :error-patterns
+  ((error line-start "STATIC ERROR: " (file-name) ":" line ":" column (zero-or-one (group "-" (one-or-more digit))) ": " (message) line-end)
+   (error line-start "RUNTIME ERROR: " (message) "\n" (one-or-more space) (file-name) ":" (zero-or-one "(") line ":" column (zero-or-more not-newline) line-end))
+  :modes jsonnet-mode)
 
 (provide 'flycheck)
 
