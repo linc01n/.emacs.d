@@ -25,7 +25,7 @@
 
 (defun spaceline--theme (left second-left &rest additional-segments)
   "Convenience function for the spacemacs and emacs themes."
-  (spaceline-install
+  (spaceline-compile
     `(,left
       (anzu :priority 4)
       auto-compile
@@ -94,8 +94,8 @@ ADDITIONAL-SEGMENTS are inserted on the right, between `global' and
            :priority 5)
          additional-segments))
 
-;; Helm custom mode
-;; ================
+;;; Helm custom mode
+;;  ================
 
 (defvar helm-ag-show-status-function)
 
@@ -108,13 +108,13 @@ ADDITIONAL-SEGMENTS are inserted on the right, between `global' and
   :global t
   (if spaceline-helm-mode
       (progn
-        (spaceline-install 'helm
+        (spaceline-compile 'helm
           '((helm-buffer-id :face highlight-face)
             helm-number
             helm-follow
             helm-prefix-argument)
           '(helm-help))
-        (spaceline-install 'helm-done
+        (spaceline-compile 'helm-done
           '(((helm-buffer-id helm-done) :face highlight-face)
             helm-number
             helm-follow
@@ -130,8 +130,8 @@ ADDITIONAL-SEGMENTS are inserted on the right, between `global' and
     (setq helm-ag-show-status-function 'helm-ag-show-status-default-mode-line)
     (ad-deactivate 'helm-display-mode-line)))
 
-;; Info custom mode
-;; ================
+;;; Info custom mode
+;;  ================
 
 (define-minor-mode spaceline-info-mode
   "Customize the mode-line in info.
@@ -140,7 +140,7 @@ This minor mode requires info+."
   :global t
   (if spaceline-info-mode
       (progn
-        (spaceline-install 'info '(info-topic (info-nodes :separator " > ")) nil)
+        (spaceline-compile 'info '(info-topic (info-nodes :separator " > ")) nil)
         (defadvice Info-set-mode-line (after spaceline-info)
           "Set up a custom info modeline."
           (if (featurep 'info+)
