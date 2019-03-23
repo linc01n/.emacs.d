@@ -1,6 +1,6 @@
 ;;; with-editor.el --- Use the Emacsclient as $EDITOR -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2017  The Magit Project Contributors
+;; Copyright (C) 2014-2018  The Magit Project Contributors
 ;;
 ;; You should have received a copy of the AUTHORS.md file.  If not,
 ;; see https://github.com/magit/with-editor/blob/master/AUTHORS.md.
@@ -122,7 +122,9 @@ please see https://github.com/magit/magit/wiki/Emacsclient."))))
   (let* ((version-lst (cl-subseq (split-string emacs-version "\\.") 0 depth))
          (version-reg (concat "^" (mapconcat #'identity version-lst "\\."))))
     (or (locate-file-internal
-         (if (equal invocation-name "remacs") "remacsclient" "emacsclient")
+         (if (equal (downcase invocation-name) "remacs")
+             "remacsclient"
+           "emacsclient")
          path
          (cl-mapcan
           (lambda (v) (cl-mapcar (lambda (e) (concat v e)) exec-suffixes))
@@ -171,7 +173,7 @@ please see https://github.com/magit/magit/wiki/Emacsclient."))))
 
 (defcustom with-editor-sleeping-editor "\
 sh -c '\
-echo \"WITH-EDITOR: $$ OPEN $0\"; \
+echo \"WITH-EDITOR: $$ OPEN $0 IN $(pwd)\"; \
 sleep 604800 & sleep=$!; \
 trap \"kill $sleep; exit 0\" USR1; \
 trap \"kill $sleep; exit 1\" USR2; \
@@ -200,15 +202,19 @@ with \"bash\" (and install that), or you can use the older, less
 performant implementation:
 
   \"sh -c '\\
-  echo \\\"WITH-EDITOR: $$ OPEN $0\\\"; \\
+  echo \\\"WITH-EDITOR: $$ OPEN $0 IN $(pwd)\\\"; \\
   trap \\\"exit 0\\\" USR1; \\
   trap \\\"exit 1\" USR2; \\
   while true; do sleep 1; done'\"
 
-Note that this leads to a delay of up to a second.  The delay can
-be shortened by replacing \"sleep 1\" with \"sleep 0.01\", or if your
-implementation does not support floats, then by using `nanosleep'
-instead."
+Note that the unit seperator character () right after the file
+name ($0) is required.
+
+Also note that using this alternative implementation leads to a
+delay of up to a second.  The delay can be shortened by replacing
+\"sleep 1\" with \"sleep 0.01\", or if your implementation does
+not support floats, then by using \"nanosleep\" instead."
+  :package-version '(with-editor . "2.8.0")
   :group 'with-editor
   :type 'string)
 
@@ -262,6 +268,38 @@ When a filename matches any of the regexps, then `server-visit'
 does not add it to the variable `file-name-history', which is
 used when reading a filename in the minibuffer.")
 
+(defcustom with-editor-shell-command-use-emacsclient t
+  "Whether to use the emacsclient when running shell commands.
+
+This affects `with-editor-shell-command-async' and, if the input
+ends with \"&\" `with-editor-shell-command' .
+
+If `shell-command-with-editor-mode' is enabled, then it also
+affects `shell-command-async' and, if the input ends with \"&\"
+`shell-command'.
+
+This is a temporary kludge that lets you choose between two
+possible defects, the ones described in the issues #23 and #40.
+
+When t, then use the emacsclient.  This has the disadvantage that
+`with-editor-mode' won't be enabled because we don't know whether
+this package was involved at all in the call to the emacsclient,
+and when it is not, then we really should.  The problem is that
+the emacsclient doesn't pass a long any environment variables to
+the server.  This will hopefully be fixed in Emacs eventually.
+
+When nil, then use the sleeping editor.  Because in this case we
+know that this package is involved, we can enable the mode.  But
+this makes it necessary that you invoke $EDITOR in shell scripts
+like so:
+
+  eval \"$EDITOR\" file
+
+And some tools that do not handle $EDITOR properly also break."
+  :package-version '(with-editor . "2.7.1")
+  :group 'with-editor
+  :type 'boolean)
+
 ;;; Mode Commands
 
 (defvar with-editor-pre-finish-hook nil)
@@ -293,12 +331,18 @@ used when reading a filename in the minibuffer.")
   (interactive "P")
   (when (run-hook-with-args-until-failure
          'with-editor-finish-query-functions force)
-    (let ((with-editor-post-finish-hook-1
-           (ignore-errors (delq t with-editor-post-finish-hook))))
+    (let ((post-finish-hook with-editor-post-finish-hook)
+          (post-commit-hook (bound-and-true-p git-commit-post-finish-hook))
+          (dir default-directory))
       (run-hooks 'with-editor-pre-finish-hook)
       (with-editor-return nil)
       (accept-process-output nil 0.1)
-      (run-hooks 'with-editor-post-finish-hook-1))))
+      (with-temp-buffer
+        (setq default-directory dir)
+        (setq-local with-editor-post-finish-hook post-finish-hook)
+        (when (bound-and-true-p git-commit-post-finish-hook)
+          (setq-local git-commit-post-finish-hook post-commit-hook))
+        (run-hooks 'with-editor-post-finish-hook)))))
 
 (defun with-editor-cancel (force)
   "Cancel the current edit session."
@@ -308,13 +352,16 @@ used when reading a filename in the minibuffer.")
     (let ((message with-editor-cancel-message))
       (when (functionp message)
         (setq message (funcall message)))
-      (let ((with-editor-post-cancel-hook-1
-             (ignore-errors (delq t with-editor-post-cancel-hook)))
-            (with-editor-cancel-alist nil))
+      (let ((post-cancel-hook with-editor-post-cancel-hook)
+            (with-editor-cancel-alist nil)
+            (dir default-directory))
         (run-hooks 'with-editor-pre-cancel-hook)
         (with-editor-return t)
         (accept-process-output nil 0.1)
-        (run-hooks 'with-editor-post-cancel-hook-1))
+        (with-temp-buffer
+          (setq default-directory dir)
+          (setq-local with-editor-post-cancel-hook post-cancel-hook)
+          (run-hooks 'with-editor-post-cancel-hook)))
       (message (or message "Canceled by user")))))
 
 (defun with-editor-return (cancel)
@@ -406,12 +453,26 @@ or \\[with-editor-cancel] to cancel"))))))
   "Use the Emacsclient as $EDITOR while evaluating BODY.
 Modify the `process-environment' for processes started in BODY,
 instructing them to use the Emacsclient as $EDITOR.  If optional
-ENVVAR is provided then bind that environment variable instead.
+ENVVAR is a literal string then bind that environment variable
+instead.
 \n(fn [ENVVAR] BODY...)"
   (declare (indent defun) (debug (body)))
   `(let ((with-editor--envvar ,(if (stringp (car body))
                                    (pop body)
                                  '(or with-editor--envvar "EDITOR")))
+         (process-environment process-environment))
+     (with-editor--setup)
+     ,@body))
+
+(defmacro with-editor* (envvar &rest body)
+  "Use the Emacsclient as the editor while evaluating BODY.
+Modify the `process-environment' for processes started in BODY,
+instructing them to use the Emacsclient as editor.  ENVVAR is the
+environment variable that is exported to do so, it is evaluated
+at run-time.
+\n(fn [ENVVAR] BODY...)"
+  (declare (indent defun) (debug (sexp body)))
+  `(let ((with-editor--envvar ,envvar)
          (process-environment process-environment))
      (with-editor--setup)
      ,@body))
@@ -425,7 +486,7 @@ ENVVAR is provided then bind that environment variable instead.
     (unless (featurep 'make-network-process '(:family local))
       (setq server-use-tcp t))
     ;; Make sure the server is running.
-    (unless server-process
+    (unless (process-live-p server-process)
       (when (server-running-p server-name)
         (setq server-name (format "server%s" (emacs-pid)))
         (when (server-running-p server-name)
@@ -518,14 +579,17 @@ which may or may not insert the text into the PROCESS' buffer."
 
 (defun with-editor-output-filter (string)
   (save-match-data
-    (if (string-match "^WITH-EDITOR: \\([0-9]+\\) OPEN \\(.+?\\)\r?$" string)
+    (if (string-match "^WITH-EDITOR: \
+\\([0-9]+\\) OPEN \\([^]+?\\)\
+\\(?: IN \\([^\r]+?\\)\\)?\r?$" string)
         (let ((pid  (match-string 1 string))
-              (file (match-string 2 string)))
-          (with-current-buffer
-              (find-file-noselect
-               (if (and (file-name-absolute-p file) default-directory)
-                   (concat (file-remote-p default-directory) file)
-                 (expand-file-name file)))
+              (file (match-string 2 string))
+              (dir  (match-string 3 string)))
+          (unless (file-name-absolute-p file)
+            (setq file (expand-file-name file dir)))
+          (when default-directory
+            (setq file (concat (file-remote-p default-directory) file)))
+          (with-current-buffer (find-file-noselect file)
             (with-editor-mode 1)
             (setq with-editor--pid pid)
             (run-hooks 'with-editor-filter-visit-hook)
@@ -556,6 +620,7 @@ which may or may not insert the text into the PROCESS' buffer."
 
 ;;; Augmentations
 
+;;;###autoload
 (cl-defun with-editor-export-editor (&optional (envvar "EDITOR"))
   "Teach subsequent commands to use current Emacs instance as editor.
 
@@ -585,11 +650,13 @@ This works in `shell-mode', `term-mode' and `eshell-mode'."
     (error "Cannot export environment variables in this buffer")))
   (message "Successfully exported %s" envvar))
 
+;;;###autoload
 (defun with-editor-export-git-editor ()
   "Like `with-editor-export-editor' but always set `$GIT_EDITOR'."
   (interactive)
   (with-editor-export-editor "GIT_EDITOR"))
 
+;;;###autoload
 (defun with-editor-export-hg-editor ()
   "Like `with-editor-export-editor' but always set `$HG_EDITOR'."
   (interactive)
@@ -611,6 +678,7 @@ This works in `shell-mode', `term-mode' and `eshell-mode'."
                                 with-editor-envvars nil nil nil nil default)))
     (if (string= reply "") (user-error "Nothing selected") reply)))
 
+;;;###autoload
 (define-minor-mode shell-command-with-editor-mode
   "Teach `shell-command' to use current Emacs instance as editor.
 
@@ -629,6 +697,7 @@ which also allows the use of another variable instead of
 \"EDITOR\"."
   :global t)
 
+;;;###autoload
 (defun with-editor-async-shell-command
     (command &optional output-buffer error-buffer envvar)
   "Like `async-shell-command' but with `$EDITOR' set.
@@ -651,6 +720,7 @@ Also see `async-shell-command' and `shell-command'."
     (with-editor
       (async-shell-command command output-buffer error-buffer))))
 
+;;;###autoload
 (defun with-editor-shell-command
     (command &optional output-buffer error-buffer envvar)
   "Like `shell-command' or `with-editor-async-shell-command'.
@@ -688,8 +758,10 @@ else like the former."
     (cond ((or (not (or with-editor--envvar shell-command-with-editor-mode))
                (not (string-match-p "&\\'" command)))
            (funcall fn command output-buffer error-buffer))
-          ;; Do not use the `emacsclient', because it currently is not
-          ;; possible to know whether `with-editor' was involved.  #23
+          ((and with-editor-shell-command-use-emacsclient
+                with-editor-emacsclient-executable
+                (not (file-remote-p default-directory)))
+           (with-editor (funcall fn command output-buffer error-buffer)))
           (t
            (apply fn (format "%s=%s %s"
                              (or with-editor--envvar "EDITOR")
@@ -709,7 +781,7 @@ else like the former."
 (advice-add 'shell-command :around
             'shell-command--shell-command-with-editor-mode)
 
-;;; with-editor.el ends soon
+;;; _
 
 (defun with-editor-debug ()
   "Debug configuration issues.
