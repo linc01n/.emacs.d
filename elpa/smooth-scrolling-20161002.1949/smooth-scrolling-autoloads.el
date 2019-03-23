@@ -1,10 +1,13 @@
 ;;; smooth-scrolling-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
+
+(add-to-list 'load-path (directory-file-name
+                         (or (file-name-directory #$) (car load-path))))
+
 
-;;;### (autoloads nil "smooth-scrolling" "smooth-scrolling.el" (22887
-;;;;;;  32335 0 0))
+;;;### (autoloads nil "smooth-scrolling" "smooth-scrolling.el" (0
+;;;;;;  0 0 0))
 ;;; Generated autoloads from smooth-scrolling.el
 
 (defvar smooth-scrolling-mode nil "\
@@ -74,11 +77,14 @@ Note that the advice will not have an effect unless
 
 \(fn FUNC)" nil t)
 
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "smooth-scrolling" '("do-smooth-scroll" "disable-smooth-scroll-for-function" "enable-smooth-scroll-for-function-conditionally" "window-is-at-bob-p" "smooth-scroll-")))
+
 ;;;***
 
 ;; Local Variables:
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
+;; coding: utf-8
 ;; End:
 ;;; smooth-scrolling-autoloads.el ends here

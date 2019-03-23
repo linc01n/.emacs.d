@@ -10,7 +10,7 @@
 ;; Maintainer: Adam Spiers <emacs-ss@adamspiers.org>
 ;; Homepage: http://github.com/aspiers/smooth-scrolling/
 ;; Version: 2.0.0
-;; Package-Version: 20161002.1249
+;; Package-Version: 20161002.1949
 ;; Keywords: convenience
 ;; GitHub: http://github.com/aspiers/smooth-scrolling/
 
