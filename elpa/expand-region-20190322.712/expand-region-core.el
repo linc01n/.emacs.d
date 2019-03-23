@@ -28,6 +28,7 @@
 
 (eval-when-compile (require 'cl))
 (require 'expand-region-custom)
+(require 'org)
 (declare-function er/expand-region "expand-region")
 
 (defvar er/history '()
@@ -44,22 +45,14 @@
 (defvar er/try-expand-list nil
   "A list of functions that are tried when expanding.")
 
-(defvar er--transient-mark-mode-before-expanding nil
-  "The value of transient mark mode before expanding.")
-
 (defun er--prepare-expanding ()
-  (when (er--first-invocation)
-    (setq er--transient-mark-mode-before-expanding transient-mark-mode))
-
   (when (and (er--first-invocation)
              (not (use-region-p)))
     (push-mark nil t)  ;; one for keeping starting position
     (push-mark nil t)) ;; one for replace by set-mark in expansions
 
-  (when (and (er--first-invocation)
-             (or (not (eq t transient-mark-mode))
-                 shift-select-mode))
-    (setq transient-mark-mode (cons 'only transient-mark-mode))))
+  (when (not transient-mark-mode)
+    (setq-local transient-mark-mode (cons 'only transient-mark-mode))))
 
 (defun er--copy-region-to-register ()
   (when (and (stringp expand-region-autocopy-register)
@@ -104,15 +97,16 @@ moving point or mark as little as possible."
       (setq start (point)))
 
     (while try-list
-      (save-mark-and-excursion
-       (ignore-errors
-         (funcall (car try-list))
-         (when (and (region-active-p)
-                    (er--this-expansion-is-better start end best-start best-end))
-           (setq best-start (point))
-           (setq best-end (mark))
-           (when (and er--show-expansion-message (not (minibufferp)))
-             (message "%S" (car try-list))))))
+      (org-save-outline-visibility t
+       (save-mark-and-excursion
+         (ignore-errors
+           (funcall (car try-list))
+           (when (and (region-active-p)
+                      (er--this-expansion-is-better start end best-start best-end))
+             (setq best-start (point))
+             (setq best-end (mark))
+             (when (and er--show-expansion-message (not (minibufferp)))
+               (message "%S" (car try-list)))))))
       (setq try-list (cdr try-list)))
 
     (setq deactivate-mark nil)
@@ -155,11 +149,10 @@ before calling `er/expand-region' for the first time."
     (when er/history
       ;; Be sure to reset them all if called with 0
       (when (= arg 0)
-        (setq arg (length er/history))
-        (setq transient-mark-mode er--transient-mark-mode-before-expanding))
+        (setq arg (length er/history)))
 
       (when (not transient-mark-mode)
-        (setq transient-mark-mode (cons 'only transient-mark-mode)))
+        (setq-local transient-mark-mode (cons 'only transient-mark-mode)))
 
       ;; Advance through the list the desired distance
       (while (and (cdr er/history)
@@ -286,6 +279,14 @@ remove the keymap depends on user input and KEEP-PRED:
     (dolist (buffer (buffer-list))
       (with-current-buffer buffer
         (when (derived-mode-p mode)
+          (funcall add-fn))))))
+
+(defun er/enable-minor-mode-expansions (mode add-fn)
+  (add-hook (intern (format "%s-hook" mode)) add-fn)
+  (save-window-excursion
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when (symbol-value mode)
           (funcall add-fn))))))
 
 ;; Some more performant version of `looking-back'
