@@ -1,9 +1,12 @@
 ;;; which-key-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
+
+(add-to-list 'load-path (directory-file-name
+                         (or (file-name-directory #$) (car load-path))))
+
 
-;;;### (autoloads nil "which-key" "which-key.el" (22934 54061 0 0))
+;;;### (autoloads nil "which-key" "which-key.el" (0 0 0 0))
 ;;; Generated autoloads from which-key.el
 
 (defvar which-key-mode nil "\
@@ -40,6 +43,9 @@ bottom.
 
 (autoload 'which-key-setup-minibuffer "which-key" "\
 Apply suggested settings for minibuffer.
+Do not use this setup if you use the paging commands. Instead use
+`which-key-setup-side-window-bottom', which is nearly identical
+but more functional.
 
 \(fn)" t nil)
 
@@ -78,16 +84,17 @@ addition KEY-SEQUENCE REPLACEMENT pairs) to apply.
 (autoload 'which-key-reload-key-sequence "which-key" "\
 Simulate entering the key sequence KEY-SEQ.
 KEY-SEQ should be a list of events as produced by
-`listify-key-sequence'. Any prefix arguments that were used are
-reapplied to the new key sequence.
+`listify-key-sequence'. If nil, KEY-SEQ defaults to
+`which-key--current-key-list'. Any prefix arguments that were
+used are reapplied to the new key sequence.
 
-\(fn KEY-SEQ)" nil nil)
+\(fn &optional KEY-SEQ)" nil nil)
 
 (autoload 'which-key-show-standard-help "which-key" "\
 Call the command in `which-key--prefix-help-cmd-backup'.
 Usually this is `describe-prefix-bindings'.
 
-\(fn)" t nil)
+\(fn &optional _)" t nil)
 
 (autoload 'which-key-show-next-page-no-cycle "which-key" "\
 Show next page of keys unless on the last page, in which case
@@ -105,23 +112,32 @@ case do nothing.
 Show the next page of keys, cycling from end to beginning
 after last page.
 
-\(fn)" t nil)
+\(fn &optional _)" t nil)
 
 (autoload 'which-key-show-previous-page-cycle "which-key" "\
 Show the previous page of keys, cycling from beginning to end
 after first page.
 
-\(fn)" t nil)
+\(fn &optional _)" t nil)
 
 (autoload 'which-key-show-top-level "which-key" "\
 Show top-level bindings.
+
+\(fn &optional _)" t nil)
+
+(autoload 'which-key-show-major-mode "which-key" "\
+Show top-level bindings in the map of the current major mode.
+
+This function will also detect evil bindings made using
+`evil-define-key' in this map. These bindings will depend on the
+current evil state. 
 
 \(fn)" t nil)
 
 (autoload 'which-key-undo-key "which-key" "\
 Undo last keypress and force which-key update.
 
-\(fn)" t nil)
+\(fn &optional _)" t nil)
 
 (autoload 'which-key-C-h-dispatch "which-key" "\
 Dispatch C-h commands by looking up key in
@@ -130,11 +146,32 @@ prefix) if `which-key-use-C-h-commands' is non nil.
 
 \(fn)" t nil)
 
+(autoload 'which-key-show-keymap "which-key" "\
+Show the top-level bindings in KEYMAP using which-key. KEYMAP
+is selected interactively from all available keymaps.
+
+\(fn KEYMAP)" t nil)
+
+(autoload 'which-key-show-full-keymap "which-key" "\
+Show all bindings in KEYMAP using which-key. KEYMAP is
+selected interactively from all available keymaps.
+
+\(fn KEYMAP)" t nil)
+
+(autoload 'which-key-show-minor-mode-keymap "which-key" "\
+Show the top-level bindings in KEYMAP using which-key. KEYMAP
+is selected interactively by mode in `minor-mode-map-alist'.
+
+\(fn)" t nil)
+
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "which-key" '("which-key-")))
+
 ;;;***
 
 ;; Local Variables:
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
+;; coding: utf-8
 ;; End:
 ;;; which-key-autoloads.el ends here
