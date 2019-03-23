@@ -4,7 +4,7 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter
-;; Package-Version: 20161105.656
+;; Package-Version: 20161105.1356
 ;; Version: 0.90
 ;; Package-Requires: ((emacs "24.3"))
 
