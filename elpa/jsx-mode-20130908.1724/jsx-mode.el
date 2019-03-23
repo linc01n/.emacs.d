@@ -4,7 +4,7 @@
 
 ;; Author: Takeshi Arabiki (abicky)
 ;; Version: 0.1.10
-;; Package-Version: 20130908.1024
+;; Package-Version: 20130908.1724
 ;; URL: https://github.com/jsx/jsx-mode.el
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
