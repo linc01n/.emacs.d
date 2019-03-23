@@ -2,11 +2,11 @@
 
 ;; Copyright (C) 2010, 2011, 2012 Victor Ren
 
-;; Time-stamp: <2017-09-16 21:05:28 Victor Ren>
+;; Time-stamp: <2018-11-14 17:49:13 Victor Ren>
 ;; Author: Victor Ren <victorhge@gmail.com>
 ;; Keywords: occurrence region simultaneous refactoring
 ;; Version: 0.9.9.9
-;; X-URL: http://www.emacswiki.org/emacs/Iedit
+;; X-URL: https://www.emacswiki.org/emacs/Iedit
 ;;        https://github.com/victorhge/iedit
 ;; Compatibility: GNU Emacs: 22.x, 23.x, 24.x, 25.x
 
@@ -111,6 +111,16 @@ isearch-mode-map, esc-map and help-map."
 
 (defvar iedit-mode nil) ;; Name of the minor mode
 
+(defcustom iedit-auto-narrow nil
+  "If no-nil, the buffer is narrowed temporairily if iedit-mode
+is enabled on current defun."
+  :type 'boolean
+  :group 'iedit)
+
+(defvar iedit-is-narrowed nil
+  "This is buffer local variable which indicates if the buffer is
+  narrowed by iedit temporarily.")
+
 (defvar iedit-use-symbol-boundaries t
   "If no-nil, matches have to start and end at symbol boundaries. Otherwise,
 matches starts and end at word boundaries.")
@@ -167,10 +177,11 @@ use this variable:
 '$%@*' will be included in the occurrences in perl mode.")
 
 (defcustom iedit-mode-line
-  `(" Iedit:" (:eval (format ,(propertize "%d" 'face 'font-lock-warning-face)
-                             (iedit-counter))))
+  `(" Iedit:" (:eval (format ,(propertize "%d/%d" 'face 'font-lock-warning-face)
+                             iedit-occurrence-index (iedit-counter))))
   "Mode-line format for Iedit.
 This should be set before Iedit is loaded."
+  :type 'string
   :group 'iedit)
 (put 'iedit-mode-line 'risky-local-variable t)
 
@@ -181,6 +192,7 @@ This should be set before Iedit is loaded."
 (make-variable-buffer-local 'iedit-initial-string-local)
 (make-variable-buffer-local 'iedit-initial-region)
 (make-variable-buffer-local 'iedit-default-occurrence-local)
+(make-variable-buffer-local 'iedit-is-narrowed)
 
 (or (assq 'iedit-mode minor-mode-alist)
     (nconc minor-mode-alist
@@ -387,9 +399,15 @@ Keymap used within overlays:
       (when arg
         (cond ((= 0 (prefix-numeric-value arg))
                (save-excursion
+		 ;; Since Emacs 26.1, `mark-defun' marks the next defun if the
+		 ;; mark is active.
+		 (deactivate-mark t)
                  (mark-defun)
                  (setq beg (region-beginning))
-                 (setq end (region-end))))
+                 (setq end (region-end)))
+	       (when (and iedit-auto-narrow (not (buffer-narrowed-p)))
+		 (narrow-to-region beg end)
+		 (setq iedit-is-narrowed t)))
               ((and (= 1 (prefix-numeric-value arg))
                     (not (iedit-region-active)))
                (let ((region (bounds-of-thing-at-point 'symbol)))
@@ -406,11 +424,13 @@ Keymap used within overlays:
         ;; (message "No matches found for %s" (iedit-regexp-quote occurrence))
         (iedit-done)))))
 
+(unless (boundp 'isearch-regexp-function)
+  (defvaralias 'isearch-regexp-function 'isearch-word))
 (defun iedit-mode-from-isearch (regexp)
   "Start Iedit mode using last search string as the regexp."
   (interactive
    (let ((regexp (cond
-                  ((functionp isearch-regexp-function)
+		  ((functionp isearch-regexp-function)
                    (funcall isearch-regexp-function isearch-string))
                   (isearch-regexp-function (word-search-regexp isearch-string))
                   (isearch-regexp isearch-string)
@@ -519,10 +539,10 @@ Return the tag if succeeded, nil if failed."
                (cl-end (progn (skip-chars-forward "[:alnum:]-_.:") (point)))
                (match
                 (if endp
-                    (when (sgml-skip-tag-backward 1) (forward-char 1) t)
+                    (with-no-warnings (when (sgml-skip-tag-backward 1) (forward-char 1) t))
                   (with-syntax-table sgml-tag-syntax-table
                     (up-list -1)
-                    (when (sgml-skip-tag-forward 1)
+                    (with-no-warnings (when (sgml-skip-tag-forward 1))
                       (backward-sexp 1)
                       (forward-char 2)
                       t)))))
@@ -556,6 +576,9 @@ the initial string globally."
 
   (iedit-cleanup)
 
+  (when iedit-is-narrowed
+    (widen)
+    (setq iedit-is-narrowed nil))
   (setq iedit-initial-string-local nil)
   (setq iedit-mode nil)
   (force-mode-line-update)
@@ -567,10 +590,12 @@ the initial string globally."
 
 (defun iedit-mode-on-action (&optional arg)
   "Turn off Iedit mode or restrict it in a region if region is active."
-  (if (iedit-region-active)
-      (iedit-restrict-region (region-beginning) (region-end) arg)
-    (iedit-done)))
-
+  (cond ((iedit-region-active)
+	 (iedit-restrict-region (region-beginning) (region-end) arg))
+	((and arg
+	      (= 0 (prefix-numeric-value arg)))
+	 (iedit-restrict-function nil))
+	(t (iedit-done))))
 
 ;;;###autoload
 (defun iedit-mode-toggle-on-function ()
@@ -628,9 +653,18 @@ the initial string globally."
 (defun iedit-restrict-function(&optional arg)
   "Restricting Iedit mode in current function."
   (interactive "P")
-  (save-excursion
-    (mark-defun)
-    (iedit-restrict-region (region-beginning) (region-end) arg))
+  (let (beg end)
+    (save-excursion
+      (deactivate-mark t)
+      (mark-defun)
+      (setq beg (region-beginning))
+      (setq end (region-end)))
+    (iedit-restrict-region beg end arg)
+    (when (and (not arg)
+    	       iedit-auto-narrow
+    	       (not (buffer-narrowed-p)))
+      (narrow-to-region beg end)
+      (setq iedit-is-narrowed t)))
   (message "Restricted in current function, %d matches."
            (length iedit-occurrences-overlays)))
 
@@ -720,9 +754,9 @@ prefix, bring the top of the region back down one occurrence."
       (goto-char pos)
       (force-mode-line-update))))
 
-(defun iedit-restrict-region (beg end &optional inclusive)
+(defun iedit-restrict-region (beg end &optional exclusive)
   "Restricting Iedit mode in a region."
-  (if (null (iedit-find-overlay beg end 'iedit-occurrence-overlay-name inclusive))
+  (if (null (iedit-find-overlay beg end 'iedit-occurrence-overlay-name exclusive))
       (iedit-done)
     (when iedit-buffering
       (iedit-stop-buffering))
@@ -730,7 +764,7 @@ prefix, bring the top of the region back down one occurrence."
     (setq mark-active nil)
     (run-hooks 'deactivate-mark-hook)
     (iedit-show-all)
-    (iedit-cleanup-occurrences-overlays beg end inclusive)
+    (iedit-cleanup-occurrences-overlays beg end exclusive)
     (if iedit-unmatched-lines-invisible
         (iedit-hide-unmatched-lines iedit-occurrence-context-lines))
     (force-mode-line-update)))

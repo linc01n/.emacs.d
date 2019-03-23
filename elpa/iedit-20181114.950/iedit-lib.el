@@ -3,12 +3,13 @@
 
 ;; Copyright (C) 2010, 2011, 2012 Victor Ren
 
-;; Time-stamp: <2017-09-16 19:31:32 Victor Ren>
+;; Time-stamp: <2018-09-19 11:09:54 Victor Ren>
 ;; Author: Victor Ren <victorhge@gmail.com>
 ;; Keywords: occurrence region simultaneous rectangle refactoring
-;; Version: 0.9.9
-;; X-URL: http://www.emacswiki.org/emacs/Iedit
-;; Compatibility: GNU Emacs: 22.x, 23.x, 24.x
+;; Version: 0.9.9.9
+;; X-URL: https://www.emacswiki.org/emacs/Iedit
+;;        https://github.com/victorhge/iedit
+;; Compatibility: GNU Emacs: 22.x, 23.x, 24.x, 25.x
 
 ;; This file is not part of GNU Emacs, but it is distributed under
 ;; the same terms as GNU Emacs.
@@ -52,7 +53,7 @@
 
 (defgroup iedit nil
   "Edit multiple regions in the same way simultaneously.
-The regions are usually the same, called occurrences in the mode."
+The regions are usually the same, called 'occurrence' in the mode."
   :prefix "iedit-"
   :group 'replace
   :group 'convenience)
@@ -82,6 +83,13 @@ mode, set it as nil."
 
 (defcustom iedit-overlay-priority 200
   "The priority of the overlay used to indicate matches."
+  :type 'integer
+  :group 'iedit)
+
+(defcustom iedit-index-update-limit 200
+  "If the number of occurrences is great than this, the
+`iedit-occurrence-index' will not be updated.  This is to avoid
+the traverse of the long `iedit-occurrences-overlays' list."
   :type 'integer
   :group 'iedit)
 
@@ -141,6 +149,11 @@ is not applied to other occurrences when it is true.")
 (defvar iedit-occurrence-context-lines 1
   "The number of lines before or after the occurrence.")
 
+(defvar iedit-occurrence-index 0
+  "The index of the current occurrence, counted from the beginning of the buffer.
+Used in mode-line to indicate the position of the current
+occurrence.")
+
 (make-variable-buffer-local 'iedit-occurrences-overlays)
 (make-variable-buffer-local 'iedit-read-only-occurrences-overlays)
 (make-variable-buffer-local 'iedit-unmatched-lines-invisible)
@@ -153,6 +166,7 @@ is not applied to other occurrences when it is true.")
 (make-variable-buffer-local 'iedit-buffering)
 (make-variable-buffer-local 'iedit-post-undo-hook-installed)
 (make-variable-buffer-local 'iedit-occurrence-context-lines)
+(make-variable-buffer-local 'iedit-occurrence-index)
 
 (defconst iedit-occurrence-overlay-name 'iedit-occurrence-overlay-name)
 (defconst iedit-invisible-overlay-name 'iedit-invisible-overlay-name)
@@ -193,35 +207,34 @@ is not applied to other occurrences when it is true.")
     map)
   "Default keymap used within occurrence overlays.")
 
-(eval-after-load  'multiple-cursors-core
-  '(progn
-     ;; The declarations are to avoid compile errors if mc is unknown by Emacs. 
-     (declare-function mc/create-fake-cursor-at-point "mutiple-cursor-core.el" nil)
-     (declare-function multiple-cursors-mode "mutiple-cursor-core.el")
-     (defun iedit-switch-to-mc-mode ()
-       "Switch to multiple-cursors-mode.  So that you can navigate
+(when (require 'multiple-cursors-core nil t)
+  ;; The declarations are to avoid compile errors if mc is unknown by Emacs. 
+  (declare-function mc/create-fake-cursor-at-point "mutiple-cursor-core.el" nil)
+  (declare-function multiple-cursors-mode "mutiple-cursor-core.el")
+  (defun iedit-switch-to-mc-mode ()
+    "Switch to multiple-cursors-mode.  So that you can navigate
 out of the occurrence and edit simultaneously with multiple
 cursors."
-       (interactive "*")
-       (iedit-barf-if-buffering)
-       (let* ((ov (iedit-find-current-occurrence-overlay))
-	      (offset (- (point) (overlay-start ov)))
-	      (master (point)))
-	 (save-excursion
-	  (dolist (occurrence iedit-occurrences-overlays)
-	    (goto-char (+ (overlay-start occurrence) offset))
-	    (unless (= master (point))
-	      (mc/create-fake-cursor-at-point))
-	    ))
-	 (run-hooks 'iedit-aborting-hook)
-	 (multiple-cursors-mode 1)
-	 ))
-     ;; `multiple-cursors-mode' runs `post-command-hook' function for all the
-     ;; cursors. `post-command-hook' is setup in `iedit-switch-to-mc-mode' So the
-     ;; function is executed after `iedit-switch-to-mc-mode'. It is not expected.
-     ;; `mc/cmds-to-run-once' is for skipping this.
-     (add-to-list 'mc/cmds-to-run-once 'iedit-switch-to-mc-mode)
-     (define-key iedit-occurrence-keymap-default (kbd "M-M") 'iedit-switch-to-mc-mode)))
+    (interactive "*")
+    (iedit-barf-if-buffering)
+    (let* ((ov (iedit-find-current-occurrence-overlay))
+	   (offset (- (point) (overlay-start ov)))
+	   (master (point)))
+      (save-excursion
+	(dolist (occurrence iedit-occurrences-overlays)
+	  (goto-char (+ (overlay-start occurrence) offset))
+	  (unless (= master (point))
+	    (mc/create-fake-cursor-at-point))
+	  ))
+      (run-hooks 'iedit-aborting-hook)
+      (multiple-cursors-mode 1)
+      ))
+  ;; `multiple-cursors-mode' runs `post-command-hook' function for all the
+  ;; cursors. `post-command-hook' is setup in `iedit-switch-to-mc-mode' So the
+  ;; function is executed after `iedit-switch-to-mc-mode'. It is not expected.
+  ;; `mc/cmds-to-run-once' is for skipping this.
+  (add-to-list 'mc/cmds-to-run-once 'iedit-switch-to-mc-mode)
+  (define-key iedit-occurrence-keymap-default (kbd "M-M") 'iedit-switch-to-mc-mode))
 
 (defvar iedit-occurrence-keymap 'iedit-occurrence-keymap-default
   "Keymap used within occurrence overlays.
@@ -278,7 +291,20 @@ Return the number of occurrences."
               (push (iedit-make-occurrence-overlay beginning ending)
                     iedit-occurrences-overlays))
             (setq counter (1+ counter))))))
+    (iedit-update-index)
     counter))
+
+(defun iedit-update-index (&optional point)
+  "Update `iedit-occurrence-index' with the current occurrence,
+if the total number of occurrences is less than
+`iedit-index-update-limit'."
+  (if (< (length iedit-occurrences-overlays) iedit-index-update-limit)
+    (let ((pos (or point (point)))
+	  (index 0))
+      (dolist (occurrence iedit-occurrences-overlays)
+	(if (>= pos (overlay-start occurrence))
+	    (setq index (1+ index))))
+      (setq iedit-occurrence-index index))))
 
 (defun iedit-add-next-occurrence-overlay (occurrence-exp &optional point)
   "Create next occurrence overlay for `occurrence-exp'."
@@ -308,6 +334,7 @@ Return the start position of the new occurrence if successful."
         (push (iedit-make-occurrence-overlay (match-beginning 0)
                                              (match-end 0))
               iedit-occurrences-overlays)
+	(iedit-update-index point)
         (message "Add one match for \"%s\"." (iedit-printable occurrence-exp))
         (when iedit-unmatched-lines-invisible
           (iedit-show-all)
@@ -332,6 +359,7 @@ there are."
         (error "Conflict region"))
     (push (iedit-make-occurrence-overlay beg end)
           iedit-occurrences-overlays)
+    (iedit-update-index)
     )) ;; todo test this function
 
 (defun iedit-cleanup ()
@@ -357,6 +385,7 @@ occurrences if the user starts typing."
     (overlay-put occurrence 'insert-behind-hooks '(iedit-update-occurrences))
     (overlay-put occurrence 'modification-hooks '(iedit-update-occurrences))
     (overlay-put occurrence 'priority iedit-overlay-priority)
+    (overlay-put occurrence 'category 'iedit-overlay)
     occurrence))
 
 (defun iedit-make-read-only-occurrence-overlay (begin end)
@@ -502,6 +531,7 @@ beginning of the buffer."
           (setq iedit-forward-success t)
           (message "Located the first occurrence."))))
     (when iedit-forward-success
+      (iedit-update-index pos)
       (goto-char pos))))
 
 (defun iedit-prev-occurrence ()
@@ -531,6 +561,7 @@ the buffer."
             (message "Located the last occurrence.")))
       (setq iedit-forward-success t))
     (when iedit-forward-success
+      (iedit-update-index pos)
       (goto-char pos))))
 
 (defun iedit-goto-first-occurrence ()
@@ -538,6 +569,7 @@ the buffer."
   (interactive)
   (goto-char (iedit-first-occurrence))
   (setq iedit-forward-success t)
+  (setq iedit-occurrence-index 1)
   (message "Located the first occurrence."))
 
 (defun iedit-first-occurrence ()
@@ -552,6 +584,7 @@ the buffer."
   (interactive)
   (goto-char (iedit-last-occurrence))
   (setq iedit-forward-success t)
+  (setq iedit-occurrence-index (length iedit-occurrences-overlays))
   (message "Located the last occurrence."))
 
 (defun iedit-last-occurrence ()
@@ -903,7 +936,8 @@ Return nil if occurrence string is empty string."
     (dolist (overlay iedit-occurrences-overlays)
       (if (overlay-buffer overlay)
           (push overlay overlays)))
-    (setq iedit-occurrences-overlays overlays)))
+    (setq iedit-occurrences-overlays overlays)
+    (iedit-update-index)))
 
 (defun iedit-printable (string)
   "Return a omitted substring that is not longer than 50.
