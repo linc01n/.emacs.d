@@ -15,17 +15,19 @@
 ;;
 ;; You should have received a copy of the GNU General Public
 ;; License along with this program; if not, write to the Free
-;; Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-;; MA 02111-1307 USA
+;; Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301 USA
 ;;
 ;;-------------------------------------------------------------------
 ;;
 ;; Author: David Andersson <l.david.andersson(at)sverige.nu>
-;; Maintainer: Vasilij Schneidermann <v.schneidermann@github.com>
+;; Maintainer: Vasilij Schneidermann <v.schneidermann@gmail.com>
 ;; Created: 16 May 2002
-;; Version: 1.7
-;; Package-Version: 20170917.1200
+;; Version: 1.7.3
+;; Package-Version: 20190110.2114
+;; Package-Requires: ((undo-tree "0.1.3"))
 ;; Keywords: convenience, matching
+;; URL: https://github.com/emacs-evil/goto-chg
 ;;
 ;;; Commentary:
 ;;
@@ -50,6 +52,12 @@
 ;;--------------------------------------------------------------------
 ;; History
 ;;
+;; Ver 1.7.3 2019-01-07 Vasilij Schneidermann
+;;    Fix errors when used with persistent undo
+;; Ver 1.7.2 2018-01-05 Vasilij Schneidermann
+;;    Fix byte-compiler warnings again
+;; Ver 1.7.1 2017-12-31 Vasilij Schneidermann
+;;    Fix byte-compiler warnings
 ;; Ver 1.7 2017-09-17 Vasilij Schneidermann
 ;;    Make it work with undo-tree-mode (see
 ;;    <https://github.com/martinp26/goto-chg>)
@@ -91,9 +99,12 @@
 
 ;;; Code:
 
+(require 'undo-tree)
+
 (defvar glc-default-span 8 "*goto-last-change don't visit the same point twice. glc-default-span tells how far around a visited point not to visit again.")
 (defvar glc-current-span 8 "Internal for goto-last-change.\nA copy of glc-default-span or the ARG passed to goto-last-change.")
 (defvar glc-probe-depth 0 "Internal for goto-last-change.\nIt is non-zero between successive goto-last-change.")
+(defvar glc-direction 1 "Direction goto-last-change moves towards.")
 
 ;;todo: Find begin and end of line, then use it somewhere
 
@@ -238,7 +249,7 @@ discarded. See variable `undo-limit'."
                glc-current-span glc-default-span)
          (if (< (prefix-numeric-value arg) 0)
              (error "Negative arg: Cannot reverse as the first operation"))))
-  (cond ((null buffer-undo-list)
+  (cond ((and (null buffer-undo-list) (null buffer-undo-tree))
          (error "Buffer has not been changed"))
         ((eq buffer-undo-list t)
          (error "No change info (undo is disabled)")))
@@ -286,6 +297,7 @@ discarded. See variable `undo-limit'."
                   ((or passed-save-entry (glc-is-filetime (car l)))
                    (setq passed-save-entry t)))
             (setq l (cdr l)))
+        (undo-list-transfer-to-tree)
         (when (not glc-seen-canary)
           (while (and (not (null l)) (not glc-seen-canary) (< n new-probe-depth))
             (cond ((eq 'undo-tree-canary (car l))  ; used by buffer-undo-tree
@@ -300,7 +312,7 @@ discarded. See variable `undo-limit'."
             (when (not glc-seen-canary)
               (setq l (cdr l)))))
         (when glc-seen-canary
-          (while (< n new-probe-depth)
+          (while (and (< n new-probe-depth) (undo-tree-node-p l))
             (cond ((null l)
                    ;(setq this-command t)	; Disrupt repeat sequence
                    (error "No further change info"))
