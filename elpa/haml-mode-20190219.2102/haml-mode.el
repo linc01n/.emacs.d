@@ -5,7 +5,7 @@
 ;; Author: Natalie Weizenbaum
 ;; URL: https://github.com/nex3/haml-mode
 ;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
-;; Package-Version: 20170923.2153
+;; Package-Version: 20190219.2102
 ;; Package-X-Original-Version: 0
 ;; Created: 2007-03-08
 ;; By: Natalie Weizenbaum
@@ -143,7 +143,9 @@ respectively."
 (defun haml-fontify-region-as-ruby (beg end)
   "Use Ruby's font-lock variables to fontify the region between BEG and END."
   (haml-fontify-region beg end ruby-font-lock-keywords
-                       ruby-font-lock-syntax-table
+                       (if (boundp 'ruby-mode-syntax-table)
+                           ruby-mode-syntax-table
+                         ruby-font-lock-syntax-table)
                        (if (fboundp 'ruby-syntax-propertize)
                            'ruby-syntax-propertize
                          'ruby-syntax-propertize-function)))
