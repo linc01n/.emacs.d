@@ -1,9 +1,12 @@
 ;;; inf-ruby-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
+
+(add-to-list 'load-path (directory-file-name
+                         (or (file-name-directory #$) (car load-path))))
+
 
-;;;### (autoloads nil "inf-ruby" "inf-ruby.el" (22887 32389 0 0))
+;;;### (autoloads nil "inf-ruby" "inf-ruby.el" (0 0 0 0))
 ;;; Generated autoloads from inf-ruby.el
 
 (defvar ruby-source-modes '(ruby-mode enh-ruby-mode) "\
@@ -37,18 +40,22 @@ to that buffer. Otherwise create a new buffer.
 \(fn &optional IMPL)" t nil)
 
 (autoload 'run-ruby "inf-ruby" "\
-Run an inferior Ruby process, input and output in a new buffer.
+Run an inferior Ruby process, input and output in a buffer.
+
+If there is a process already running in a corresponding buffer,
+switch to that buffer. Otherwise create a new buffer.
 
 The consecutive buffer names will be:
 `*NAME*', `*NAME*<2>', `*NAME*<3>' and so on.
 
-NAME defaults to \"ruby\".
+COMMAND defaults to the default entry in
+`inf-ruby-implementations'. NAME defaults to \"ruby\".
 
 Runs the hooks `comint-mode-hook' and `inf-ruby-mode-hook'.
 
-\(Type \\[describe-mode] in the process buffer for the list of commands.)
+Type \\[describe-mode] in the process buffer for the list of commands.
 
-\(fn COMMAND &optional NAME)" nil nil)
+\(fn &optional COMMAND NAME)" t nil)
 
 (autoload 'inf-ruby-switch-setup "inf-ruby" "\
 Modify `rspec-compilation-mode' and `ruby-compilation-mode'
@@ -104,7 +111,9 @@ Run Pry, or bundle console, in DIR.
 
 
 \(fn FILE REGEXP &optional MATCH-GROUP)" nil nil)
-(dolist (mode ruby-source-modes) (add-hook (intern (format "%s-hook" mode)) 'inf-ruby-minor-mode))
+ (dolist (mode ruby-source-modes) (add-hook (intern (format "%s-hook" mode)) 'inf-ruby-minor-mode))
+
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "inf-ruby" '("inf-ruby-" "run-ruby-" "ruby-")))
 
 ;;;***
 
@@ -112,5 +121,6 @@ Run Pry, or bundle console, in DIR.
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
+;; coding: utf-8
 ;; End:
 ;;; inf-ruby-autoloads.el ends here

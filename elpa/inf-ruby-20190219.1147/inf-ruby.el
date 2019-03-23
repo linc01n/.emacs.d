@@ -8,7 +8,7 @@
 ;;         Dmitry Gutov <dgutov@yandex.ru>
 ;;         Kyle Hargraves <pd@krh.me>
 ;; URL: http://github.com/nonsequitur/inf-ruby
-;; Package-Version: 20170615.335
+;; Package-Version: 20190219.1147
 ;; Created: 8 April 1998
 ;; Keywords: languages ruby
 ;; Version: 2.5.1
@@ -273,6 +273,7 @@ The following commands are available:
     (set (make-local-variable 'smie-backward-token-function)
          #'inf-ruby-smie--backward-token))
   (add-hook 'comint-output-filter-functions 'inf-ruby-output-filter nil t)
+  (add-hook 'comint-output-filter-functions 'ansi-color-process-output nil t)
   (setq comint-get-old-input 'inf-ruby-get-old-input)
   (set (make-local-variable 'compilation-error-regexp-alist)
        inf-ruby-error-regexp-alist)
@@ -339,22 +340,40 @@ to that buffer. Otherwise create a new buffer."
   (setq impl (or impl "ruby"))
 
   (let ((command (cdr (assoc impl inf-ruby-implementations))))
-    (run-ruby-or-pop-to-buffer command impl
-                               (or (inf-ruby-buffer)
-                                   inf-ruby-buffer))))
+    (run-ruby command impl)))
 
 ;;;###autoload
-(defun run-ruby (command &optional name)
-  "Run an inferior Ruby process, input and output in a new buffer.
+(defun run-ruby (&optional command name)
+  "Run an inferior Ruby process, input and output in a buffer.
+
+If there is a process already running in a corresponding buffer,
+switch to that buffer. Otherwise create a new buffer.
 
 The consecutive buffer names will be:
 `*NAME*', `*NAME*<2>', `*NAME*<3>' and so on.
 
-NAME defaults to \"ruby\".
+COMMAND defaults to the default entry in
+`inf-ruby-implementations'. NAME defaults to \"ruby\".
 
 Runs the hooks `comint-mode-hook' and `inf-ruby-mode-hook'.
 
-\(Type \\[describe-mode] in the process buffer for the list of commands.)"
+Type \\[describe-mode] in the process buffer for the list of commands."
+  ;; This function is interactive and named like this for consistency
+  ;; with `run-python', `run-octave', `run-lisp' and so on.
+  ;; We're keeping both it and `inf-ruby' for backward compatibility.
+  (interactive)
+  (run-ruby-or-pop-to-buffer
+   (or command (cdr (assoc inf-ruby-default-implementation
+                           inf-ruby-implementations)))
+   (or name "ruby")
+   (or (inf-ruby-buffer)
+       inf-ruby-buffer)))
+
+(defun run-ruby-new (command &optional name)
+  "Create a new inferior Ruby process in a new buffer.
+
+COMMAND is the command to call. NAME will be used for the name of
+the buffer, defaults to \"ruby\"."
   (setq name (or name "ruby"))
 
   (let ((commandlist (split-string-and-unquote command))
@@ -381,7 +400,7 @@ Runs the hooks `comint-mode-hook' and `inf-ruby-mode-hook'.
 (defun run-ruby-or-pop-to-buffer (command &optional name buffer)
   (if (not (and buffer
                 (comint-check-proc buffer)))
-      (run-ruby command name)
+      (run-ruby-new command name)
     (pop-to-buffer buffer)
     (unless (and (string= inf-ruby-buffer-impl-name name)
                  (string= inf-ruby-buffer-command command))
@@ -554,6 +573,13 @@ Then switch to the process buffer."
     (widen)
     (ruby-send-region (point-min) (point-max))))
 
+(defun ruby-send-buffer-and-go ()
+  "Send the current buffer to the inferior Ruby process.
+Then switch to the process buffer."
+  (interactive)
+  (ruby-send-buffer)
+  (ruby-switch-to-inf t))
+
 (defun ruby-send-line ()
   "Send the current line to the inferior Ruby process."
   (interactive)
@@ -561,18 +587,27 @@ Then switch to the process buffer."
     (widen)
     (ruby-send-region (point-at-bol) (point-at-eol))))
 
+(defun ruby-send-line-and-go ()
+  "Send the current line to the inferior Ruby process.
+Then switch to the process buffer."
+  (interactive)
+  (ruby-send-line)
+  (ruby-switch-to-inf t))
+
 (defun ruby-escape-single-quoted (str)
   "Escape single quotes, double quotes and newlines in STR."
   (replace-regexp-in-string "'" "\\\\'"
     (replace-regexp-in-string "\n" "\\\\n"
       (replace-regexp-in-string "\\\\" "\\\\\\\\" str))))
 
-(defun inf-ruby-completions (expr)
+(defun inf-ruby-completions (prefix)
   "Return a list of completions for the Ruby expression starting with EXPR."
   (let* ((proc (inf-ruby-proc))
          (line (buffer-substring (save-excursion (move-beginning-of-line 1)
                                                  (point))
                                  (point)))
+         (expr (inf-ruby-completion-expr-at-point))
+         (prefix-offset (- (length expr) (length prefix)))
          (comint-filt (process-filter proc))
          (kept "") completions
          ;; Guard against running completions in parallel:
@@ -614,9 +649,18 @@ Then switch to the process buffer."
             (when (and completions (string= (concat (car completions) "\n") completion-snippet))
               (setq completions (cdr completions))))
         (set-process-filter proc comint-filt)))
-    completions))
+    (mapcar
+     (lambda (str)
+       (substring str prefix-offset))
+     completions)))
 
 (defconst inf-ruby-ruby-expr-break-chars " \t\n\"\'`><,;|&{(")
+
+(defun inf-ruby-completion-bounds-of-prefix ()
+  "Return bounds of expression at point to complete."
+  (let ((inf-ruby-ruby-expr-break-chars
+         (concat inf-ruby-ruby-expr-break-chars ".")))
+    (inf-ruby-completion-bounds-of-expr-at-point)))
 
 (defun inf-ruby-completion-bounds-of-expr-at-point ()
   "Return bounds of expression at point to complete."
@@ -635,7 +679,7 @@ Then switch to the process buffer."
 (defun inf-ruby-completion-at-point ()
   "Retrieve the list of completions and prompt the user.
 Returns the selected completion or nil."
-  (let ((bounds (inf-ruby-completion-bounds-of-expr-at-point)))
+  (let ((bounds (inf-ruby-completion-bounds-of-prefix)))
     (when bounds
       (list (car bounds) (cdr bounds)
             (when inf-ruby-at-top-level-prompt-p
@@ -787,7 +831,7 @@ automatically."
          (with-bundler (file-exists-p "Gemfile")))
     (inf-ruby-console-run
      (concat (when with-bundler "bundle exec ")
-             "rails console "
+             "rails console -e "
              env)
      "rails")))
 
@@ -867,9 +911,10 @@ Gemfile, it should use the `gemspec' instruction."
                  (concat " -r " (file-name-sans-extension file)))
                files
                ""))))
-    (inf-ruby-console-run (concat base-command args
-                                  " -r irb/completion")
-                          "gem")))
+    (inf-ruby-console-run
+     (concat base-command args
+             " --prompt default --noreadline -r irb/completion")
+     "gem")))
 
 (defun inf-ruby-console-racksh-p ()
   (and (file-exists-p "Gemfile.lock")
@@ -885,7 +930,8 @@ Gemfile, it should use the `gemspec' instruction."
   "Check if MODE is a Ruby compilation mode."
   (member mode '(rspec-compilation-mode
                  ruby-compilation-mode
-                 projectile-rails-server-mode)))
+                 projectile-rails-server-mode
+                 minitest-compilation-mode)))
 
 ;;;###autoload
 (defun inf-ruby-auto-enter ()
