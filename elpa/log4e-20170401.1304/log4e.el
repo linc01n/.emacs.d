@@ -4,7 +4,7 @@
 
 ;; Author: Hiroaki Otsu <ootsuhiroaki@gmail.com>
 ;; Keywords: log
-;; Package-Version: 20170401.604
+;; Package-Version: 20170401.1304
 ;; URL: https://github.com/aki2o/log4e
 ;; Version: 0.3.1
 
