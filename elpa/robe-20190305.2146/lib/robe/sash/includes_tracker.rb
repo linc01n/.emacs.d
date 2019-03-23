@@ -19,8 +19,6 @@ module Robe
         @@hosts = nil
       end
 
-      private
-
       def self.maybe_scan
         includers = @@hosts
 
@@ -41,6 +39,8 @@ module Robe
 
       if Module.respond_to?(:prepend)
         module Invalidator
+          private
+
           def included(other)
             IncludesTracker.reset!
             super(other)
@@ -57,6 +57,8 @@ module Robe
         Module.class_eval do
           alias_method :__orig_included, :included
           alias_method :__orig_extended, :extended
+
+          private
 
           # Cannot hook into this method without :prepend.
           def included(other)
