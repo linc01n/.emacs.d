@@ -1,11 +1,40 @@
 ;;; projectile-rails-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
+
+(add-to-list 'load-path (directory-file-name
+                         (or (file-name-directory #$) (car load-path))))
+
 
-;;;### (autoloads nil "projectile-rails" "projectile-rails.el" (23049
-;;;;;;  33400 0 0))
+;;;### (autoloads nil "projectile-rails" "projectile-rails.el" (0
+;;;;;;  0 0 0))
 ;;; Generated autoloads from projectile-rails.el
+
+(autoload 'projectile-rails-views-goto-file-at-point "projectile-rails" "\
+Try to find a view file at point.
+Will try to look for a template or partial file, and assets file.
+
+\(fn)" t nil)
+
+(autoload 'projectile-rails-stylesheet-goto-file-at-point "projectile-rails" "\
+Try to find stylesheet file at point
+
+\(fn)" t nil)
+
+(autoload 'projectile-rails-javascript-goto-file-at-point "projectile-rails" "\
+Try to find javascript file at point
+
+\(fn)" t nil)
+
+(autoload 'projectile-rails-ruby-goto-file-at-point "projectile-rails" "\
+Try to find ruby file at point
+
+\(fn)" t nil)
+
+(autoload 'projectile-rails-goto-file-at-point "projectile-rails" "\
+Try to find file at point
+
+\(fn)" t nil)
 
 (autoload 'projectile-rails-mode "projectile-rails" "\
 Rails mode based on projectile
@@ -39,11 +68,14 @@ See `projectile-rails-mode' for more information on Projectile-Rails mode.
 
 \(fn &optional ARG)" t nil)
 
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "projectile-rails" '("projectile-rails-")))
+
 ;;;***
 
 ;; Local Variables:
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
+;; coding: utf-8
 ;; End:
 ;;; projectile-rails-autoloads.el ends here
