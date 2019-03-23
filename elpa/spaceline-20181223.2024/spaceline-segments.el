@@ -81,9 +81,16 @@
   "Size of buffer."
   (powerline-buffer-size))
 
+(defcustom spaceline-buffer-id-max-length 45
+  "The maximum displayed length of the buffer-id segment."
+  :type 'integer
+  :group 'spaceline)
+
 (spaceline-define-segment buffer-id
   "Name of buffer."
-  (s-trim (powerline-buffer-id 'mode-line-buffer-id)))
+  (s-trim (spaceline--string-trim-from-center
+           (powerline-buffer-id (if active 'mode-line-buffer-id 'mode-line-buffer-id-inactive))
+           spaceline-buffer-id-max-length)))
 
 (spaceline-define-segment remote-host
   "Hostname for remote buffers."
@@ -139,7 +146,11 @@
 
 (spaceline-define-segment column
   "The current column number."
-  "%2c")
+  (if (and
+        (boundp 'column-number-indicator-zero-based)
+        (not column-number-indicator-zero-based))
+    "%2C"
+    "%2c"))
 
 (declare-function pdf-view-current-page 'pdf-view)
 (declare-function pdf-cache-number-of-pages 'pdf-view)
@@ -159,8 +170,11 @@ currently displayed pdf file in `pdf-view-mode'."
 in pdf-view mode (enabled by the `pdf-tools' package)."
   (if (eq major-mode 'pdf-view-mode)
       (spaceline--pdfview-page-number)
-    "%l:%2c"))
-
+    (if (and
+          (boundp 'column-number-indicator-zero-based)
+          (not column-number-indicator-zero-based))
+      "%l:%2C"
+      "%l:%2c")))
 
 (spaceline-define-segment buffer-position
   "The current approximate buffer position, in percent."
@@ -311,7 +325,9 @@ The cdr can also be a function that returns a name to use.")
 ;;; Segments requiring optional dependencies
 ;;  ========================================
 
-(defvar erc-modified-channels-alist)
+(defvar conda-env-current-name)
+(defvar erc-modified-channels-object)
+(defvar erc-track-position-in-mode-line)
 (defvar fancy-battery-last-status)
 (defvar fancy-battery-show-percentage)
 (defvar mu4e-alert-mode-line)
@@ -321,7 +337,6 @@ The cdr can also be a function that returns a name to use.")
 (defvar which-func-current)
 (defvar which-func-keymap)
 
-(declare-function projectile-project-p 'projectile)
 (declare-function projectile-project-name 'projectile)
 (declare-function anzu--update-mode-line 'anzu)
 (declare-function evil-state-property 'evil-common)
@@ -333,15 +348,17 @@ The cdr can also be a function that returns a name to use.")
 (declare-function winum-get-number 'winum)
 (declare-function window-numbering-get-number 'window-numbering)
 (declare-function purpose--modeline-string 'window-purpose)
+(declare-function purpose-window-purpose-dedicated-p 'window-purpose)
 (declare-function pyenv-mode-version 'pyenv-mode)
 (declare-function pyenv-mode-full-path 'pyenv-mode)
 
 (spaceline-define-segment projectile-root
   "Show the current projectile root."
-  (when (and (fboundp 'projectile-project-p)
-             (stringp (projectile-project-p))
-             (not (string= (projectile-project-name) (buffer-name))))
-    (projectile-project-name)))
+  (when (fboundp 'projectile-project-name)
+    (let ((project-name (projectile-project-name)))
+      (unless (or (string= project-name "-")
+                  (string= project-name (buffer-name)))
+        project-name))))
 
 (spaceline-define-segment anzu
   "Show the current match number and the total number of matches.
@@ -357,10 +374,13 @@ package."
 
 (spaceline-define-segment erc-track
   "Show the ERC buffers with new messages. Requires
-`erc-track-mode' to be enabled."
-  (when (bound-and-true-p erc-track-mode)
-    (mapcar (lambda (b) (buffer-name (car b)))
-            erc-modified-channels-alist)))
+`erc-track-mode' to be enabled and
+`erc-track-position-in-mode-line' to be set to true."
+  (when (and (bound-and-true-p erc-track-mode)
+             erc-track-position-in-mode-line
+             erc-modified-channels-object)
+    (s-trim erc-modified-channels-object))
+  :global-override erc-modified-channels-object)
 
 (defun spaceline--fancy-battery-percentage ()
   "Return the load percentage or an empty string."
@@ -558,13 +578,36 @@ the number of errors.")
   "Face for highlighting the python venv."
   :group 'spaceline)
 
+(defvar spaceline-purpose-hide-if-not-dedicated nil
+  "Hide the purpose segment if the window is not dedicated in
+some way.")
+
 (spaceline-define-segment purpose
   "The current window purpose. Requires `purpose-mode' to be
 enabled."
-  (when (bound-and-true-p purpose-mode)
+  (when (and (bound-and-true-p purpose-mode)
+             (or (not spaceline-purpose-hide-if-not-dedicated)
+                 (purpose-window-purpose-dedicated-p)
+                 (window-dedicated-p)))
     (propertize (substring (purpose--modeline-string) 2 -1)
                 'face 'spaceline-python-venv
                 'help-echo "Window purpose")))
+
+(spaceline-define-segment python-env
+  "The current python env.  Works with `pyvenv', `pyenv' and `conda'."
+  (when (and active (eq 'python-mode major-mode))
+    (let (name source)
+      (cond
+       ((bound-and-true-p pyvenv-virtual-env-name)
+        (setq name pyvenv-virtual-env-name source "pyvenv"))
+       ((bound-and-true-p conda-env-current-name)
+        (setq name conda-env-current-name source "conda"))
+       ((and (fboundp 'pyenv-mode) (setq name (pyenv-mode-version)))
+        (setq source "pyenv")))
+      (when name
+        (propertize name
+                    'face 'spaceline-python-venv
+                    'help-echo (format "Virtual environment (via %s): %s" source name))))))
 
 (spaceline-define-segment python-pyvenv
   "The current python venv.  Works with `pyvenv'."
@@ -614,6 +657,16 @@ mouse-3: go to end"))))
   (when (and active (featurep 'mu4e-alert))
     mu4e-alert-mode-line)
   :global-override ((:eval mu4e-alert-mode-line)))
+
+(spaceline-define-segment recursive-edit
+  "Shows the current recursive-edit depth."
+  (format "↻%s" (recursion-depth))
+  :when (> (recursion-depth) 0))
+
+(spaceline-define-segment macrodef
+  "Shows when defining a keyboard macro."
+  "•REC"
+  :when defining-kbd-macro)
 
 (provide 'spaceline-segments)
 

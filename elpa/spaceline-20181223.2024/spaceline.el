@@ -261,15 +261,21 @@ output, if and only if it actually produces output.  This will
     (setq prior next-prior)
     (setq separator-face ,face)))
 
-(defun spaceline--gen-segment (segment-spec side &optional outer-props deep)
+(defun spaceline--gen-segment (segment-spec side hidden &optional outer-props deep-or-fallback deep)
   "Generate the code for evaluating a segment.
 SEGMENT-SPEC is a valid Spaceline segment.  See
-`spaceline-compile'.  SIDE is either l or r. OUTER-PROPS is a
-property list with properties inherited from parent segments.
-DEEP is true if this segment is not a top level segment.
+`spaceline-compile'.  SIDE is either l or r.  HIDDEN is a form
+that evaluates to true if the segment should be hidden, nil
+otherwise.  OUTER-PROPS is a property list with properties
+inherited from parent segments.
+
+DEEP-OR-FALLBACK is nil if this segment is a top level segment or
+a fallback for a top level segment.
+
+DEEP is nil if and only if this segment is a top level segment.
 
 This function should only be called from outside code with
-OUTER-PROPS and DEEP set to nil.
+OUTER-PROPS, DEEP-OR-FALLBACK and DEEP set to nil.
 
 Returns a list of forms."
   (spaceline--parse-segment-spec segment-spec
@@ -285,7 +291,7 @@ Returns a list of forms."
                           (plist-get props :when) t))
            (face (or (plist-get props :face) 'default-face))
            (face (if (memq face '(default-face other-face highlight-face line-face))
-                     face `(quote ,face)))
+                     face `(,@face)))
            (separator `(powerline-raw ,(or (plist-get props :separator) " ") ,face))
            (tight-left (or (plist-get props :tight)
                            (plist-get props :tight-left)))
@@ -297,30 +303,43 @@ Returns a list of forms."
            ;; of children or parent segments.
            (previous-result (make-symbol "spaceline--previous-result"))
 
+           ;; A temporary variable to store the setting of `needs-separator',
+           ;; in case we update it and need to change it back
+           (previous-needs-separator (make-symbol "spaceline--previous-needs-separator"))
+
+           ;; A temporary variable to store the setting of `separator-face',
+           ;; in case we update it and need to change it back
+           (previous-separator-face (make-symbol "spaceline--previous-separator-face"))
+
+           clean-up-make
            clean-up-code)
 
       ;; On the right we output we produce output in the reverse direction,
       ;; so the meanings of left and right are interchanged
       (when (eq 'r side) (cl-rotatef tight-left tight-right))
 
-      ;; The clean-up-code runs for top level segments which produced output
+      ;; Clean-up-make and clean-up-code runs for top level segments that produce output
+      ;; Anything that modifies `result' goes in clean-up-make
+      (setq clean-up-make
+            ;; Add padding unless the segment is tight
+            (unless tight-right `((push (propertize " " 'face ,face) result))))
       (setq clean-up-code
-            `(;; Add padding unless the segment is tight
-              ,@(unless tight-right `((push (propertize " " 'face ,face) result)))
-              ;; Rotate the faces for the next top level segment
+            `(;; Rotate the faces for the next top level segment
               ,@(unless (plist-get props :skip-alternate)
                   '((cl-rotatef default-face other-face)))
               ;; We need a new separator at the next producing segment
               (setq needs-separator ,(not tight-right))))
 
-      `(;; Don't produce a separator if the segment is tight
-        ,@(when tight-left `((setq needs-separator nil)))
+      `(;; Store the current result pointer in the temp variable
+        (let ((,previous-result result)
+              (,previous-needs-separator needs-separator)
+              (,previous-separator-face separator-face))
 
-        ;; Store the current result pointer in the temp variable
-        (let ((,previous-result result))
+          ;; Don't produce a separator if the segment is tight
+          ,@(when tight-left `((setq needs-separator nil)))
 
           ;; Top-level non-tight segments need padding
-          ,@(unless (or deep tight-left)
+          ,@(unless (or deep-or-fallback tight-left)
               `((setq prior (propertize " " 'face ,face))))
 
           ;; Evaluate the segment
@@ -333,7 +352,7 @@ Returns a list of forms."
                 `((let ((next-prior ,separator))
                     ,@(apply 'append
                              (mapcar (lambda (s)
-                                       (spaceline--gen-segment s side nest-props 'deep))
+                                       (spaceline--gen-segment s side hidden nest-props 'deep-or-fallback 'deep))
                                      (if (eq 'r side) (reverse segment) segment))))
                   ;; Since PRIOR may have been disrupted, we reset it here
                   (setq prior next-prior)))
@@ -358,31 +377,30 @@ Returns a list of forms."
                 ;; empty string here
                 `(,@(spaceline--gen-produce face side)
                   (push (powerline-raw (format "%s" ,segment) ,face) result)))))
-          ;; At this point, if previous-result is `eq' to result, the segment did
-          ;; not produce output
-          ,@(cond
-             ;; For deep segments (not top level) with fallback, we call the
-             ;; fallback if they failed to produce
-             ((and fallback deep)
-              `((unless (eq ,previous-result result)
-                  ,@(spaceline--gen-segment fallback side nest-props deep))))
-             ;; For top level segments with fallbacks, we call the fallback if
-             ;; they failed to produce, or clean up if they did
-             ((and fallback (not deep))
+
+          ;; If the segment failed to produce, but has a fallback, we call the fallback
+          ,@(when fallback
+              `((when (eq ,previous-result result)
+                  ,@(spaceline--gen-segment fallback side hidden nest-props deep-or-fallback 'deep))))
+
+          ;; Compute the length of the segment, and possibly run clean-up code
+          ,@(unless deep
               `((if (eq ,previous-result result)
-                    (progn ,@(spaceline--gen-segment fallback side nest-props deep))
-                  ,@clean-up-code)))
-             ;; For top level segments without fallbacks, we clean up if they
-             ;; produced
-             ((and (not fallback) (not deep))
-              `((unless (eq ,previous-result result)
-                  ,@clean-up-code))))
-          ,@(when (not deep)
-              `((if (not (eq ,previous-result result))
-                    (let ((len (length (format-mode-line (powerline-render result)))))
-                      (setq segment-length (- len result-length))
-                      (setq result-length len))
-                  (setq segment-length 0)))))))))
+                    ;; The segment didn't produce, so just set it to zero
+                    (setq segment-length 0)
+                  ;; The segment produced. First, do any clean-up that might alter the length
+                  ,@clean-up-make
+                  ;; Compute the length
+                  (let ((len (string-width (format-mode-line (powerline-render result)))))
+                    (setq segment-length (- len result-length))
+                    ;; If the segment is hidden, forcibly reset the result pointer
+                    ;; If it's not hidden, update the result length and perform the rest of the cleanup
+                    (if ,hidden
+                        (setq result ,previous-result
+                              needs-separator ,previous-needs-separator
+                              separator-face ,previous-separator-face)
+                      ,@clean-up-code
+                      (setq result-length len)))))))))))
 
 (defun spaceline-compile (&rest args)
   "Compile a modeline.
@@ -408,6 +426,9 @@ If `spaceline-byte-compile' is non-nil, this function will be
 byte-compiled. This is recommended for regular usage as it
 improves performance significantly.
 
+If the segments are known statically at compile time, consider
+using `spaceline-generate' instead.
+
 Each element in LEFT and RIGHT must be a valid segment. Namely,
 - A literal string, integer or floating point number; or
 - a symbol, which has been defined with
@@ -417,14 +438,14 @@ Each element in LEFT and RIGHT must be a valid segment. Namely,
   the list is a plist.
 
 The supported properties are
-- `:priority', a number representing the priority of appearance
-  of that segment over the others, the lower the higher the priority.
-  -1 is the default and the lowest.
+- `:priority', a number representing the priority of appearance of that
+  segment over the others, the higher the number the higher the priority.
 - `:when', a form that must evaluate to non-nil for the segment to
   show (default t)
 - `:face', the face with which to render the segment; may either
-  be a fixed face or one of the variables `default-face',
-  `other-face' or `highlight-face' (default `default-face')
+  one of the variables `default-face', `other-face' or `highlight-face'
+  (default `default-face') or a form evaluating to a face. Thus any
+  face symbol which is not either of the above three must be quoted.
 - `:separator', a string inserted between each element in a list
   segment (default \" \")
 - `:tight-left', non-nil if the segment should have no padding on
@@ -448,45 +469,9 @@ The supported properties are
                         (cadr (assq target spaceline--mode-lines))))
            (right-segs (if (> nargs 1) (pop args)
                          (cddr (assq target spaceline--mode-lines))))
-           (target-func (intern (format "spaceline-ml-%s" target)))
-           ;; Special support for the global segment: compile list of excludes
-           (global-excludes (append (spaceline--global-excludes left-segs)
-                                    (spaceline--global-excludes right-segs)))
-           ;; Symbols for runtime data
-           (left-symbol (intern (format "spaceline--segments-code-%s-left" target)))
-           (right-symbol (intern (format "spaceline--segments-code-%s-right" target)))
-           (priority-symbol (intern (format "spaceline--runtime-data-%s" target)))
-           (left-code `(spaceline--code-for-side
-                        ,global-excludes ,left-symbol ,left-segs l))
-           (right-code `(spaceline--code-for-side
-                         ,global-excludes ,right-symbol ,right-segs r)))
+           (target-func (intern (format "spaceline-ml-%s" target))))
 
-      ;; Declare the global runtime defaults
-      (spaceline--declare-runtime left-segs right-segs
-                           left-symbol
-                           right-symbol
-                           priority-symbol)
-
-      ;; Update the stored segments so that recompilation will work
-      (unless (assq target spaceline--mode-lines)
-        (push `(,target) spaceline--mode-lines))
-      (setcdr (assq target spaceline--mode-lines) `(,left-segs . ,right-segs))
-
-      ;; Define the function that Emacs will call to generate the mode-line's
-      ;; format string every time the mode-line is refreshed.
-      (eval (macroexpand-all
-             `(defun ,target-func ()
-                ;; Initialize the local runtime if necessary
-                (unless ,priority-symbol
-                  (spaceline--init-runtime ',left-symbol
-                                    ',right-symbol
-                                    ',priority-symbol))
-                ;; Render the modeline
-                (let ((fmt (spaceline--render-mode-line ,left-code ,right-code)))
-                  (and spaceline-responsive
-                       (spaceline--adjust-to-window ,priority-symbol fmt)
-                       (setq fmt (spaceline--render-mode-line ,left-code ,right-code)))
-                  fmt))))
+      (eval (macroexpand-all `(spaceline-generate ,target ,left-segs ,right-segs)))
 
       (when spaceline-byte-compile
         (let ((byte-compile-warnings nil))
@@ -499,6 +484,70 @@ The supported properties are
 (defalias 'spaceline-install 'spaceline-compile)
 
 (make-obsolete-variable 'spaceline-install 'spaceline-compile "2.0.2")
+
+(defmacro spaceline-generate (&rest args)
+  "Compile a modeline.
+
+This is a macro-version of `spaceline-compile', useful for
+generating a modeline function when the segments are known
+statically at compile time.
+
+This macro accepts two calling conventions:
+- With three arguments, TARGET, LEFT and RIGHT, it compiles a
+  modeline named TARGET, with segment lists LEFT and RIGHT for
+  the left and right sides respectively.
+- With two arguments, LEFT and RIGHT, the target takes the
+  default value `main'.
+
+In all cases, a function called `spaceline-ml-TARGET' is defined,
+which evaluates the modeline. It can then be used as a modeline
+by setting `mode-line-format' to
+
+    (\"%e\" (:eval (spaceline-ml-TARGET)))
+
+See the documentation for `spaceline-compile' for how to specify
+LEFT and RIGHT."
+  (declare (indent defun))
+  (let* (;; Handle the different calling conventions
+         (nargs (length args))
+         (target (if (cl-oddp nargs) (pop args) 'main))
+         (left-segs (car args))
+         (right-segs (cadr args))
+         (target-func (intern (format "spaceline-ml-%s" target)))
+         ;; Special support for the global segment: compile list of excludes
+         (global-excludes (append (spaceline--global-excludes left-segs)
+                                  (spaceline--global-excludes right-segs)))
+         ;; Symbols for runtime data
+         (left-symbol (intern (format "spaceline--segments-code-%s-left" target)))
+         (right-symbol (intern (format "spaceline--segments-code-%s-right" target)))
+         (priority-symbol (intern (format "spaceline--runtime-data-%s" target)))
+         (left-code `(spaceline--code-for-side
+                      ,global-excludes ,left-symbol ,left-segs l))
+         (right-code `(spaceline--code-for-side
+                       ,global-excludes ,right-symbol ,right-segs r)))
+    `(progn
+
+       ;; Declare global runtime defaults
+       (spaceline--declare-runtime ,left-segs ,right-segs ,left-symbol ,right-symbol ,priority-symbol)
+
+       ;; Update stored segments so that recompilation will work
+       (unless (assq ',target spaceline--mode-lines)
+         (push '(,target) spaceline--mode-lines))
+       (setcdr (assq ',target spaceline--mode-lines)
+               '(,left-segs . ,right-segs))
+
+       ;; Define the function that Emacs will call to generate the mode-line's
+       ;; format string every time the mode-line is refreshed.
+       (defun ,target-func ()
+         ;; Initialize the local runtime if necessary
+         (unless ,priority-symbol
+           (spaceline--init-runtime ,left-symbol ,right-symbol ,priority-symbol))
+         ;; Render the modeline
+         (let ((fmt (spaceline--render-mode-line ,left-code ,right-code)))
+           (and spaceline-responsive
+                (spaceline--adjust-to-window ,priority-symbol fmt)
+                (setq fmt (spaceline--render-mode-line ,left-code ,right-code)))
+           fmt)))))
 
 (defmacro spaceline--code-for-side
     (global-excludes runtime-symbol segments side)
@@ -528,19 +577,10 @@ is either l or r, respectively for the left and the right side."
             separator-face
             result)
        ,@(--map `(let ((runtime-data (pop runtime-pointer)))
-                   (when (spaceline--shown runtime-data) ; Only render if this segment is shown
-                     ,@(spaceline--gen-segment it side)
-                     (spaceline--set-length runtime-data segment-length))) ; Update the length
+                   ,@(spaceline--gen-segment it side '(not (spaceline--shown runtime-data)))
+                   (spaceline--set-length runtime-data segment-length))
                 (if (eq 'l side) segments (reverse segments)))
        ,@(spaceline--gen-separator 'line-face side)
-       ;; XXX: This code is dead
-       ;; ;; use the same condition as in spaceline--gen-separator to
-       ;; ;; increase the size of the last visible segment accordingly:
-       ;; (when needs-separator
-       ;;   (let* ((last-visible-segment (--last (not (equal 0 (cdr (assoc 'length (cdr it)))))
-       ;;                                        ,segments-code))
-       ;;          (last-visible-segment-length (assoc 'length last-visible-segment)))
-       ;;     (cl-incf (cdr last-visible-segment-length))))
        ,(if (eq side 'l) '(reverse result) 'result))))
 
 (defmacro spaceline--priority (val) `(aref ,val 0))
@@ -549,7 +589,7 @@ is either l or r, respectively for the left and the right side."
 (defmacro spaceline--set-length (vec val) `(aset ,vec 1 ,val))
 (defmacro spaceline--set-shown (vec val) `(aset ,vec 2 ,val))
 
-(defun spaceline--declare-runtime
+(defmacro spaceline--declare-runtime
     (segments-left segments-right left-symbol right-symbol priority-symbol)
   "Initialize the global runtime data for a modeline.
 
@@ -566,23 +606,26 @@ PRIORITY-SYMBOL is initialized with default value nil.
 
 See `spaceline--init-runtime' for more information."
   (let ((left (--map (spaceline--parse-segment-spec it
-                       (vector (or (plist-get props :priority) -1) 0 t))
+                       (vector (or (plist-get props :priority) 0) 0 t))
                      segments-left))
         (right (--map (spaceline--parse-segment-spec it
-                        (vector (or (plist-get props :priority) -1) 0 t))
+                        (vector (or (plist-get props :priority) 0) 0 t))
                       segments-right)))
-    (eval `(defvar-local ,left-symbol nil "See `spaceline--declare-runtime'."))
-    (set-default left-symbol left)
-    (eval `(defvar-local ,right-symbol nil "See `spaceline--declare-runtime'."))
-    (set-default right-symbol (reverse right)))
+    `(progn
+       ;; We use both defvar and setq so that recompilation will work.
+       (defvar-local ,left-symbol nil "See `spaceline--declare-runtime'.")
+       (setq-default ,left-symbol ',left)
+       (defvar-local ,right-symbol nil "See `spaceline--declare-runtime'.")
+       (setq-default ,right-symbol ',(reverse right))
+       (defvar-local ,priority-symbol nil "See `spaceline--declare-runtime'.")
 
-  (eval `(defvar-local ,priority-symbol nil "See `spaceline--declare-runtime'."))
-  (set-default priority-symbol nil)
-  (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (kill-local-variable left-symbol)
-      (kill-local-variable right-symbol)
-      (kill-local-variable priority-symbol))))
+       ;; Since we have possibly changed the defaults of these variables, kill
+       ;; any local bindings that may exist.
+       (dolist (buf (buffer-list))
+         (with-current-buffer buf
+           (kill-local-variable ',left-symbol)
+           (kill-local-variable ',right-symbol)
+           (kill-local-variable ',priority-symbol))))))
 
 (defmacro spaceline--render-mode-line (left-code right-code)
   "Call powerline to generate the mode-line format string.
@@ -606,7 +649,7 @@ LEFT-CODE and RIGHT-CODE are the code that will be used "
         (powerline-fill line-face (powerline-width rhs))
         (powerline-render rhs)))))
 
-(defun spaceline--init-runtime (left-symbol right-symbol priority-symbol)
+(defmacro spaceline--init-runtime (left-symbol right-symbol priority-symbol)
   "Initialize data structures used for the responsiveness of the modeline.
 
 This function
@@ -619,16 +662,16 @@ Note that the changes in the resulting PRIORITY-SYMBOL list are
 visible from LEFT-SYMBOL and RIGHT-SYMBOL, and vice versa. This
 creates a data structure that is efficiently accessible both in
 order of priority and order of segments."
-  (let ((left (--map (copy-tree it) (default-value left-symbol)))
-        (right (--map (copy-tree it) (default-value right-symbol)))
-        priority)
-    (set (make-local-variable left-symbol) left)
-    (set (make-local-variable right-symbol) right)
-    (while (or left right)
-      (when left (push (pop left) priority))
-      (when right (push (pop right) priority)))
-    (set (make-local-variable priority-symbol)
-         (sort priority 'spaceline--compare-priorities))))
+  `(let ((left (--map (copy-tree it) (default-value ',left-symbol)))
+         (right (--map (copy-tree it) (default-value ',right-symbol)))
+         priority)
+     (set (make-local-variable ',left-symbol) left)
+     (set (make-local-variable ',right-symbol) right)
+     (while (or left right)
+       (when left (push (pop left) priority))
+       (when right (push (pop right) priority)))
+     (set (make-local-variable ',priority-symbol)
+          (sort priority 'spaceline--compare-priorities))))
 
 (defmacro spaceline--adjust-to-window (responsiveness-runtime-data format)
   "Adjust the spaceline to the window by hiding or showing segments.
@@ -641,10 +684,12 @@ FMT is the rendered modeline with the current visibility settings.
 
 Returns a truthy value if the visibility of any segment changed."
   ;; `1-' to not count the space generated by `powerline-fill'
-  `(let ((total-length (1- (length (format-mode-line ,format))))
-         (width (window-width))
+  `(let ((total-length (1- (string-width (format-mode-line ,format))))
+         (width (+ (window-width)
+                   (or (cdr (window-margins)) 0)
+                   (or (car (window-margins)) 0)))
          changed)
-     (if (> total-length (window-width))
+     (if (> total-length width)
          ;; The modeline is too long, so try to hide some segments that are shown
          (let ((to-hide (--drop-while (not (spaceline--shown it))
                                       ,responsiveness-runtime-data)))
@@ -668,7 +713,7 @@ Returns a truthy value if the visibility of any segment changed."
 Used as a predicate for `sort' in `spaceline--init-runtime'."
   (let ((first (spaceline--priority first-alist))
         (second (spaceline--priority second-alist)))
-    (> first second)))
+    (< first second)))
 
 (defmacro spaceline-define-segment (name value &rest props)
   "Define a modeline segment called NAME with value VALUE and properties PROPS.
@@ -720,8 +765,6 @@ the changes to take effect."
     `(progn
        (defvar ,toggle-var ,enabled
          ,(format "True if modeline segment %S is enabled." name))
-       ;; In case the segment is redefined, we explicitly set the toggle
-       (setq ,toggle-var ,enabled)
 
        (defun ,toggle-func () (interactive) (setq ,toggle-var (not ,toggle-var)))
        (defun ,toggle-func-on () (interactive) (setq ,toggle-var t))
@@ -747,12 +790,21 @@ the changes to take effect."
     excludes))
 
 (spaceline-define-segment global
-  (let* ((global-excludes (bound-and-true-p global-excludes))
-         (global (if (listp global-mode-string)
-                     (cons "" (-difference global-mode-string global-excludes))
-                   global-mode-string)))
+  (let ((global (if (listp global-mode-string)
+                    (cons "" (-difference global-mode-string global-excludes))
+                  global-mode-string)))
     (when (spaceline--mode-line-nonempty global)
       (string-trim (powerline-raw global)))))
+
+(defun spaceline--string-trim-from-center (str len)
+  "Return STR with its center chars trimmed for it to be a maximum length of LEN.
+When characters are trimmed, they are replaced with '...'."
+  (if (> (length str) len)
+      (let ((mid (/ (- len 3) 2)))
+        (concat (substring str 0 mid)
+                (apply #'propertize "..." (text-properties-at (- mid 1) str))
+                (substring str (- (1+ mid)) nil)))
+    str))
 
 (provide 'spaceline)
 
