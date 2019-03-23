@@ -16,7 +16,7 @@
 
 (req-package go-flymake
   :require flymake)
-(req-package go-flycheck
+(req-package flycheck-gometalinter
   :require flycheck)
 
 (req-package go-eldoc)
