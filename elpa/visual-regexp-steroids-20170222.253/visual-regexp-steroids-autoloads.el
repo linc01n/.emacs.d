@@ -1,10 +1,13 @@
 ;;; visual-regexp-steroids-autoloads.el --- automatically extracted autoloads
 ;;
 ;;; Code:
-(add-to-list 'load-path (directory-file-name (or (file-name-directory #$) (car load-path))))
+
+(add-to-list 'load-path (directory-file-name
+                         (or (file-name-directory #$) (car load-path))))
+
 
 ;;;### (autoloads nil "visual-regexp-steroids" "visual-regexp-steroids.el"
-;;;;;;  (22887 32326 0 0))
+;;;;;;  (0 0 0 0))
 ;;; Generated autoloads from visual-regexp-steroids.el
 
 (autoload 'vr/select-replace "visual-regexp-steroids" "\
@@ -32,10 +35,12 @@ Like isearch-backward, but using Python (or custom) regular expressions.
 
 \(fn)" t nil)
 
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "visual-regexp-steroids" '("vr/" "vr--")))
+
 ;;;***
 
-;;;### (autoloads nil nil ("visual-regexp-steroids-pkg.el") (22887
-;;;;;;  32326 0 0))
+;;;### (autoloads nil nil ("visual-regexp-steroids-pkg.el") (0 0
+;;;;;;  0 0))
 
 ;;;***
 
@@ -43,5 +48,6 @@ Like isearch-backward, but using Python (or custom) regular expressions.
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
+;; coding: utf-8
 ;; End:
 ;;; visual-regexp-steroids-autoloads.el ends here
