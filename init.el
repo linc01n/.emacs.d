@@ -16,6 +16,9 @@
 
 (use-package req-package :ensure t)
 
+(setq custom-file "~/.emacs.d/site-lisp/linc01n-custom.el")
+(load custom-file)
+
 (req-package load-dir
   :config
   (setq load-dirs (cons "~/.emacs.d/site-lisp" '("~/.emacs.d/load.d")))
