@@ -1525,7 +1525,7 @@ minibuffer."
 (defvar avy-keys-alist)
 (defvar avy-style)
 (defvar avy-styles-alist)
-(declare-function avy--process "ext:avy")
+(declare-function avy-process "ext:avy")
 (declare-function avy--style-fn "ext:avy")
 
 (defcustom ivy-format-function #'ivy-format-function-default
@@ -1573,7 +1573,7 @@ This string is inserted into the minibuffer."
          (avy-style (or (cdr (assq 'ivy-avy avy-styles-alist))
                         avy-style))
          (avy-action #'ivy--avy-action))
-    (avy--process
+    (avy-process
      (ivy--avy-candidates))))
 
 (defun ivy-sort-file-function-default (x y)
@@ -2838,14 +2838,14 @@ Possible choices are 'ivy-magic-slash-non-match-cd-selected,
   (if (and ivy--directory
            (equal ivy-text ""))
       (let* ((cands (cl-loop for pair in process-environment
-                             for (var val) = (split-string pair "=" t)
-                             if (and val (not (equal "" val)))
-                             if (file-exists-p
-                                 (if (file-name-absolute-p val)
-                                     val
-                                   (setq val
-                                         (expand-file-name val ivy--directory))))
-                             collect (cons var val)))
+                       for (var val) = (split-string pair "=" t)
+                       if (and val (not (equal "" val)))
+                       if (file-exists-p
+                           (if (file-name-absolute-p val)
+                               val
+                             (setq val
+                                   (expand-file-name val ivy--directory))))
+                       collect (cons var val)))
              (enable-recursive-minibuffers t)
              (x (ivy-read "Env: " cands))
              (path (cdr (assoc x cands))))
@@ -3504,15 +3504,11 @@ Note: The usual last two arguments are flipped for convenience.")
   "Highlight STR, using the default method."
   (unless ivy--old-re
     (setq ivy--old-re (funcall ivy--regex-function ivy-text)))
-  (let ((start
-         (if (and (memq (ivy-state-caller ivy-last) ivy-highlight-grep-commands)
-                  (string-match "\\`[^:]+:[^:]+:" str))
-             (match-end 0)
-           0))
-        (regexps
+  (let ((regexps
          (if (listp ivy--old-re)
              (mapcar #'car (cl-remove-if-not #'cdr ivy--old-re))
-           (list ivy--old-re))))
+           (list ivy--old-re)))
+        start)
     (dolist (re regexps)
       (ignore-errors
         (while (and (string-match re str start)
@@ -3537,7 +3533,14 @@ Note: The usual last two arguments are flipped for convenience.")
   "Format line STR for use in minibuffer."
   (let* ((str (ivy-cleanup-string (copy-sequence str)))
          (str (if (eq ivy-display-style 'fancy)
-                  (funcall ivy--highlight-function str)
+                  (if (memq (ivy-state-caller ivy-last)
+                            ivy-highlight-grep-commands)
+                      (let* ((start (if (string-match "\\`[^:]+:[^:]+:" str)
+                                        (match-end 0) 0))
+                             (file (substring str 0 start))
+                             (match (substring str start)))
+                        (concat file (funcall ivy--highlight-function match)))
+                    (funcall ivy--highlight-function str))
                 str))
          (olen (length str))
          (annot (plist-get completion-extra-properties :annotation-function)))
@@ -3990,7 +3993,13 @@ Skip buffers that match `ivy-ignore-buffers'."
 
 (defun ivy-switch-buffer-occur ()
   "Occur function for `ivy-switch-buffer' using `ibuffer'."
-  (ibuffer nil (buffer-name) (list (cons 'name ivy--old-re))))
+  (ibuffer
+   nil (buffer-name)
+   `((or ,@(cl-mapcan
+            (lambda (cand)
+              (unless (eq (get-text-property 0 'face cand) 'ivy-virtual)
+                `((name . ,(format "\\_<%s\\_>" (regexp-quote cand))))))
+            ivy--old-cands)))))
 
 ;;;###autoload
 (defun ivy-switch-buffer ()
@@ -4484,11 +4493,13 @@ EVENT gives the mouse position."
       (with-ivy-window
         (setq counsel-grep-last-line nil)
         (with-current-buffer (ivy--occur-press-buffer)
-          (funcall action
-                   (if (and (consp coll)
-                            (consp (car coll)))
-                       (assoc str coll)
-                     str)))
+          (save-restriction
+            (widen)
+            (funcall action
+                     (if (and (consp coll)
+                              (consp (car coll)))
+                         (assoc str coll)
+                       str))))
         (if (memq (ivy-state-caller ivy-last)
                   '(swiper counsel-git-grep counsel-grep counsel-ag counsel-rg))
             (with-current-buffer (window-buffer (selected-window))
