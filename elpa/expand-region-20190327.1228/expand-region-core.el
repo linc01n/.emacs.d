@@ -28,7 +28,6 @@
 
 (eval-when-compile (require 'cl))
 (require 'expand-region-custom)
-(require 'org)
 (declare-function er/expand-region "expand-region")
 
 (defvar er/history '()
@@ -44,6 +43,9 @@
 
 (defvar er/try-expand-list nil
   "A list of functions that are tried when expanding.")
+
+(defvar er/save-mode-excursion nil
+  "A function to save excursion state when expanding.")
 
 (defun er--prepare-expanding ()
   (when (and (er--first-invocation)
@@ -65,6 +67,13 @@
   (when (< emacs-major-version 25)
     (defmacro save-mark-and-excursion (&rest body)
       `(save-excursion ,@body))))
+
+(defmacro er--save-excursion (&rest body)
+  `(let ((action (lambda ()
+                   (save-mark-and-excursion ,@body))))
+     (if er/save-mode-excursion
+         (funcall er/save-mode-excursion action)
+       (funcall action))))
 
 (defun er--expand-region-1 ()
   "Increase selected region by semantic units.
@@ -97,16 +106,15 @@ moving point or mark as little as possible."
       (setq start (point)))
 
     (while try-list
-      (org-save-outline-visibility t
-       (save-mark-and-excursion
-         (ignore-errors
-           (funcall (car try-list))
-           (when (and (region-active-p)
-                      (er--this-expansion-is-better start end best-start best-end))
-             (setq best-start (point))
-             (setq best-end (mark))
-             (when (and er--show-expansion-message (not (minibufferp)))
-               (message "%S" (car try-list)))))))
+      (er--save-excursion
+       (ignore-errors
+         (funcall (car try-list))
+         (when (and (region-active-p)
+                    (er--this-expansion-is-better start end best-start best-end))
+           (setq best-start (point))
+           (setq best-end (mark))
+           (when (and er--show-expansion-message (not (minibufferp)))
+             (message "%S" (car try-list))))))
       (setq try-list (cdr try-list)))
 
     (setq deactivate-mark nil)
