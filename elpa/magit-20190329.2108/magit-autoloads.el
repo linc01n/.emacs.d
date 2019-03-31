@@ -1569,7 +1569,7 @@ Pull from a branch read in the minibuffer.
 
 \(fn SOURCE ARGS)" t nil)
 
-(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "magit-pull" '("magit-")))
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "magit-pull" '("magit-pull")))
 
 ;;;***
 
