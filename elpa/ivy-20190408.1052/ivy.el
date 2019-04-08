@@ -690,15 +690,24 @@ prompt is selected wraps around to the last candidate, while calling
 candidate, not the prompt."
   :type 'boolean)
 
+(defvar ivy--use-selectable-prompt nil
+  "Store the effective `ivy-use-selectable-prompt' for current session.")
+
 (defun ivy--prompt-selectable-p ()
   "Return t if the prompt line is selectable."
   (and ivy-use-selectable-prompt
-       (memq (ivy-state-require-match ivy-last)
-             '(nil confirm confirm-after-completion))))
+       (or (memq (ivy-state-require-match ivy-last)
+                 '(nil confirm confirm-after-completion))
+           ;; :require-match is t, but "" is in the collection
+           (let ((coll (ivy-state-collection ivy-last)))
+             (and (listp coll)
+                  (if (consp (car coll))
+                      (member '("") coll)
+                    (member "" coll)))))))
 
 (defun ivy--prompt-selected-p ()
   "Return t if the prompt line is selected."
-  (and (ivy--prompt-selectable-p)
+  (and ivy--use-selectable-prompt
        (= ivy--index -1)))
 
 ;;* Commands
@@ -1160,7 +1169,7 @@ If the input is empty, select the previous history element instead."
   (interactive "p")
   (setq arg (or arg 1))
   (let ((index (- ivy--index arg))
-        (min-index (if (ivy--prompt-selectable-p) -1 0)))
+        (min-index (if ivy--use-selectable-prompt -1 0)))
     (if (< index min-index)
         (if ivy-wrap
             (ivy-end-of-buffer)
@@ -1808,8 +1817,13 @@ history.
 
 KEYMAP is composed with `ivy-minibuffer-map'.
 
-If PRESELECT is not nil, then select the corresponding candidate
-out of the ones that match the INITIAL-INPUT.
+PRESELECT, when non-nil, determines which one of the candidates
+matching INITIAL-INPUT to select initially.  An integer stands
+for the position of the desired candidate in the collection,
+counting from zero.  Otherwise, use the first occurrence of
+PRESELECT in the collection.  Comparison is first done with
+`equal'.  If that fails, and when applicable, match PRESELECT as
+a regular expression.
 
 DEF is for compatibility with `completing-read'.
 
@@ -2132,6 +2146,7 @@ This is useful for recursive `ivy-read'."
               (buffer-substring (region-beginning) (region-end))
             (ivy-thing-at-point)))
     (setq ivy--prompt (ivy-add-prompt-count (ivy--quote-format-string prompt)))
+    (setq ivy--use-selectable-prompt (ivy--prompt-selectable-p))
     (setf (ivy-state-initial-input ivy-last) initial-input)))
 
 (defun ivy-add-prompt-count (prompt)
@@ -2378,12 +2393,8 @@ Minibuffer bindings:
   (cond ((integerp preselect)
          preselect)
         ((cl-position preselect candidates :test #'equal))
-        ((stringp preselect)
-         (let ((re preselect))
-           (cl-position-if
-            (lambda (x)
-              (string-match-p re x))
-            candidates)))))
+        ((ivy--regex-p preselect)
+         (cl-position preselect candidates :test #'string-match-p))))
 
 ;;* Implementation
 ;;** Regex
@@ -2484,17 +2495,13 @@ When GREEDY is non-nil, join words in a greedy way."
                           (if greedy ".*" ".*?")))))
                     ivy--regex-hash)))))
 
-(defun ivy--legal-regex-p (str)
-  "Return t if STR is valid regular expression."
-  (condition-case nil
-      (progn
-        (string-match-p str "")
-        t)
-    (invalid-regexp nil)))
+(defun ivy--regex-p (object)
+  "Return OBJECT if it is a valid regular expression, else nil."
+  (ignore-errors (string-match-p object "") object))
 
 (defun ivy--regex-or-literal (str)
-  "If STR isn't a legal regex, escape it."
-  (if (ivy--legal-regex-p str) str (regexp-quote str)))
+  "If STR isn't a legal regexp, escape it."
+  (or (ivy--regex-p str) (regexp-quote str)))
 
 (defun ivy--split-negation (str)
   "Split STR into text before and after ! delimiter.
@@ -2763,7 +2770,7 @@ parts beyond their respective faces `ivy-confirm-face' and
         ;; Mark prompt as selected if the user moves there or it is the only
         ;; option left.  Since the user input stays put, we have to manually
         ;; remove the face as well.
-        (when (ivy--prompt-selectable-p)
+        (when ivy--use-selectable-prompt
           (if (or (= ivy--index -1)
                   (= ivy--length 0))
               (ivy-add-face-text-property
@@ -3264,7 +3271,7 @@ RE-STR is the regexp, CANDS are the current candidates."
                      (and (integerp preselect)
                           (= ivy--index preselect))
                      (equal current preselect)
-                     (and (stringp preselect)
+                     (and (ivy--regex-p preselect)
                           (stringp current)
                           (string-match-p preselect current))))
                ivy--old-cands
@@ -4402,7 +4409,7 @@ updated original buffer."
   (interactive)
   (let ((caller (ivy-state-caller ivy-occur-last))
         (ivy-last ivy-occur-last))
-    (cond ((eq caller 'swiper)
+    (cond ((member caller '(swiper swiper-isearch))
            (let ((buffer (ivy-state-buffer ivy-occur-last)))
              (unless (buffer-live-p buffer)
                (error "Buffer was killed"))
@@ -4461,7 +4468,7 @@ EVENT gives the mouse position."
 
 (defun ivy--occur-press-update-window ()
   (cl-case (ivy-state-caller ivy-occur-last)
-    ((swiper counsel-git-grep counsel-grep counsel-ag counsel-rg)
+    ((swiper swiper-isearch counsel-git-grep counsel-grep counsel-ag counsel-rg)
      (let ((window (ivy-state-window ivy-occur-last))
            (buffer (ivy-state-buffer ivy-occur-last)))
        (when (and (or (not (window-live-p window))
@@ -4494,6 +4501,7 @@ EVENT gives the mouse position."
            (str (buffer-substring
                  (match-beginning 1)
                  (match-end 1)))
+           (offset (or (get-text-property 0 'offset str) 0))
            (coll (ivy-state-collection ivy-last))
            (action (ivy--get-action ivy-last))
            (ivy-exit 'done))
@@ -4506,9 +4514,10 @@ EVENT gives the mouse position."
                      (if (and (consp coll)
                               (consp (car coll)))
                          (assoc str coll)
-                       str))))
+                       (substring str offset)))))
         (if (memq (ivy-state-caller ivy-last)
-                  '(swiper counsel-git-grep counsel-grep counsel-ag counsel-rg))
+                  '(swiper swiper-isearch
+                    counsel-git-grep counsel-grep counsel-ag counsel-rg))
             (with-current-buffer (window-buffer (selected-window))
               (swiper--cleanup)
               (swiper--add-overlays
