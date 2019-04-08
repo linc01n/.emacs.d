@@ -4,7 +4,7 @@
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; URL: https://github.com/abo-abo/swiper
-;; Package-Version: 20190404.1245
+;; Package-Version: 20190407.1729
 ;; Version: 0.11.0
 ;; Package-Requires: ((emacs "24.1") (ivy "0.11.0"))
 ;; Keywords: matching
@@ -481,19 +481,41 @@ such as `scroll-conservatively' are set to a high value.")
     (nreverse res)))
 
 (defun swiper--occur-cands (fname cands)
-  (with-current-buffer (ivy-state-buffer ivy-last)
-    (let* ((pt-min (point-min))
-           (line-delta
-            (save-restriction
-              (widen)
-              (1- (line-number-at-pos pt-min)))))
-      (mapcar
-       (lambda (s)
-         (let* ((n (get-text-property 0 'swiper-line-number s))
-                (nn (number-to-string (+ (read n) line-delta))))
-           (put-text-property 0 (length nn) 'face 'ivy-grep-line-number nn)
-           (format "%s:%s:%s" fname nn (substring s 1))))
-       cands))))
+  (when cands
+    (with-current-buffer (ivy-state-buffer ivy-last)
+      (let* ((pt-min (point-min))
+             (line-delta
+              (save-restriction
+                (widen)
+                (1- (line-number-at-pos pt-min))))
+             (lines
+              (if (eq (ivy-state-caller ivy-last) 'swiper-isearch)
+                  (swiper--isearch-occur-cands cands)
+                (mapcar (lambda (s)
+                          (let ((l (get-text-property 0 'swiper-line-number s)))
+                            (setq s (substring s 1))
+                            (put-text-property 0 1 'swiper-line-number l s)
+                            (cons (read l) s)))
+                        cands)))
+             (offset (+ (length fname) 2)))
+        (mapcar (lambda (x)
+                  (let ((nn (number-to-string
+                             (+ (car x) line-delta))))
+                    (put-text-property 0 (length nn) 'face 'ivy-grep-line-number nn)
+                    (put-text-property 0 1 'offset (+ offset (length nn)) fname)
+                    (format "%s:%s:%s" fname nn (cdr x))))
+                lines)))))
+
+(defun swiper--isearch-occur-cands (cands)
+  (let* ((last-pt (get-text-property 0 'point (car cands)))
+         (line (1+ (line-number-at-pos last-pt)))
+         res pt)
+    (dolist (cand cands)
+      (setq pt (get-text-property 0 'point cand))
+      (cl-incf line (1- (count-lines last-pt pt)))
+      (push (cons line cand) res)
+      (setq last-pt pt))
+    (nreverse res)))
 
 (defun swiper-occur (&optional revert)
   "Generate a custom occur buffer for `swiper'.
@@ -508,18 +530,21 @@ When capture groups are present in the input, print them instead of lines."
                      (buffer-name buffer)))
                  'face
                  'ivy-grep-info))
-         (re (progn (string-match "\"\\(.*\\)\"" (buffer-name))
-                    (match-string 1 (buffer-name))))
-         (re (mapconcat #'identity (ivy--split re) ".*?"))
+         (ivy-text (progn (string-match "\"\\(.*\\)\"" (buffer-name))
+                          (match-string 1 (buffer-name))))
+         (re (mapconcat #'identity (ivy--split ivy-text) ".*?"))
          (cands
           (swiper--occur-cands
            fname
            (if (not revert)
                ivy--old-cands
              (setq ivy--old-re nil)
-             (let ((ivy--regex-function 'swiper--re-builder))
-               (ivy--filter re (with-current-buffer buffer
-                                 (swiper--candidates))))))))
+             (save-window-excursion
+               (switch-to-buffer buffer)
+               (if (eq (ivy-state-caller ivy-last) 'swiper)
+                   (let ((ivy--regex-function 'swiper--re-builder))
+                     (ivy--filter re (swiper--candidates)))
+                 (swiper-isearch-function ivy-text)))))))
     (if (string-match-p "\\\\(" re)
         (insert
          (mapconcat #'identity
@@ -847,9 +872,7 @@ the face, window and priority of the overlay."
 
 (defun swiper--action (x)
   "Goto line X."
-  (let ((ln (1- (read (or (get-text-property 0 'swiper-line-number x)
-                          (and (string-match ":\\([0-9]+\\):.*\\'" x)
-                               (match-string-no-properties 1 x))))))
+  (let ((ln (1- (read (get-text-property 0 'swiper-line-number x))))
         (re (ivy--regex ivy-text)))
     (if (null x)
         (user-error "No candidates")
@@ -1126,24 +1149,32 @@ See `ivy-format-function' for further information."
     res))
 
 ;;* `swiper-isearch'
-(defvar swiper--isearch-last-point nil)
+(defvar swiper--isearch-point-history nil
+  "Store the current input and point history for a single search.
+Each element is a cons cell of an input and a point position that
+corresponds to it.
+
+This ensures that if the user enters \"ab\", the point will
+come back to the same place as when \"a\" was initially entered.")
 
 (defun swiper-isearch-function (str)
   "Collect STR matches in the current buffer for `swiper-isearch'."
   (unless (string= str "")
-    (let ((re-full (funcall ivy--regex-function str))
-          re
-          cands
-          idx-found
-          (idx 0))
-      (setq re (ivy-re-to-str re-full))
+    (let* ((re-full (funcall ivy--regex-function str))
+           (re (ivy-re-to-str re-full))
+           (pt-hist (cdr (assoc str swiper--isearch-point-history)))
+           cands
+           idx-found
+           (idx 0))
       (with-ivy-window
         (save-excursion
           (goto-char (point-min))
           (while (re-search-forward re nil t)
             (unless idx-found
-              (when (>= (match-beginning 0) swiper--isearch-last-point)
-                (setq swiper--isearch-last-point (match-beginning 0))
+              (when (or
+                     (eq (match-beginning 0) pt-hist)
+                     (>= (match-beginning 0) (cdar swiper--isearch-point-history)))
+                (push (cons str (match-beginning 0)) swiper--isearch-point-history)
                 (setq idx-found idx)))
             (cl-incf idx)
             (let ((line (buffer-substring
@@ -1180,7 +1211,11 @@ See `ivy-format-function' for further information."
   "A `swiper' that's not line-based."
   (interactive)
   (swiper--init)
-  (setq swiper--isearch-last-point (line-beginning-position))
+  (setq swiper--isearch-point-history
+        (list
+         (cons "" (if executing-kbd-macro
+                      (point)
+                    (line-beginning-position)))))
   (let ((ivy-fixed-height-minibuffer t)
         (cursor-in-non-selected-windows nil)
         (swiper-min-highlight 1)
@@ -1205,6 +1240,8 @@ See `ivy-format-function' for further information."
         (goto-char swiper--opoint))
       (unless (or res (string= ivy-text ""))
         (cl-pushnew ivy-text swiper-history)))))
+
+(ivy-set-occur 'swiper-isearch 'swiper-occur)
 
 (provide 'swiper)
 
