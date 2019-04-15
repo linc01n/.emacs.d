@@ -1746,8 +1746,9 @@ May supersede `ivy-initial-inputs-alist'."
 Directories come first."
   (let* ((default-directory dir)
          (seq (condition-case nil
-                  (all-completions "" #'read-file-name-internal
-                                   (ivy-state-predicate ivy-last))
+                  (mapcar (lambda (s) (replace-regexp-in-string "\\$\\$" "$" s))
+                          (all-completions "" #'read-file-name-internal
+                                           (ivy-state-predicate ivy-last)))
                 (error
                  (directory-files dir))))
          sort-fn)
@@ -3050,18 +3051,20 @@ In any Ivy completion session, the case folding starts with
 RE is a list of cons cells, with a regexp car and a boolean cdr.
 When the cdr is t, the car must match.
 Otherwise, the car must not match."
-  (ignore-errors
-    (dolist (re (if (stringp re) (list (cons re t)) re))
-      (let* ((re-str (car re))
-             (pred
-              (if mkpred
-                  (funcall mkpred re-str)
-                (lambda (x) (string-match-p re-str x)))))
-        (setq candidates
-              (cl-remove nil candidates
-                         (if (cdr re) :if-not :if)
-                         pred))))
-    candidates))
+  (if (equal re "")
+      candidates
+    (ignore-errors
+      (dolist (re (if (stringp re) (list (cons re t)) re))
+        (let* ((re-str (car re))
+               (pred
+                (if mkpred
+                    (funcall mkpred re-str)
+                  (lambda (x) (string-match-p re-str x)))))
+          (setq candidates
+                (cl-remove nil candidates
+                           (if (cdr re) :if-not :if)
+                           pred))))
+      candidates)))
 
 (defun ivy--filter (name candidates)
   "Return all items that match NAME in CANDIDATES.
@@ -3077,8 +3080,6 @@ CANDIDATES are assumed to be static."
              (matcher (ivy-state-matcher ivy-last))
              (case-fold-search (ivy--case-fold-p name))
              (cands (cond
-                      (matcher
-                       (funcall matcher re candidates))
                       ((and ivy--old-re
                             (stringp re)
                             (stringp ivy--old-re)
@@ -3089,11 +3090,11 @@ CANDIDATES are assumed to be static."
                                        (substring ivy--old-re 0 -2)
                                      ivy--old-re)
                                    re)
-                                  '(0 2)))
-                       (ignore-errors
-                         (cl-remove-if-not
-                          (lambda (x) (string-match-p re x))
-                          ivy--old-cands)))
+                                  '(0 2))
+                            ivy--old-cands
+                            (ivy--re-filter re ivy--old-cands)))
+                      (matcher
+                       (funcall matcher re candidates))
                       (t
                        (ivy--re-filter re candidates)))))
         (if (memq (cdr (assq (ivy-state-caller ivy-last)
@@ -3242,9 +3243,10 @@ RE-STR is the regexp, CANDS are the current candidates."
         (preselect (ivy-state-preselect ivy-last))
         (current (ivy-state-current ivy-last))
         (empty (string= name "")))
-    (unless (eq this-command 'ivy-resume)
+    (unless (memq this-command '(ivy-resume ivy-partial-or-done))
       (ivy-set-index
-       (if (string= name "")
+       (if (or (string= name "")
+               (and (> (length cands) 10000) (eq func #'ivy-recompute-index-zero)))
            0
          (or
           (cl-position (ivy--remove-prefix "^" name)
