@@ -174,13 +174,13 @@ module Robe
     end
 
     def ping
-      "pong"
+      {pong: true}
     end
 
     def call(path, body)
       _, endpoint, *args = path.split("/").map { |s| s == "-" ? nil : s }
       value = public_send(endpoint.to_sym, *args)
-      value.to_json
+      JSON.generate(value)
     end
 
     private

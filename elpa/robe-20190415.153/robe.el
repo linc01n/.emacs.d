@@ -5,7 +5,7 @@
 
 ;; Author: Dmitry Gutov
 ;; URL: https://github.com/dgutov/robe
-;; Version: 0.8.1
+;; Version: 0.8.2
 ;; Keywords: ruby convenience rails
 ;; Package-Requires: ((inf-ruby "2.5.1") (emacs "24.4"))
 
@@ -111,6 +111,7 @@ nil means to use the global value of `completing-read-function'."
     (apply #'completing-read args)))      ; 2) allow completing-read override
 
 (defmacro robe-with-inf-buffer (&rest body)
+  (declare (debug t))
   `(let ((buf (robe-inf-buffer)))
      (when buf
        (with-current-buffer buf
@@ -173,7 +174,7 @@ project."
               (accept-process-output proc))
             (set-process-sentinel proc #'robe-process-sentinel))
         (set-process-filter proc comint-filter)))
-    (when (robe-request "ping") ;; Should be always t when no error, though.
+    (when (robe-request "ping") ;; Meaning "no error".
       (robe-with-inf-buffer
        (setq robe-running t
              robe-load-path (mapcar #'file-name-as-directory
@@ -250,21 +251,41 @@ project."
             (with-temp-buffer
               (url-insert response-buffer)
               (goto-char (point-min))
-              (let ((json-array-type 'list))
-                (json-read)))
-          (kill-buffer response-buffer))
-      (error "Server doesn't respond"))))
+              (robe--parse-buffer))
+          (kill-buffer response-buffer)))))
+
+(defun robe--parse-buffer ()
+  (cond ((fboundp 'json-parse-buffer)
+         (condition-case err
+             (json-parse-buffer
+              :array-type 'list
+              :object-type 'alist
+              :null-object nil)
+           (error
+            (if (string-match-p "One of :object-type"
+                                (error-message-string err))
+                ;; Older Emacs 27.
+                (let ((json-array-type 'list))
+                  (json-read))
+              (error (error-message-string err))))))
+        (t
+         (let ((json-array-type 'list))
+           (json-read)))))
 
 (defun robe-retrieve (url)
   (defvar url-http-response-status)
-  (let ((buffer (condition-case nil (url-retrieve-synchronously url t)
-                  (file-error nil))))
-    (if (and buffer
-             (with-current-buffer buffer
-               (memq url-http-response-status '(200 500))))
-        buffer
+  (let* ((buffer (condition-case nil (url-retrieve-synchronously url t t)
+                   (file-error nil)))
+         (status (and buffer
+                      (buffer-local-value 'url-http-response-status buffer))))
+    (cond
+     ((null status)
       (robe-with-inf-buffer
-       (setq robe-running nil)))))
+       (setq robe-running nil))
+      (error "Server doesn't respond"))
+     ((/= status 500)
+      buffer)
+     (t nil))))
 
 (cl-defstruct (robe-spec (:type list)) module inst-p method params file line)
 
@@ -730,17 +751,20 @@ Only works with Rails, see e.g. `rinari-console'."
           (when (consp list)
             (let* ((spec (car list))
                    (doc (robe-doc-for spec))
-                   (summary (with-temp-buffer
-                              (insert (cdr (assoc 'docstring doc)))
-                              (unless (= (point) (point-min))
-                                (goto-char (point-min))
-                                (save-excursion
-                                  (forward-sentence)
-                                  (delete-region (point) (point-max)))
-                                (robe-doc-apply-rules (point) (point-max))
-                                (while (search-forward "\n" nil t)
-                                  (replace-match " ")))
-                              (buffer-string)))
+                   (summary
+                    (if doc
+                        (with-temp-buffer
+                          (insert (cdr (assoc 'docstring doc)))
+                          (unless (= (point) (point-min))
+                            (goto-char (point-min))
+                            (save-excursion
+                              (forward-sentence)
+                              (delete-region (point) (point-max)))
+                            (robe-doc-apply-rules (point) (point-max))
+                            (while (search-forward "\n" nil t)
+                              (replace-match " ")))
+                          (buffer-string))
+                      ""))
                    (sig (robe-signature spec arg-num))
                    (msg (format "%s %s" sig summary)))
               (substring msg 0 (min (frame-width) (length msg))))))))))
@@ -913,13 +937,22 @@ Only works with Rails, see e.g. `rinari-console'."
                      (or ?& (* ?*))
                      (group
                       (+ (or (syntax ?w) (syntax ?_))))))
-        (var-regexp (rx
-                     (or line-start (in ", \t("))
-                     (group
-                      (+ (or (syntax ?w) (syntax ?_))))
-                     (* ?\s)
-                     ?=
-                     (not (in "=>~"))))
+        (var-regexp (rx (group (+ (or (syntax ?w) (syntax ?_))))))
+        (vars-regexp (rx
+                      (or line-start ?\()
+                      (* (in " \t"))
+                      (group
+                       (+ (or (syntax ?w) (syntax ?_))))
+                      (* ?\s)
+                      (\?
+                       (group
+                        (+
+                         ?,
+                         (* ?\s)
+                         (+ (or (syntax ?w) (syntax ?_)))
+                         (* ?\s))))
+                      ?=
+                      (not (in "=>~"))))
         (eol (line-end-position))
         vars)
     (save-excursion
@@ -949,9 +982,14 @@ Only works with Rails, see e.g. `rinari-console'."
       ;; the original position.
       ;; `backward-up-list' can be slow-ish in large files,
       ;; but we could add a cache akin to syntax-ppss.
-      (while (re-search-forward var-regexp eol t)
+      (while (re-search-forward vars-regexp eol t)
         (when (robe--not-in-string-or-comment)
-          (push (robe--matched-variable) vars))))
+          (push (robe--matched-variable) vars)
+          (when (match-beginning 2)
+            (let ((pos (point)))
+              (goto-char (match-end 1))
+              (while (re-search-forward var-regexp pos 'move)
+                (push (robe--matched-variable) vars)))))))
     vars))
 
 (defvar robe-mode-map
