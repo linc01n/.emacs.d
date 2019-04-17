@@ -18,8 +18,6 @@
                 'text-scale-decrease)
 (global-set-key (kbd "s-z")
                 'undo-only)
-(global-set-key (kbd "s-b")
-                'switch-to-buffer)
 (global-set-key (kbd "s-/")
                 'hippie-expand)
 (global-set-key (kbd "s-a")

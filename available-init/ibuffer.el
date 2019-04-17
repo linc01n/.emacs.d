@@ -1,6 +1,6 @@
 (req-package ibuffer
   :bind
-  ("<f14>" . ibuffer)
+  ("s-b" . ibuffer)
   :config
   (progn
     (add-hook 'ibuffer-hook(lambda () (hl-line-mode 1)))))
