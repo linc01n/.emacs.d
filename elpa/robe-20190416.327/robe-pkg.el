@@ -1,4 +1,4 @@
-(define-package "robe" "20190415.153" "Code navigation, documentation lookup and completion for Ruby"
+(define-package "robe" "20190416.327" "Code navigation, documentation lookup and completion for Ruby"
   '((inf-ruby "2.5.1")
     (emacs "24.4"))
   :keywords
