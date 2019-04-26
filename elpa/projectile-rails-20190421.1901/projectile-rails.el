@@ -4,7 +4,7 @@
 
 ;; Author:            Adam Sokolnicki <adam.sokolnicki@gmail.com>
 ;; URL:               https://github.com/asok/projectile-rails
-;; Package-Version: 20190110.1008
+;; Package-Version: 20190421.1901
 ;; Version:           0.17.0
 ;; Keywords:          rails, projectile
 ;; Package-Requires:  ((emacs "24.3") (projectile "0.12.0") (inflections "1.1") (inf-ruby "2.2.6") (f "0.13.0") (rake "0.3.2"))
@@ -252,6 +252,26 @@
   :group 'projectile-rails
   :type 'string)
 
+(defcustom projectile-rails-custom-console-command nil
+  "When set it will be use instead of a preloader as the command for running console."
+  :group 'projectile-rails
+  :type 'string)
+
+(defcustom projectile-rails-custom-server-command nil
+  "When set it will be use instead of a preloader as the command for running server."
+  :group 'projectile-rails
+  :type 'string)
+
+(defcustom projectile-rails-custom-generate-command nil
+  "When set it will be use instead of a preloader as the command for running generate."
+  :group 'projectile-rails
+  :type 'string)
+
+(defcustom projectile-rails-custom-destroy-command nil
+  "When set it will be use instead of a preloader as the command for running destroy."
+  :group 'projectile-rails
+  :type 'string)
+
 (defvar projectile-rails-extracted-region-snippet
   '(("erb"  . "<%%= render '%s' %%>")
     ("haml" . "= render '%s'")
@@ -282,18 +302,24 @@
     ("scaffold" (("app/models/" "app/models/\\(.+\\)\\.rb$")))
     ("task" (("lib/tasks/" "lib/tasks/\\(.+\\)\\.rake$")))))
 
-(defmacro projectile-rails-with-preloader (&rest cases)
+(defun projectile-rails--command (&rest cases)
   "Checks for the presence of pre-loaders and returns corresponding value.
 
 CASES is a plist with props being :spring, :zeus or :vanilla.
 Each corresponds to a preloader (:vanilla means no preloader).
 If a preloader is running the value for the given prop is returned."
-  `(cond ((projectile-rails-spring-p)
-          ,(plist-get cases :spring))
-         ((projectile-rails-zeus-p)
-          ,(plist-get cases :zeus))
-         (t
-          ,(plist-get cases :vanilla))))
+  (let ((custom-command (plist-get cases :custom)))
+    (cond
+     (custom-command
+      (projectile-rails--ensure-suffix custom-command " "))
+     ((projectile-rails-spring-p)
+      (plist-get cases :spring))
+     ((projectile-rails-zeus-p)
+      (plist-get cases :zeus))
+     (t
+      (plist-get cases :vanilla)))))
+
+(defalias 'projectile-rails-with-preloader 'projectile-rails--command)
 
 (defmacro projectile-rails-with-root (body-form)
   "Run BODY-FORM within DEFAULT-DIRECTORY set to `projectile-rails-root'"
@@ -776,7 +802,8 @@ The mode of the output buffer will be `projectile-rails-compilation-mode'."
   "Start a rails console, asking for which if ARG is not nil."
   (interactive "P")
   (projectile-rails-with-root
-   (let ((rails-console-command (projectile-rails-with-preloader
+   (let ((rails-console-command (projectile-rails--command
+                                 :custom projectile-rails-custom-console-command
                                  :spring (concat projectile-rails-spring-command " rails console")
                                  :zeus "zeus console"
                                  :vanilla (concat projectile-rails-vanilla-command " console"))))
@@ -854,7 +881,8 @@ The buffer for interacting with SQL client is created via `sql-product-interacti
           (sqli-options    (sql-get-product-feature product :sqli-options))
           (sqli-program    (sql-get-product-feature product :sqli-program))
           (sql-comint-func (sql-get-product-feature product :sqli-comint-func))
-          (commands (s-split " " (projectile-rails-with-preloader
+          (commands (s-split " " (projectile-rails--command
+                                  :custom projectile-rails-custom-dbconsole-command
                                   :spring (concat projectile-rails-spring-command " rails dbconsole")
                                   :zeus (concat projectile-rails-zeus-command " dbconsole")
                                   :vanilla (concat projectile-rails-vanilla-command " dbconsole")))))
@@ -1058,9 +1086,10 @@ Will try to look for a template or partial file, and assets file."
   (if (member projectile-rails-server-buffer-name (mapcar 'buffer-name (buffer-list)))
       (switch-to-buffer projectile-rails-server-buffer-name)
     (projectile-rails-with-root
-     (compile (projectile-rails-with-preloader :spring (concat projectile-rails-spring-command " rails server")
-                                               :zeus (concat projectile-rails-zeus-command " server")
-                                               :vanilla (concat projectile-rails-vanilla-command " server"))
+     (compile (projectile-rails--command :spring (concat projectile-rails-spring-command " rails server")
+                                         :zeus (concat projectile-rails-zeus-command " server")
+                                         :vanilla (concat projectile-rails-vanilla-command " server")
+                                         :custom projectile-rails-custom-server-command)
               'projectile-rails-server-mode))))
 
 (defun projectile-rails--completion-in-region ()
@@ -1079,7 +1108,8 @@ Will try to look for a template or partial file, and assets file."
   "Runs rails generate command"
   (interactive)
   (projectile-rails-with-root
-   (let ((command-prefix (projectile-rails-with-preloader
+   (let ((command-prefix (projectile-rails--command
+                          :custom projectile-rails-custom-generate-command
                           :spring (concat projectile-rails-spring-command " rails generate ")
                           :zeus (concat projectile-rails-zeus-command " generate ")
                           :vanilla (concat projectile-rails-vanilla-command " generate "))))
@@ -1110,7 +1140,8 @@ Will try to look for a template or partial file, and assets file."
   "Runs rails destroy command."
   (interactive)
   (projectile-rails-with-root
-   (let ((command-prefix (projectile-rails-with-preloader
+   (let ((command-prefix (projectile-rails--command
+                          :custom projectile-rails-custom-destroy-command
                           :spring (concat projectile-rails-spring-command " rails destroy ")
                           :zeus (concat projectile-rails-zeus-command " destroy ")
                           :vanilla (concat projectile-rails-vanilla-command " destroy "))))
@@ -1388,7 +1419,10 @@ If file does not exist and ASK in not nil it will ask user to proceed."
   name)
 
 (defun projectile-rails-sanitize-dir-name (name)
-  (if (s-ends-with? "/" name) name (concat name "/")))
+  (projectile-rails--ensure-suffix name "/"))
+
+(defun projectile-rails--ensure-suffix (name suffix)
+  (if (s-ends-with? suffix name) name (concat name suffix)))
 
 (defun projectile-rails-current-line ()
   (save-excursion
