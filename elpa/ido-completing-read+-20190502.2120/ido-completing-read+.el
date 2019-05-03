@@ -6,7 +6,7 @@
 ;; Author: Ryan Thompson
 ;; Created: Sat Apr  4 13:41:20 2015 (-0700)
 ;; Version: 4.12
-;; Package-Version: 20190409.318
+;; Package-Version: 20190502.2120
 ;; Package-Requires: ((emacs "24.4") (cl-lib "0.5") (s "0.1") (memoize "1.1"))
 ;; URL: https://github.com/DarwinAwardWinner/ido-completing-read-plus
 ;; Keywords: ido, completion, convenience
@@ -301,6 +301,8 @@ disable fallback based on collection size, set this to nil."
     ;; https://github.com/DarwinAwardWinner/ido-completing-read-plus/issues/159
     ffap-read-file-or-url
     ffap-read-file-or-url-internal
+    ;; https://github.com/DarwinAwardWinner/ido-completing-read-plus/issues/161
+    sly-read-symbol-name
     )
   "Functions & commands for which ido-cr+ should be disabled.
 
