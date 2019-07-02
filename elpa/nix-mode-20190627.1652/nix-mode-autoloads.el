@@ -70,7 +70,7 @@ Pretty print Nix’s .drv files.
 ;;; Generated autoloads from nix-mode.el
 
 (autoload 'nix-mode-format "nix-mode" "\
-Format the entire nix-mode buffer.
+Format the entire `nix-mode' buffer.
 
 \(fn)" t nil)
 
@@ -84,12 +84,12 @@ Indent on a whole region. Enabled by default.
 START where to start in region.
 END where to end the region.
 
-\(fn START END)" nil nil)
+\(fn START END)" t nil)
 
 (autoload 'nix-mode-ffap-nixpkgs-path "nix-mode" "\
 Support `ffap' for <nixpkgs> declarations.
-If STR contains brackets, call nix-instantiate to find the
-location of STR. If nix-instantiate has a nonzero exit code,
+If STR contains brackets, call `nix-instantiate' to find the
+location of STR. If `nix-instantiate' has a nonzero exit code,
 don’t do anything
 
 \(fn STR)" nil nil)
