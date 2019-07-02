@@ -58,11 +58,11 @@ already exists.  If prior to calling this command the current
 buffer and/or cursor position is about the same file, then go to
 the line and column corresponding to that location."
   (interactive (magit-find-file-read-args "Find file in other window"))
-  (magit-find-file--internal rev file #'switch-to-buffer-other-frame))
+  (magit-find-file--internal rev file #'switch-to-buffer-other-window))
 
 ;;;###autoload
 (defun magit-find-file-other-frame (rev file)
-  "View FILE from REV, in another window.
+  "View FILE from REV, in another frame.
 Switch to a buffer visiting blob REV:FILE, creating one if none
 already exists.  If prior to calling this command the current
 buffer and/or cursor position is about the same file, then go to
@@ -85,9 +85,7 @@ the line and column corresponding to that location."
       (user-error "Nothing selected"))))
 
 (defun magit-find-file--internal (rev file fn)
-  (let ((buf  (if (equal rev "{worktree}")
-                  (find-file-noselect (expand-file-name file (magit-toplevel)))
-                (magit-find-file-noselect rev file)))
+  (let ((buf (magit-find-file-noselect rev file))
         line col)
     (when-let ((visited-file (magit-file-relative-name)))
       (setq line (line-number-at-pos))
@@ -124,40 +122,41 @@ FILE must be relative to the top directory of the repository."
 REV is a revision or one of \"{worktree}\" or \"{index}\".
 FILE must be relative to the top directory of the repository.
 Non-nil REVERT means to revert the buffer.  If `ask-revert',
-then only after asking."
-  (let ((topdir (magit-toplevel)))
-    (when (file-name-absolute-p file)
-      (setq file (file-relative-name file topdir)))
-    (with-current-buffer (magit-get-revision-buffer-create rev file)
-      (when (or (not magit-buffer-file-name)
-                (if (eq revert 'ask-revert)
-                    (y-or-n-p (format "%s already exists; revert it? "
-                                      (buffer-name))))
-                revert)
-        (setq magit-buffer-revision
-              (if (equal rev "{index}")
-                  "{index}"
-                (magit-rev-format "%H" rev)))
-        (setq magit-buffer-refname rev)
-        (setq magit-buffer-file-name (expand-file-name file topdir))
-        (setq default-directory
-              (let ((dir (file-name-directory magit-buffer-file-name)))
-                (if (file-exists-p dir) dir topdir)))
-        (setq-local revert-buffer-function #'magit-revert-rev-file-buffer)
-        (revert-buffer t t)
-        (run-hooks (if (equal rev "{index}")
-                       'magit-find-index-hook
-                     'magit-find-file-hook)))
-      (current-buffer))))
+then only after asking.  A non-nil value for REVERT is ignored if REV is
+\"{worktree}\"."
+  (if (equal rev "{worktree}")
+      (find-file-noselect (expand-file-name file (magit-toplevel)))
+    (let ((topdir (magit-toplevel)))
+      (when (file-name-absolute-p file)
+        (setq file (file-relative-name file topdir)))
+      (with-current-buffer (magit-get-revision-buffer-create rev file)
+        (when (or (not magit-buffer-file-name)
+                  (if (eq revert 'ask-revert)
+                      (y-or-n-p (format "%s already exists; revert it? "
+                                        (buffer-name))))
+                  revert)
+          (setq magit-buffer-revision
+                (if (equal rev "{index}")
+                    "{index}"
+                  (magit-rev-format "%H" rev)))
+          (setq magit-buffer-refname rev)
+          (setq magit-buffer-file-name (expand-file-name file topdir))
+          (setq default-directory
+                (let ((dir (file-name-directory magit-buffer-file-name)))
+                  (if (file-exists-p dir) dir topdir)))
+          (setq-local revert-buffer-function #'magit-revert-rev-file-buffer)
+          (revert-buffer t t)
+          (run-hooks (if (equal rev "{index}")
+                         'magit-find-index-hook
+                       'magit-find-file-hook)))
+        (current-buffer)))))
 
 (defun magit-get-revision-buffer-create (rev file)
   (magit-get-revision-buffer rev file t))
 
 (defun magit-get-revision-buffer (rev file &optional create)
   (funcall (if create 'get-buffer-create 'get-buffer)
-           (format "%s.~%s~" file (if (equal rev "")
-                                      "{index}"
-                                    (subst-char-in-string ?/ ?_ rev)))))
+           (format "%s.~%s~" file (subst-char-in-string ?/ ?_ rev))))
 
 (defun magit-revert-rev-file-buffer (_ignore-auto noconfirm)
   (when (or noconfirm
@@ -166,15 +165,19 @@ then only after asking."
                    (dolist (regexp revert-without-query)
                      (when (string-match regexp magit-buffer-file-name)
                        (throw 'found t)))))
-            (yes-or-no-p (format "Revert buffer from git %s? "
-                                 (if (equal magit-buffer-refname "") "{index}"
+            (yes-or-no-p (format "Revert buffer from Git %s? "
+                                 (if (equal magit-buffer-refname "{index}")
+                                     "index"
                                    (concat "revision " magit-buffer-refname)))))
     (let* ((inhibit-read-only t)
            (default-directory (magit-toplevel))
            (file (file-relative-name magit-buffer-file-name))
            (coding-system-for-read (or coding-system-for-read 'undecided)))
       (erase-buffer)
-      (magit-git-insert "cat-file" "-p" (concat magit-buffer-refname ":" file))
+      (magit-git-insert "cat-file" "-p"
+                        (if (equal magit-buffer-refname "{index}")
+                            (concat ":" file)
+                          (concat magit-buffer-refname ":" file)))
       (setq buffer-file-coding-system last-coding-system-used))
     (let ((buffer-file-name magit-buffer-file-name)
           (after-change-major-mode-hook
@@ -200,7 +203,7 @@ The current buffer has to be visiting a file in the index, which
 is done using `magit-find-index-noselect'."
   (interactive)
   (let ((file (magit-file-relative-name)))
-    (unless (equal magit-buffer-refname "")
+    (unless (equal magit-buffer-refname "{index}")
       (user-error "%s isn't visiting the index" file))
     (if (y-or-n-p (format "Update index with contents of %s" (buffer-name)))
         (let ((index (make-temp-file "index"))
@@ -474,7 +477,8 @@ staged as well as unstaged changes."
                                (magit-confirm-files 'untrack it "Untrack"))
                            (list (magit-read-tracked-file "Untrack file"))))
                      current-prefix-arg))
-  (magit-run-git "rm" "--cached" (and force "--force") "--" files))
+  (magit-with-toplevel
+    (magit-run-git "rm" "--cached" (and force "--force") "--" files)))
 
 (defun magit-file-delete (files &optional force)
   "Delete the selected FILES or one file read in the minibuffer.

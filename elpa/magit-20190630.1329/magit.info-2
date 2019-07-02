@@ -259,8 +259,8 @@ binding for ‘magit-file-dispatch’.
 
      This command shows the log for the file of blob that the current
      buffer visits.  Renames are followed when a prefix argument is used
-     or when ‘--follow’ is part of ‘magit-log-arguments’.  When the
-     region is active, the log is restricted to the selected line range.
+     or when ‘--follow’ is an active log argument.  When the region is
+     active, the log is restricted to the selected line range.
 
 ‘C-c M-g t’     (‘magit-log-trace-definition’)
 
@@ -565,10 +565,8 @@ is that Git first goes outside and has a smoke.
 not only by using ‘-<N>’ but by also using a range.  But unfortunately
 that’s not always possible.
 
-   In repositories with more than a few thousand commits ‘--graph’
-should never be a member of ‘magit-log-section-arguments’.  That
-variable is used in the status buffer which is refreshed every time you
-run any Magit command.
+   When more than a few thousand commits are shown, then the use of
+‘--graph’ can slow things down.
 
    Using ‘--color --graph’ is even slower.  Magit uses code that is part
 of Emacs to turn control characters into faces.  That code is pretty
@@ -2326,7 +2324,7 @@ Appendix C Keystroke Index
 * r s <1>:                               Rebasing.            (line 114)
 * r u:                                   Rebasing.            (line  37)
 * r w:                                   Rebasing.            (line  95)
-* RET:                                   References Buffer.   (line 174)
+* RET:                                   References Buffer.   (line 179)
 * RET <1>:                               Visiting Files and Blobs from a Diff.
                                                               (line   8)
 * RET <2>:                               Blaming.             (line  78)
@@ -2663,10 +2661,10 @@ Appendix D Command Index
                                                               (line 161)
 * magit-find-file:                       General-Purpose Visit Commands.
                                                               (line   9)
+* magit-find-file-other-frame:           General-Purpose Visit Commands.
+                                                              (line  21)
 * magit-find-file-other-window:          General-Purpose Visit Commands.
                                                               (line  15)
-* magit-find-file-other-window <1>:      General-Purpose Visit Commands.
-                                                              (line  21)
 * magit-git-command:                     Running Git Manually.
                                                               (line  25)
 * magit-git-command-topdir:              Running Git Manually.
@@ -2907,7 +2905,7 @@ Appendix D Command Index
                                                               (line  63)
 * magit-version:                         Git Executable.      (line  17)
 * magit-version <1>:                     Debugging Tools.     (line  10)
-* magit-visit-ref:                       References Buffer.   (line 174)
+* magit-visit-ref:                       References Buffer.   (line 179)
 * magit-wip-commit:                      Wip Modes.           (line  88)
 * magit-wip-log:                         Wip Modes.           (line  48)
 * magit-wip-log-current:                 Wip Modes.           (line  57)
@@ -3001,10 +2999,10 @@ Appendix E Function Index
                                                               (line 161)
 * magit-find-file:                       General-Purpose Visit Commands.
                                                               (line   9)
+* magit-find-file-other-frame:           General-Purpose Visit Commands.
+                                                              (line  21)
 * magit-find-file-other-window:          General-Purpose Visit Commands.
                                                               (line  15)
-* magit-find-file-other-window <1>:      General-Purpose Visit Commands.
-                                                              (line  21)
 * magit-generate-buffer-name-default-function: Naming Buffers.
                                                               (line  17)
 * magit-get-section:                     Matching Sections.   (line  16)
@@ -3064,7 +3062,7 @@ Appendix E Function Index
 * magit-insert-push-branch-header:       Status Header Sections.
                                                               (line  51)
 * magit-insert-rebase-sequence:          Status Sections.     (line  23)
-* magit-insert-recent-commits:           Status Sections.     (line 115)
+* magit-insert-recent-commits:           Status Sections.     (line 119)
 * magit-insert-remote-branches:          References Sections. (line  21)
 * magit-insert-remote-header:            Status Header Sections.
                                                               (line  67)
@@ -3081,11 +3079,11 @@ Appendix E Function Index
 * magit-insert-tags-header:              Status Header Sections.
                                                               (line  56)
 * magit-insert-tracked-files:            Status Sections.     (line  96)
-* magit-insert-unpulled-cherries:        Status Sections.     (line 126)
+* magit-insert-unpulled-cherries:        Status Sections.     (line 130)
 * magit-insert-unpulled-from-pushremote: Status Sections.     (line  79)
 * magit-insert-unpulled-from-upstream:   Status Sections.     (line  74)
-* magit-insert-unpulled-or-recent-commits: Status Sections.   (line 108)
-* magit-insert-unpushed-cherries:        Status Sections.     (line 133)
+* magit-insert-unpulled-or-recent-commits: Status Sections.   (line 112)
+* magit-insert-unpushed-cherries:        Status Sections.     (line 137)
 * magit-insert-unpushed-to-pushremote:   Status Sections.     (line  89)
 * magit-insert-unpushed-to-upstream:     Status Sections.     (line  84)
 * magit-insert-unstaged-changes:         Status Sections.     (line  59)
@@ -3101,7 +3099,7 @@ Appendix E Function Index
 * magit-log-maybe-update-revision-buffer: Section Movement.   (line  64)
 * magit-maybe-set-dedicated:             Switching Buffers.   (line 101)
 * magit-mode-display-buffer:             Refreshing Buffers.  (line  33)
-* magit-mode-quit-window:                Quitting Windows.    (line  31)
+* magit-mode-quit-window:                Quitting Windows.    (line  34)
 * magit-mode-setup:                      Refreshing Buffers.  (line  17)
 * magit-push-implicitly:                 Pushing.             (line  74)
 * magit-push-to-remote:                  Pushing.             (line  85)
@@ -3118,7 +3116,7 @@ Appendix E Function Index
 * magit-repolist-column-unpushed-to-upstream: Repository List.
                                                               (line  54)
 * magit-repolist-column-version:         Repository List.     (line  39)
-* magit-restore-window-configuration:    Quitting Windows.    (line  20)
+* magit-restore-window-configuration:    Quitting Windows.    (line  23)
 * magit-revert-buffers:                  Editing Commit Messages.
                                                               (line 178)
 * magit-run-git:                         Calling Git for Effect.
@@ -3231,7 +3229,7 @@ Appendix F Variable Index
 * magit-branch-prefer-remote-upstream:   Branch Commands.     (line 165)
 * magit-branch-read-upstream-first:      Branch Commands.     (line 159)
 * magit-buffer-name-format:              Naming Buffers.      (line  27)
-* magit-bury-buffer-function:            Quitting Windows.    (line  11)
+* magit-bury-buffer-function:            Quitting Windows.    (line  14)
 * magit-cherry-margin:                   Cherries.            (line  22)
 * magit-clone-always-transient:          Cloning Repository.  (line  12)
 * magit-clone-default-directory:         Cloning Repository.  (line  90)
@@ -3285,7 +3283,7 @@ Appendix F Variable Index
                                                               (line 118)
 * magit-log-margin:                      Log Margin.          (line  12)
 * magit-log-section-args:                Status Options.      (line  36)
-* magit-log-section-commit-count:        Status Sections.     (line 120)
+* magit-log-section-commit-count:        Status Sections.     (line 124)
 * magit-log-select-margin:               Select from Log.     (line  30)
 * magit-log-show-refname-after-summary:  Log Buffer.          (line  75)
 * magit-log-trace-definition-function:   Commands Available in Diffs.
@@ -3356,7 +3354,7 @@ Appendix F Variable Index
 * magit-unstage-committed:               Staging and Unstaging.
                                                               (line  56)
 * magit-update-other-window-delay:       Section Movement.    (line  89)
-* magit-visit-ref-behavior:              References Buffer.   (line 185)
+* magit-visit-ref-behavior:              References Buffer.   (line 190)
 * magit-wip-after-apply-mode:            Legacy Wip Modes.    (line  19)
 * magit-wip-after-apply-mode-lighter:    Legacy Wip Modes.    (line  59)
 * magit-wip-after-save-local-mode-lighter: Legacy Wip Modes.  (line  55)

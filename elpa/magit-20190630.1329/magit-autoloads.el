@@ -227,7 +227,15 @@ bisect run'.
 ;;;;;;  0))
 ;;; Generated autoloads from magit-bookmark.el
 
-(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "magit-bookmark" '("magit--")))
+(autoload 'magit--handle-bookmark "magit-bookmark" "\
+Open a bookmark created by `magit--make-bookmark'.
+Call the `magit-*-setup-buffer' function of the the major-mode
+with the variables' values as arguments, which were recorded by
+`magit--make-bookmark'.  Ignore `magit-display-buffer-function'.
+
+\(fn BOOKMARK)" nil nil)
+
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "magit-bookmark" '("magit--make-bookmark")))
 
 ;;;***
 
@@ -753,9 +761,9 @@ Run `gitk --all' in the current repository.
 (autoload 'ido-enter-magit-status "magit-extras" "\
 Drop into `magit-status' from file switching.
 
-This command does not work in Emacs 26.  It does work in Emacs 25
-and Emacs 27.  See https://github.com/magit/magit/issues/3634 and
-https://debbugs.gnu.org/cgi/bugreport.cgi?bug=31707.
+This command does not work in Emacs 26.1.
+See https://github.com/magit/magit/issues/3634
+and https://debbugs.gnu.org/cgi/bugreport.cgi?bug=31707.
 
 To make this command available use something like:
 
@@ -1045,7 +1053,7 @@ the line and column corresponding to that location.
 \(fn REV FILE)" t nil)
 
 (autoload 'magit-find-file-other-frame "magit-files" "\
-View FILE from REV, in another window.
+View FILE from REV, in another frame.
 Switch to a buffer visiting blob REV:FILE, creating one if none
 already exists.  If prior to calling this command the current
 buffer and/or cursor position is about the same file, then go to
@@ -1307,9 +1315,9 @@ Show log for all references and `HEAD'.
 
 (autoload 'magit-log-buffer-file "magit-log" "\
 Show log for the blob or file visited in the current buffer.
-With a prefix argument or when `--follow' is part of
-`magit-log-arguments', then follow renames.  When the region is
-active, restrict the log to the lines that the region touches.
+With a prefix argument or when `--follow' is an active log
+argument, then follow renames.  When the region is active,
+restrict the log to the lines that the region touches.
 
 \(fn &optional FOLLOW BEG END)" t nil)
 

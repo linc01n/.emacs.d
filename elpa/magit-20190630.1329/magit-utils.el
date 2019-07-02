@@ -69,7 +69,7 @@
 If you have enabled `ivy-mode' or `helm-mode', then you don't
 have to customize this option; `magit-builtin-completing-read'
 will work just fine.  However, if you use Ido completion, then
-you do have to use `magit-ido-completion-read', because Ido is
+you do have to use `magit-ido-completing-read', because Ido is
 less well behaved than the former, more modern alternatives.
 
 If you would like to use Ivy or Helm completion with Magit but
@@ -425,6 +425,9 @@ to t, otherwise nil.
 If it does read a value in the minibuffer, then this function
 acts similarly to `completing-read', except for the following:
 
+- COLLECTION must be a list of choices.  A function is not
+  supported.
+
 - If REQUIRE-MATCH is nil and the user exits without a choice,
   then nil is returned instead of an empty string.
 
@@ -570,7 +573,8 @@ drop-in replacement for `completing-read', instead we use
 same name."
   (if (require 'ido-completing-read+ nil t)
       (ido-completing-read+ prompt choices predicate require-match
-                            initial-input hist def)
+                            initial-input hist
+                            (or def (and require-match (car choices))))
     (display-warning 'magit "ido-completing-read+ is not installed
 
 To use Ido completion with Magit you need to install the
@@ -1069,20 +1073,19 @@ or (last of all) the value of EXP."
 
 ;;;###autoload
 (defun Info-follow-nearest-node--magit-gitman (fn &optional fork)
-  (if magit-view-git-manual-method
-      (let ((node (Info-get-token
-                   (point) "\\*note[ \n\t]+"
-                   "\\*note[ \n\t]+\\([^:]*\\):\\(:\\|[ \n\t]*(\\)?")))
-        (if (and node (string-match "^(gitman)\\(.+\\)" node))
-            (pcase magit-view-git-manual-method
-              (`man   (require 'man)
-                      (man (match-string 1 node)))
-              (`woman (require 'woman)
-                      (woman (match-string 1 node)))
-              (_
-               (user-error "Invalid value for `magit-view-git-manual-method'")))
-          (funcall fn fork)))
-    (funcall fn fork)))
+  (let ((node (Info-get-token
+               (point) "\\*note[ \n\t]+"
+               "\\*note[ \n\t]+\\([^:]*\\):\\(:\\|[ \n\t]*(\\)?")))
+    (if (and node (string-match "^(gitman)\\(.+\\)" node))
+        (pcase magit-view-git-manual-method
+          (`info  (funcall fn fork))
+          (`man   (require 'man)
+                  (man (match-string 1 node)))
+          (`woman (require 'woman)
+                  (woman (match-string 1 node)))
+          (_
+           (user-error "Invalid value for `magit-view-git-manual-method'")))
+      (funcall fn fork))))
 
 ;;;###autoload
 (advice-add 'Info-follow-nearest-node :around

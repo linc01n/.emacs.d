@@ -155,14 +155,26 @@ because the latter may make use of Imenu's outdated cache."
   :group 'magit-faces)
 
 (defface magit-log-author
-  '((((class color) (background light)) :foreground "firebrick")
-    (((class color) (background  dark)) :foreground "tomato"))
+  '((((class color) (background light))
+     :foreground "firebrick"
+     :slant normal
+     :weight normal)
+    (((class color) (background  dark))
+     :foreground "tomato"
+     :slant normal
+     :weight normal))
   "Face for the author part of the log output."
   :group 'magit-faces)
 
 (defface magit-log-date
-  '((((class color) (background light)) :foreground "grey30")
-    (((class color) (background  dark)) :foreground "grey80"))
+  '((((class color) (background light))
+     :foreground "grey30"
+     :slant normal
+     :weight normal)
+    (((class color) (background  dark))
+     :foreground "grey80"
+     :slant normal
+     :weight normal))
   "Face for the date part of the log output."
   :group 'magit-faces)
 
@@ -488,9 +500,7 @@ the upstream isn't ahead of the current branch) show."
   :class 'transient-option
   ;; For historic reasons (and because it easy to guess what "-n"
   ;; stands for) this is the only argument where we do not use the
-  ;; long argument ("--max-count").  If we did switch to the long
-  ;; argument, then that would cause breakage for users who have
-  ;; customized `magit-log-arguments'.
+  ;; long argument ("--max-count").
   :shortarg "-n"
   :argument "-n"
   :reader 'transient-read-number-N+)
@@ -614,9 +624,9 @@ completion candidates."
 ;;;###autoload
 (defun magit-log-buffer-file (&optional follow beg end)
   "Show log for the blob or file visited in the current buffer.
-With a prefix argument or when `--follow' is part of
-`magit-log-arguments', then follow renames.  When the region is
-active, restrict the log to the lines that the region touches."
+With a prefix argument or when `--follow' is an active log
+argument, then follow renames.  When the region is active,
+restrict the log to the lines that the region touches."
   (interactive
    (cons current-prefix-arg
          (and (region-active-p)
@@ -1307,31 +1317,35 @@ The shortstat style is experimental and rather slow."
   (magit-set-buffer-margin nil t))
 
 (defun magit-log-format-margin (rev author date)
-  (when-let ((option (magit-margin-option)))
+  (when (magit-margin-option)
     (if magit-log-margin-show-shortstat
         (magit-log-format-shortstat-margin rev)
-      (pcase-let ((`(,_ ,style ,width ,details ,details-width)
-                   (or magit-buffer-margin
-                       (symbol-value option))))
-        (magit-make-margin-overlay
-         (concat (and details
-                      (concat (propertize (truncate-string-to-width
-                                           (or author "")
-                                           details-width
-                                           nil ?\s (make-string 1 magit-ellipsis))
-                                          'face 'magit-log-author)
-                              " "))
-                 (propertize
-                  (if (stringp style)
-                      (format-time-string
-                       style
-                       (seconds-to-time (string-to-number date)))
-                    (pcase-let* ((abbr (eq style 'age-abbreviated))
-                                 (`(,cnt ,unit) (magit--age date abbr)))
-                      (format (format (if abbr "%%2i%%-%ic" "%%2i %%-%is")
-                                      (- width (if details (1+ details-width) 0)))
-                              cnt unit)))
-                  'face 'magit-log-date)))))))
+      (magit-log-format-author-margin author date))))
+
+(defun magit-log-format-author-margin (author date &optional previous-line)
+  (pcase-let ((`(,_ ,style ,width ,details ,details-width)
+               (or magit-buffer-margin
+                   (symbol-value (magit-margin-option)))))
+    (magit-make-margin-overlay
+     (concat (and details
+                  (concat (propertize (truncate-string-to-width
+                                       (or author "")
+                                       details-width
+                                       nil ?\s (make-string 1 magit-ellipsis))
+                                      'face 'magit-log-author)
+                          " "))
+             (propertize
+              (if (stringp style)
+                  (format-time-string
+                   style
+                   (seconds-to-time (string-to-number date)))
+                (pcase-let* ((abbr (eq style 'age-abbreviated))
+                             (`(,cnt ,unit) (magit--age date abbr)))
+                  (format (format (if abbr "%%2i%%-%ic" "%%2i %%-%is")
+                                  (- width (if details (1+ details-width) 0)))
+                          cnt unit)))
+              'face 'magit-log-date))
+     previous-line)))
 
 (defun magit-log-format-shortstat-margin (rev)
   (magit-make-margin-overlay
