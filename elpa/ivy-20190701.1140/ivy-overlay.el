@@ -79,6 +79,7 @@ Then attach the overlay to the character before point."
   (overlay-put ivy-overlay-at 'after-string ""))
 
 (declare-function org-current-level "org")
+(declare-function org-at-heading-p "org")
 (defvar org-indent-indentation-per-level)
 (defvar ivy-height)
 (defvar ivy-last)
@@ -130,11 +131,13 @@ Hide the minibuffer contents and cursor."
                           (+
                            (if (and (eq major-mode 'org-mode)
                                     (bound-and-true-p org-indent-mode))
-                               ;; (* org-indent-indentation-per-level (org-current-level))
-                               1
+                               (if (org-at-heading-p)
+                                   (1- (org-current-level))
+                                 (* org-indent-indentation-per-level (org-current-level)))
                              0)
                            (save-excursion
-                             (goto-char ivy-completion-beg)
+                             (when ivy-completion-beg
+                               (goto-char ivy-completion-beg))
                              (current-column)))))))))
         (let ((cursor-offset (1+ (length ivy-text))))
           (ivy-add-face-text-property cursor-offset (1+ cursor-offset)
