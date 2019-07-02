@@ -8,10 +8,10 @@
 ;;         Dmitry Gutov <dgutov@yandex.ru>
 ;;         Kyle Hargraves <pd@krh.me>
 ;; URL: http://github.com/nonsequitur/inf-ruby
-;; Package-Version: 20190219.1147
+;; Package-Version: 20190609.1126
 ;; Created: 8 April 1998
 ;; Keywords: languages ruby
-;; Version: 2.5.1
+;; Version: 2.5.2
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -273,7 +273,6 @@ The following commands are available:
     (set (make-local-variable 'smie-backward-token-function)
          #'inf-ruby-smie--backward-token))
   (add-hook 'comint-output-filter-functions 'inf-ruby-output-filter nil t)
-  (add-hook 'comint-output-filter-functions 'ansi-color-process-output nil t)
   (setq comint-get-old-input 'inf-ruby-get-old-input)
   (set (make-local-variable 'compilation-error-regexp-alist)
        inf-ruby-error-regexp-alist)
