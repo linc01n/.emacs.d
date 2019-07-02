@@ -134,6 +134,13 @@ current evil state.
 
 \(fn)" t nil)
 
+(autoload 'which-key-dump-bindings "which-key" "\
+Dump bindings from PREFIX into buffer named BUFFER-NAME.
+
+PREFIX should be a string suitable for `kbd'.
+
+\(fn PREFIX BUFFER-NAME)" t nil)
+
 (autoload 'which-key-undo-key "which-key" "\
 Undo last keypress and force which-key update.
 
