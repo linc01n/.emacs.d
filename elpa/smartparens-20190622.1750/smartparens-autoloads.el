@@ -271,7 +271,7 @@ Turn off `show-smartparens-mode'.
 ;;;;;;  0 0))
 ;;; Generated autoloads from smartparens-org.el
 
-(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "smartparens-org" '("sp--org-skip-asterisk")))
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "smartparens-org" '("sp-")))
 
 ;;;***
 
