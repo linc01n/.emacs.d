@@ -4,8 +4,8 @@
 
 ;; Author:            Adam Sokolnicki <adam.sokolnicki@gmail.com>
 ;; URL:               https://github.com/asok/projectile-rails
-;; Package-Version: 20190421.1901
-;; Version:           0.17.0
+;; Package-Version: 20190706.1231
+;; Version:           0.18.0
 ;; Keywords:          rails, projectile
 ;; Package-Requires:  ((emacs "24.3") (projectile "0.12.0") (inflections "1.1") (inf-ruby "2.2.6") (f "0.13.0") (rake "0.3.2"))
 
@@ -271,6 +271,11 @@
   "When set it will be use instead of a preloader as the command for running destroy."
   :group 'projectile-rails
   :type 'string)
+
+(defcustom projectile-rails-expand-snippet-with-magic-comment nil
+  "When t the new file snippets will be expanded with the magic comment 'frozen_string_literal: true'. "
+  :group 'projectile-rails
+  :type 'boolean)
 
 (defvar projectile-rails-extracted-region-snippet
   '(("erb"  . "<%%= render '%s' %%>")
@@ -931,6 +936,10 @@ This only works when yas package is installed."
 (defun projectile-rails--expand-snippet (snippet)
   "Turn on `yas-minor-mode' and expand SNIPPET."
   (yas-minor-mode +1)
+
+  (when projectile-rails-expand-snippet-with-magic-comment
+    (setq snippet (format "# frozen_string_literal: true\n\n%s" snippet)))
+
   (yas-expand-snippet snippet))
 
 (defun projectile-rails-expand-corresponding-snippet ()
