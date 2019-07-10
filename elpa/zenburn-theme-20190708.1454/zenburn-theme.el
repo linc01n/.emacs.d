@@ -4,7 +4,7 @@
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: http://github.com/bbatsov/zenburn-emacs
-;; Package-Version: 20190510.934
+;; Package-Version: 20190708.1454
 ;; Version: 2.7-snapshot
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -1402,7 +1402,7 @@ Also bind `class' to ((class color) (min-colors 89))."
    `(speedbar-separator-face ((t (:foreground ,zenburn-bg :background ,zenburn-blue-1))))
    `(speedbar-tag-face ((t (:foreground ,zenburn-yellow))))
 ;;;;; swiper
-   `(swiper-isearch-current-match ((t (:foreground ,zenburn-bg :background ,zenburn-blue-1))))
+   `(swiper-line-face ((t (:underline t))))
 ;;;;; sx
    `(sx-custom-button
      ((t (:background ,zenburn-fg :foreground ,zenburn-bg-1
