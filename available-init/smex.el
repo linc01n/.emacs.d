@@ -1,5 +1,5 @@
 (req-package smex
-  :bind ("M-x" . smex)
+  :bind ("M-m" . smex)
   :config
   (progn
     (smex-initialize)))
