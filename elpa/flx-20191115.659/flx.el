@@ -7,7 +7,7 @@
 ;; Description: fuzzy matching with good sorting
 ;; Created: Wed Apr 17 01:01:41 2013 (+0800)
 ;; Version: 0.6.1
-;; Package-Version: 20151030.1812
+;; Package-Version: 20191115.659
 ;; Package-Requires: ((cl-lib "0.3"))
 ;; URL: https://github.com/lewang/flx
 
@@ -231,11 +231,11 @@ See documentation for logic."
       sorted-list))
 
 (defun flx-make-filename-cache ()
-  "Return cache hashtable appropraite for storing filenames."
+  "Return cache hashtable appropriate for storing filenames."
   (flx-make-string-cache 'flx-get-heatmap-file))
 
 (defun flx-make-string-cache (&optional heat-func)
-  "Return cache hashtable appropraite for storing strings."
+  "Return cache hashtable appropriate for storing strings."
   (let ((hash (make-hash-table :test 'equal
                                :size 4096)))
     (puthash 'heatmap-func (or heat-func 'flx-get-heatmap-str) hash)
