@@ -100,7 +100,7 @@ Defaults to `error'."
 Like `with-temp-buffer', but resets the modification state of the
 temporary buffer to make sure that it is properly killed even if
 it has a backing file and is modified."
-  (declare (indent 0))
+  (declare (indent 0) (debug t))
   `(with-temp-buffer
      (unwind-protect
          ,(macroexp-progn body)
@@ -115,7 +115,7 @@ it has a backing file and is modified."
 
 BODY is evaluated with `current-buffer' being a buffer with the
 contents FILE-NAME."
-  (declare (indent 1))
+  (declare (indent 1) (debug t))
   `(let ((file-name ,file-name))
      (unless (file-exists-p file-name)
        (error "%s does not exist" file-name))
@@ -300,7 +300,7 @@ failed, and the test aborted with failure.")
   (let ((starttime (float-time)))
     (while (and (not flycheck-ert-syntax-checker-finished)
                 (< (- (float-time) starttime) flycheck-ert-checker-wait-time))
-      (sleep-for 1))
+      (accept-process-output nil 0.02))
     (unless (< (- (float-time) starttime) flycheck-ert-checker-wait-time)
       (flycheck-stop)
       (signal 'flycheck-ert-syntax-check-timed-out nil)))
@@ -310,8 +310,9 @@ failed, and the test aborted with failure.")
   "Like `flycheck-buffer', but synchronously."
   (setq flycheck-ert-syntax-checker-finished nil)
   (should (not (flycheck-running-p)))
-  (flycheck-mode)                       ; This will only start a deferred check,
-  (flycheck-buffer)                     ; so we need an explicit manual check
+  (flycheck-mode) ;; This will only start a deferred check,
+  (should (flycheck-get-checker-for-buffer))
+  (flycheck-buffer) ;; …so we need an explicit manual check
   ;; After starting the check, the checker should either be running now, or
   ;; already be finished (if it was fast).
   (should (or flycheck-current-syntax-check
@@ -404,6 +405,37 @@ check that the buffer has all ERRORS, and no other errors."
 
 (define-error 'flycheck-ert-suspicious-checker "Suspicious state from checker")
 
+(defun flycheck-ert-should-syntax-check-in-buffer (&rest errors)
+  "Test a syntax check in BUFFER, expecting ERRORS.
+
+This is like `flycheck-ert-should-syntax-check', but with a
+buffer in the right mode instead of a file."
+  ;; Load safe file-local variables because some tests depend on them
+  (let ((enable-local-variables :safe)
+        ;; Disable all hooks at this place, to prevent 3rd party packages
+        ;; from interfering
+        (hack-local-variables-hook))
+    (hack-local-variables))
+  ;; Configure config file locating for unit tests
+  (let ((process-hook-called 0)
+        (suspicious nil))
+    (add-hook 'flycheck-process-error-functions
+              (lambda (_err)
+                (setq process-hook-called (1+ process-hook-called))
+                nil)
+              nil :local)
+    (add-hook 'flycheck-status-changed-functions
+              (lambda (status)
+                (when (eq status 'suspicious)
+                  (setq suspicious t)))
+              nil :local)
+    (flycheck-ert-buffer-sync)
+    (when suspicious
+      (signal 'flycheck-ert-suspicious-checker nil))
+    (apply #'flycheck-ert-should-errors errors)
+    (should (= process-hook-called (length errors))))
+  (flycheck-ert-ensure-clear))
+
 (defun flycheck-ert-should-syntax-check (resource-file modes &rest errors)
   "Test a syntax check in RESOURCE-FILE with MODES.
 
@@ -432,27 +464,7 @@ resource directory."
       (ert-skip (format "%S missing" mode)))
     (flycheck-ert-with-resource-buffer resource-file
       (funcall mode)
-      ;; Load safe file-local variables because some tests depend on them
-      (let ((enable-local-variables :safe)
-            ;; Disable all hooks at this place, to prevent 3rd party packages
-            ;; from interfering
-            (hack-local-variables-hook))
-        (hack-local-variables))
-      ;; Configure config file locating for unit tests
-      (let ((process-hook-called 0))
-        (add-hook 'flycheck-process-error-functions
-                  (lambda (_err)
-                    (setq process-hook-called (1+ process-hook-called))
-                    nil)
-                  nil :local)
-        (add-hook 'flycheck-status-changed-functions
-                  (lambda (status)
-                    (when (eq status 'suspicious)
-                      (signal 'flycheck-ert-suspicious-checker nil))))
-        (flycheck-ert-buffer-sync)
-        (apply #'flycheck-ert-should-errors errors)
-        (should (= process-hook-called (length errors))))
-      (flycheck-ert-ensure-clear))))
+      (apply #'flycheck-ert-should-syntax-check-in-buffer errors))))
 
 (defun flycheck-ert-at-nth-error (n)
   "Determine whether point is at the N'th Flycheck error.
