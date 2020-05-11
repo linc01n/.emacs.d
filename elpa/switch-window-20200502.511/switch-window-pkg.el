@@ -1,4 +1,4 @@
-(define-package "switch-window" "20181104.340" "A *visual* way to switch window"
+(define-package "switch-window" "20200502.511" "A *visual* way to switch window"
   '((emacs "24"))
   :keywords
   '("convenience")
