@@ -4,7 +4,7 @@
 
 ;; Author: Artur Malabarba <emacs@endlessparentheses.com>
 ;; URL: https://github.com/Malabarba/aggressive-indent-mode
-;; Package-Version: 20190218.2331
+;; Package-Version: 20200421.1149
 ;; Version: 1.8.4
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Keywords: indent lisp maint tools
@@ -395,7 +395,7 @@ or messages."
   "Indent the regions in `aggressive-indent--changed-list'."
   (unless (or (run-hook-wrapped 'aggressive-indent--internal-dont-indent-if #'eval)
               (aggressive-indent--run-user-hooks))
-    (let ((inhibit-modification-hooks t)
+    (let ((after-change-functions (remove 'aggressive-indent--keep-track-of-changes after-change-functions))
           (inhibit-point-motion-hooks t)
           (indent-function
            (if (cl-member-if #'derived-mode-p aggressive-indent-modes-to-prefer-defun)
@@ -460,17 +460,18 @@ If BODY finishes, `while-no-input' returns whatever value BODY produced."
              nil)
             (t val)))))))
 
-(defun aggressive-indent--indent-if-changed ()
-  "Indent any region that changed in the last command loop."
-  (if (not (buffer-live-p (current-buffer)))
-      (cancel-timer aggressive-indent--idle-timer)
-    (when (and aggressive-indent-mode aggressive-indent--changed-list)
-      (save-excursion
-        (save-selected-window
-          (aggressive-indent--while-no-input
-            (aggressive-indent--proccess-changed-list-and-indent))))
-      (when (timerp aggressive-indent--idle-timer)
-        (cancel-timer aggressive-indent--idle-timer)))))
+(defun aggressive-indent--indent-if-changed (buffer)
+  "Indent any region that changed in BUFFER in the last command loop."
+  (with-current-buffer buffer
+    (if (not (buffer-live-p (current-buffer)))
+        (cancel-timer aggressive-indent--idle-timer)
+      (when (and aggressive-indent-mode aggressive-indent--changed-list)
+        (save-excursion
+          (save-selected-window
+            (aggressive-indent--while-no-input
+              (aggressive-indent--proccess-changed-list-and-indent))))
+        (when (timerp aggressive-indent--idle-timer)
+          (cancel-timer aggressive-indent--idle-timer))))))
 
 (defun aggressive-indent--keep-track-of-changes (l r &rest _)
   "Store the limits (L and R) of each change in the buffer."
@@ -479,7 +480,13 @@ If BODY finishes, `while-no-input' returns whatever value BODY produced."
     (when (timerp aggressive-indent--idle-timer)
       (cancel-timer aggressive-indent--idle-timer))
     (setq aggressive-indent--idle-timer
-          (run-with-idle-timer aggressive-indent-sit-for-time t #'aggressive-indent--indent-if-changed))))
+          (run-with-idle-timer aggressive-indent-sit-for-time t #'aggressive-indent--indent-if-changed (current-buffer)))))
+
+(defun aggressive-indent--on-buffer-kill ()
+  "Cancel the timer before buffer is killed"
+  (when (timerp aggressive-indent--idle-timer)
+    (cancel-timer aggressive-indent--idle-timer)
+    (setq aggressive-indent--idle-timer nil)))
 
 ;;; Minor modes
 ;;;###autoload
@@ -510,14 +517,16 @@ If BODY finishes, `while-no-input' returns whatever value BODY produced."
           (aggressive-indent--local-electric t))
         (add-hook 'after-change-functions #'aggressive-indent--keep-track-of-changes nil 'local)
         (add-hook 'after-revert-hook #'aggressive-indent--clear-change-list nil 'local)
-        (add-hook 'before-save-hook #'aggressive-indent--proccess-changed-list-and-indent nil 'local))
+        (add-hook 'before-save-hook #'aggressive-indent--proccess-changed-list-and-indent nil 'local)
+        (add-hook 'kill-buffer-hook #'aggressive-indent--on-buffer-kill nil 'local))
     ;; Clean the hooks
     (when (timerp aggressive-indent--idle-timer)
       (cancel-timer aggressive-indent--idle-timer))
     (remove-hook 'after-change-functions #'aggressive-indent--keep-track-of-changes 'local)
     (remove-hook 'after-revert-hook #'aggressive-indent--clear-change-list 'local)
     (remove-hook 'before-save-hook #'aggressive-indent--proccess-changed-list-and-indent 'local)
-    (remove-hook 'post-command-hook #'aggressive-indent--softly-indent-defun 'local)))
+    (remove-hook 'post-command-hook #'aggressive-indent--softly-indent-defun 'local)
+    (remove-hook 'kill-buffer-hook #'aggressive-indent--on-buffer-kill 'local)))
 
 (defun aggressive-indent--local-electric (on)
   "Turn variable `electric-indent-mode' on or off locally, as per boolean ON."
