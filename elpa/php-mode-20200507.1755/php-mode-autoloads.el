@@ -26,6 +26,11 @@ Insert current namespace if cursor in namespace context.
 
 \(fn)" t nil)
 
+(autoload 'php-copyit-fqsen "php" "\
+Copy/kill class/method FQSEN.
+
+\(fn)" t nil)
+
 (autoload 'php-run-builtin-web-server "php" "\
 Run PHP Built-in web server.
 
@@ -38,7 +43,29 @@ When `DOCUMENT-ROOT' is NIL, the document root is obtained from `ROUTER-OR-DIR'.
 
 \(fn ROUTER-OR-DIR HOSTNAME PORT &optional DOCUMENT-ROOT)" t nil)
 
+(autoload 'php-find-system-php-ini-file "php" "\
+Find php.ini FILE by `php --ini'.
+
+\(fn &optional FILE)" t nil)
+
 (if (fboundp 'register-definition-prefixes) (register-definition-prefixes "php" '("php-")))
+
+;;;***
+
+;;;### (autoloads nil "php-align" "php-align.el" (0 0 0 0))
+;;; Generated autoloads from php-align.el
+
+(autoload 'php-align-setup "php-align" "\
+Setup alignment configuration for PHP code.
+
+\(fn)" nil nil)
+
+(autoload 'php-align-mode "php-align" "\
+Alignment lines for PHP script.
+
+\(fn &optional ARG)" t nil)
+
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "php-align" '("php-align-")))
 
 ;;;***
 
@@ -68,6 +95,8 @@ Major mode for editing PHP code.
 \(fn)" t nil)
 
 (add-to-list 'auto-mode-alist '("/\\.php_cs\\(?:\\.dist\\)?\\'" . php-mode))
+
+(add-to-list 'auto-mode-alist '("\\.\\(?:php\\.inc\\|stub\\)\\'" . php-mode))
 
 (add-to-list 'auto-mode-alist '("\\.\\(?:php[s345]?\\|phtml\\)\\'" . php-mode-maybe))
 
@@ -102,6 +131,10 @@ STRING
 
 (put 'php-project-root 'safe-local-variable #'(lambda (v) (or (stringp v) (assq v php-project-available-root-files))))
 
+(defvar-local php-project-etags-file nil)
+
+(put 'php-project-etags-file 'safe-local-variable #'(lambda (v) (or (functionp v) (eq v t) (php-project--eval-bootstrap-scripts v))))
+
 (defvar-local php-project-bootstrap-scripts nil "\
 List of path to bootstrap php script file.
 
@@ -126,6 +159,11 @@ Symbol value of the coding style of the project that PHP major mode refers to.
 Typically it is `pear', `drupal', `wordpress', `symfony2' and `psr2'.")
 
 (put 'php-project-coding-style 'safe-local-variable #'symbolp)
+
+(defvar-local php-project-align-lines t "\
+If T, automatically turn on `php-align-mode' by `php-align-setup'.")
+
+(put 'php-project-align-lines 'safe-local-variable #'booleanp)
 
 (defvar-local php-project-php-file-as-template 'auto "\
 
@@ -181,6 +219,14 @@ Return path to current PHP project.
 \(fn)" nil nil)
 
 (if (fboundp 'register-definition-prefixes) (register-definition-prefixes "php-project" '("php-project-")))
+
+;;;***
+
+;;;### (autoloads nil "php-util-buffer" "php-util-buffer.el" (0 0
+;;;;;;  0 0))
+;;; Generated autoloads from php-util-buffer.el
+
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "php-util-buffer" '("php-util-buffer-")))
 
 ;;;***
 

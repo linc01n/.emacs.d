@@ -1,10 +1,10 @@
 ;;; php-face.el --- Face definitions for PHP script  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019  Friends of Emacs-PHP development
+;; Copyright (C) 2020  Friends of Emacs-PHP development
 
 ;; Author: USAMI Kenta <tadsan@zonu.me>
 ;; Created: 5 May 2019
-;; Version: 1.21.4
+;; Version: 1.23.0
 ;; Keywords: faces, php
 ;; Homepage: https://github.com/emacs-php/php-mode
 ;; Package-Requires: ((emacs "24.3"))
@@ -56,7 +56,7 @@
   :group 'php-faces
   :tag "PHP Function Name")
 
-(defface php-function-call '((t (:inherit default)))
+(defface php-function-call '((t ()))
   "PHP Mode face used to highlight function names in calles."
   :group 'php-faces
   :tag "PHP Function Call")
@@ -81,17 +81,52 @@
   :group 'php-faces
   :tag "PHP Property Name")
 
-(defface php-variable-sigil '((t (:inherit default)))
+(defface php-variable-sigil '((t ()))
   "PHP Mode face used to highlight variable sigils ($)."
   :group 'php-faces
   :tag "PHP Variable Sigil")
 
-(defface php-object-op '((t (:inherit default)))
+(defface php-operator '((t ()))
+  "PHP Mode face used to operators."
+  :group 'php-faces
+  :tag "PHP Operator")
+
+(defface php-assignment-op '((t (:inherit php-operator)))
+  "PHP Mode face used to assignment operators (=, +=, ...)."
+  :group 'php-faces
+  :tag "PHP Object Op")
+
+(defface php-comparison-op '((t (:inherit php-operator)))
+  "PHP Mode face used to comparison operators (==, !=, ===, ...)."
+  :group 'php-faces
+  :tag "PHP Comparison Op")
+
+(defface php-logical-op '((t (:inherit php-operator)))
+  "PHP Mode face used to logical operators (&&, ||, ?:)."
+  :group 'php-faces
+  :tag "PHP Logical Op")
+
+(defface php-arithmetic-op '((t (:inherit php-operator)))
+  "PHP Mode face used to arithmetic operators (+, -, %, ...)."
+  :group 'php-faces
+  :tag "PHP Arithmetic Op")
+
+(defface php-inc-dec-op '((t (:inherit php-operator)))
+  "PHP Mode face used to increment and decremt operators (--, ++)."
+  :group 'php-faces
+  :tag "PHP Increment/Decrement Op")
+
+(defface php-string-op '((t (:inherit php-operator)))
+  "PHP Mode face used to logical operators (.)."
+  :group 'php-faces
+  :tag "PHP String Op")
+
+(defface php-object-op '((t (:inherit php-operator)))
   "PHP Mode face used to object operators (->)."
   :group 'php-faces
   :tag "PHP Object Op")
 
-(defface php-paamayim-nekudotayim '((t (:inherit default)))
+(defface php-paamayim-nekudotayim '((t ()))
   "PHP Mode face used to highlight \"Paamayim Nekudotayim\" scope resolution operators (::)."
   :group 'php-faces
   :tag "PHP Paamayim Nekudotayim")
@@ -131,7 +166,7 @@
   :group 'php-faces
   :tag "PHP $this Sigil")
 
-(defface php-errorcontrol-op '((t (:inherit  font-lock-type-face)))
+(defface php-errorcontrol-op '((t (:inherit font-lock-type-face)))
   "PHP Mode face used to highlight errorcontrol operators (@).."
   :group 'php-faces
   :tag "PHP ErrorControl Op")
@@ -162,9 +197,49 @@
   :tag "PHPDoc $this Sigil")
 
 (defface php-doc-class-name '((t (:inherit php-string)))
-  "Face used to class names in doc-comment."
+  "PHP Mode Face used to class names in doc-comment."
   :group 'php-faces
   :tag "PHPDoc Class Name")
+
+(defface php-class-declaration '((t (:inherit php-keyword)))
+  "PHP Mode Face used to class declarations."
+  :group 'php-faces
+  :tag "PHP Class Declaration")
+
+(defface php-class-declaration-spec '((t (:inherit php-keyword)))
+  "PHP Mode Face used to highlight class declaration specification keywords (implements, extends)"
+  :group 'php-faces
+  :tag "PHP Class Declaration Specification")
+
+(defface php-namespace-declaration '((t (:inherit php-keyword)))
+  "PHP Mode Face used to highlight namespace declaration keyword."
+  :group 'php-faces
+  :tag "PHP Namespace Declaration")
+
+(defface php-import-declaration '((t (:inherit php-keyword)))
+  "PHP Mode Face used to highlight import statements (use ... as ...)."
+  :group 'php-faces
+  :tag "PHP Import Statement")
+
+(defface php-class-modifier '((t (:inherit php-keyword)))
+  "PHP Mode Face used to highlight class modifiers (final, abstract)."
+  :group 'php-faces
+  :tag "PHP Class Modifier")
+
+(defface php-method-modifier '((t (:inherit php-keyword)))
+  "PHP Mode Face used to highlight method modifiers (final, abstract)."
+  :group 'php-faces
+  :tag "PHP Method Modifier")
+
+(defface php-visibility-modifier '((t (:inherit php-keyword)))
+  "PHP Mode Face used to highlight access keywords (public, protected, private)."
+  :group 'php-faces
+  :tag "PHP Visibility Modifier")
+
+(defface php-control-structure '((t (:inherit php-keyword)))
+  "PHP Mode Face used to highlight control structures (if, foreach, while, switch, catch...)."
+  :group 'php-faces
+  :tag "PHP Control Structure")
 
 (define-obsolete-face-alias 'php-annotations-annotation-face 'php-doc-annotation-tag "1.19.0")
 
