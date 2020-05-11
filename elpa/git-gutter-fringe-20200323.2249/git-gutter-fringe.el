@@ -1,10 +1,11 @@
 ;;; git-gutter-fringe.el --- Fringe version of git-gutter.el -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2014 by Syohei YOSHIDA
+;; Copyright (C) 2014-2020 Syohei YOSHIDA and Neil Okamoto
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
-;; URL: https://github.com/syohex/emacs-git-gutter-fringe
-;; Package-Version: 20170113.533
+;; Maintainer: Neil Okamoto <neil.okamoto+melpa@gmail.com>
+;; URL: https://github.com/emacsorphanage/git-gutter-fringe
+;; Package-Version: 20200323.2249
 ;; Version: 0.23
 ;; Package-Requires: ((git-gutter "0.88") (fringe-helper "0.1.1") (cl-lib "0.5") (emacs "24"))
 
@@ -23,8 +24,8 @@
 
 ;;; Commentary:
 
-;; Show git diff information in fringe. You can use this package
-;; only GUI Emacs, not working no window emacs.
+;; Show git diff information in fringe.  You can use this package
+;; only with GUI Emacs, not in a terminal Emacs.
 
 ;; To use this package, add following code to your init.el or .emacs
 ;;
@@ -45,22 +46,22 @@
 (require 'fringe-helper)
 
 (defface git-gutter-fr:modified
-    '((t (:inherit (git-gutter:modified fringe))))
+  '((t (:inherit (git-gutter:modified fringe))))
   "Face of modified"
   :group 'git-gutter)
 
 (defface git-gutter-fr:added
-    '((t (:inherit (git-gutter:added fringe))))
+  '((t (:inherit (git-gutter:added fringe))))
   "Face of added"
   :group 'git-gutter)
 
 (defface git-gutter-fr:deleted
-    '((t (:inherit (git-gutter:deleted fringe))))
+  '((t (:inherit (git-gutter:deleted fringe))))
   "Face of deleted"
   :group 'git-gutter)
 
 (defcustom git-gutter-fr:side 'left-fringe
-  "Side of show diff information"
+  "Side of show diff information."
   :type '(choice (const :tag "Right Fringe" right-fringe)
                  (const :tag "Left Fringe" left-fringe))
   :group 'git-gutter)
@@ -98,21 +99,25 @@
 (defvar git-gutter-fr:bitmap-references nil)
 
 (defsubst git-gutter-fr:select-sign (type)
+  "Choose fringe sign for this TYPE of diff."
   (cl-case type
     (modified 'git-gutter-fr:modified)
     (added    'git-gutter-fr:added)
     (deleted  'git-gutter-fr:deleted)))
 
 (defsubst git-gutter-fr:select-face (type)
+  "Choose fringe face for this TYPE of diff."
   (cl-case type
     (modified 'git-gutter-fr:modified)
     (added    'git-gutter-fr:added)
     (deleted  'git-gutter-fr:deleted)))
 
 (defun git-gutter-fr:init ()
+  "Set up buffer local variables for fringe display."
   (make-local-variable 'git-gutter-fr:bitmap-references))
 
 (defun git-gutter-fr:view-diff-infos (diffinfos)
+  "Insert fringe bitmaps for the diffs in DIFFINFOS."
   (when git-gutter-fr:bitmap-references
     (git-gutter:clear-gutter))
   (save-excursion
@@ -148,6 +153,7 @@
 ;;  t)
 
 (defun git-gutter-fr:clear ()
+  "Clear fringe bitmaps."
   (dolist (ov (overlays-in (point-min) (point-max)))
     (when (or (overlay-get ov 'git-gutter)
               (let ((parent (overlay-get ov 'fringe-helper-parent)))
@@ -168,3 +174,9 @@
 (provide 'git-gutter-fringe)
 
 ;;; git-gutter-fringe.el ends here
+
+
+;; Local Variables:
+;; fill-column: 80
+;; indent-tabs-mode: nil
+;; End:
