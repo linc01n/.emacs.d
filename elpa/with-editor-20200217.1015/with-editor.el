@@ -1,6 +1,6 @@
 ;;; with-editor.el --- Use the Emacsclient as $EDITOR -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2019  The Magit Project Contributors
+;; Copyright (C) 2014-2020  The Magit Project Contributors
 ;;
 ;; You should have received a copy of the AUTHORS.md file.  If not,
 ;; see https://github.com/magit/with-editor/blob/master/AUTHORS.md.
@@ -86,7 +86,10 @@
 (require 'shell)
 
 (and (require 'async-bytecomp nil t)
-     (memq 'magit (bound-and-true-p async-bytecomp-allowed-packages))
+     (let ((pkgs (bound-and-true-p async-bytecomp-allowed-packages)))
+       (if (consp pkgs)
+           (cl-intersection '(all magit) pkgs)
+         (memq pkgs '(all t))))
      (fboundp 'async-bytecomp-package-mode)
      (async-bytecomp-package-mode 1))
 
@@ -98,6 +101,7 @@
 (declare-function dired-get-filename 'dired)
 (declare-function term-emulate-terminal 'term)
 (defvar eshell-preoutput-filter-functions)
+(defvar git-commit-post-finish-hook)
 
 ;;; Options
 
@@ -173,7 +177,7 @@ please see https://github.com/magit/magit/wiki/Emacsclient."))))
 
 (defcustom with-editor-sleeping-editor "\
 sh -c '\
-echo \"WITH-EDITOR: $$ OPEN $0 IN $(pwd)\"; \
+printf \"WITH-EDITOR: $$ OPEN $0\\037 IN $(pwd)\\n\"; \
 sleep 604800 & sleep=$!; \
 trap \"kill $sleep; exit 0\" USR1; \
 trap \"kill $sleep; exit 1\" USR2; \
@@ -207,7 +211,7 @@ performant implementation:
   trap \\\"exit 1\" USR2; \\
   while true; do sleep 1; done'\"
 
-Note that the unit seperator character () right after the file
+Note that the unit separator character () right after the file
 name ($0) is required.
 
 Also note that using this alternative implementation leads to a
@@ -340,7 +344,7 @@ And some tools that do not handle $EDITOR properly also break."
       (with-temp-buffer
         (setq default-directory dir)
         (setq-local with-editor-post-finish-hook post-finish-hook)
-        (when (bound-and-true-p git-commit-post-finish-hook)
+        (when post-commit-hook
           (setq-local git-commit-post-finish-hook post-commit-hook))
         (run-hooks 'with-editor-post-finish-hook)))))
 
@@ -432,23 +436,36 @@ And some tools that do not handle $EDITOR properly also break."
 (put 'with-editor-mode 'permanent-local t)
 
 (defun with-editor-kill-buffer-noop ()
-  (if (memq this-command '(save-buffers-kill-terminal
-                           save-buffers-kill-emacs))
-      (let ((with-editor-cancel-query-functions nil))
-        (with-editor-cancel nil)
-        t)
-    (user-error (substitute-command-keys "\
-Don't kill this buffer.  Instead cancel using \\[with-editor-cancel]"))))
+  ;; We started doing this in response to #64, but it is not safe
+  ;; to do so, because the client has already been killed, causing
+  ;; `with-editor-return' (called by `with-editor-cancel') to delete
+  ;; the file, see #66.  The reason we delete the file in the first
+  ;; place are https://github.com/magit/magit/issues/2258 and
+  ;; https://github.com/magit/magit/issues/2248.
+  ;; (if (memq this-command '(save-buffers-kill-terminal
+  ;;                          save-buffers-kill-emacs))
+  ;;     (let ((with-editor-cancel-query-functions nil))
+  ;;       (with-editor-cancel nil)
+  ;;       t)
+  ;;   ...)
+  ;; So go back to always doing this instead:
+  (user-error (substitute-command-keys (format "\
+Don't kill this buffer %S.  Instead cancel using \\[with-editor-cancel]"
+                                               (current-buffer)))))
+
+(defvar-local with-editor-usage-message "\
+Type \\[with-editor-finish] to finish, \
+or \\[with-editor-cancel] to cancel")
 
 (defun with-editor-usage-message ()
   ;; Run after `server-execute', which is run using
   ;; a timer which starts immediately.
-  (run-with-timer
-   0.01 nil `(lambda ()
-               (with-current-buffer ,(current-buffer)
-                 (message (substitute-command-keys "\
-Type \\[with-editor-finish] to finish, \
-or \\[with-editor-cancel] to cancel"))))))
+  (let ((buffer (current-buffer)))
+    (run-with-timer
+     0.05 nil
+     (lambda ()
+       (with-current-buffer buffer
+         (message (substitute-command-keys with-editor-usage-message)))))))
 
 ;;; Wrappers
 
@@ -566,7 +583,7 @@ the appropriate editor environment variable."
 (defun with-editor-set-process-filter (process filter)
   "Like `set-process-filter' but keep `with-editor-process-filter'.
 Give PROCESS the new FILTER but keep `with-editor-process-filter'
-if that was added earlier by the adviced `start-file-process'.
+if that was added earlier by the advised `start-file-process'.
 
 Do so by wrapping the two filter functions using a lambda, which
 becomes the actual filter.  It calls `with-editor-process-filter'
