@@ -1,7 +1,7 @@
 This is transient.info, produced by makeinfo version 6.5 from
 transient.texi.
 
-     Copyright (C) 2018-2019 Jonas Bernoulli <jonas@bernoul.li>
+     Copyright (C) 2018-2020 Jonas Bernoulli <jonas@bernoul.li>
 
      You can redistribute this document and/or modify it under the terms
      of the GNU General Public License as published by the Free Software
@@ -44,9 +44,9 @@ reading a new value in the minibuffer.
    Calling a suffix command usually causes the transient to be exited
 but suffix commands can also be configured to not exit the transient.
 
-This manual is for Transient version 0.1.0 (v0.1.0-115-gad7f255+1).
+This manual is for Transient version 0.2.0 (v0.2.0-1-gafa0c2f+1).
 
-     Copyright (C) 2018-2019 Jonas Bernoulli <jonas@bernoul.li>
+     Copyright (C) 2018-2020 Jonas Bernoulli <jonas@bernoul.li>
 
      You can redistribute this document and/or modify it under the terms
      of the GNU General Public License as published by the Free Software
@@ -184,7 +184,7 @@ looks a bit like this:
      |
      |Create
      | t tag
-     | r telease
+     | r release
      `-----------------------------------------
 
      This is a simplified version of ‘magit-tag’.  Info manuals do not
@@ -672,7 +672,8 @@ File: transient.info,  Node: Other Options,  Next: Modifying Existing Transients
 
      If ‘line’ (the default), then the buffer also has no mode-line, but
      a thin line is drawn instead, using the background color of the
-     face ‘transient-separator’.
+     face ‘transient-separator’.  Termcap frames cannot display thin
+     lines and therefore fallback to treating ‘line’ like ‘nil’.
 
      Otherwise this can be any mode-line format.  See *note (elisp)Mode
      Line Format:: for details.
@@ -711,7 +712,7 @@ File: transient.info,  Node: Other Options,  Next: Modifying Existing Transients
 
      This function is called with one argument, the prefix object, and
      must return a key binding description, either the existing key
-     description it finds in the ‘key’ slot, or key description that
+     description it finds in the ‘key’ slot, or the key description that
      replaces the prefix key.  It could be used to make other
      substitutions, but that is discouraged.
 
@@ -739,6 +740,14 @@ File: transient.info,  Node: Other Options,  Next: Modifying Existing Transients
      multiple suffixes to share a common key binding, provided the
      predicates of those suffixes prevent that more than one of them is
      enabled at a time.
+
+ -- User Option: transient-force-fixed-pitch
+
+     This option controls whether to force the use of a monospaced font
+     in popup buffer.  Even if you use a proportional font for the
+     ‘default’ face, you might still want to use a monospaced font in
+     transient’s popup buffer.  Setting this option to t causes
+     ‘default’ to be remapped to ‘fixed-pitch’ in that buffer.
 
 
 File: transient.info,  Node: Modifying Existing Transients,  Next: Defining New Commands,  Prev: Other Options,  Up: Top
@@ -1458,7 +1467,7 @@ File: transient.info,  Node: Group Methods,  Next: Prefix Classes,  Prev: Group 
 
      Functions that are called by this function may need to operate in
      the buffer from which the transient was called.  To do so they can
-     temporally make the ‘transient--source-buffer’ the current buffer.
+     temporarily make the ‘transient--source-buffer’ the current buffer.
 
 
 File: transient.info,  Node: Prefix Classes,  Next: Suffix Classes,  Prev: Group Methods,  Up: Classes and Methods
@@ -2362,66 +2371,67 @@ Appendix E Variable Index
                                                               (line  32)
 * transient-default-level:               Enabling and Disabling Suffixes.
                                                               (line  38)
-* transient-detect-key-conflicts:        Other Options.       (line 136)
+* transient-detect-key-conflicts:        Other Options.       (line 137)
 * transient-display-buffer-action:       Other Options.       (line  46)
 * transient-enable-popup-navigation:     Other Options.       (line  28)
-* transient-highlight-mismatched-keys:   Other Options.       (line  95)
+* transient-force-fixed-pitch:           Other Options.       (line 151)
+* transient-highlight-mismatched-keys:   Other Options.       (line  96)
 * transient-history-file:                Using History.       (line  33)
 * transient-history-limit:               Using History.       (line  38)
 * transient-levels-file:                 Enabling and Disabling Suffixes.
                                                               (line  44)
 * transient-mode-line-format:            Other Options.       (line  71)
-* transient-read-with-initial-input:     Other Options.       (line  87)
+* transient-read-with-initial-input:     Other Options.       (line  88)
 * transient-show-common-commands:        Common Suffix Commands.
                                                               (line  23)
 * transient-show-popup:                  Other Options.       (line   6)
-* transient-substitute-key-function:     Other Options.       (line 114)
+* transient-substitute-key-function:     Other Options.       (line 115)
 * transient-values-file:                 Saving Values.       (line  30)
 
 
 
 Tag Table:
 Node: Top751
-Node: Introduction3675
-Node: Usage9462
-Node: Invoking Transients9796
-Node: Aborting and Resuming Transients10828
-Node: Common Suffix Commands13487
-Node: Saving Values15241
-Ref: Saving Values-Footnote-116499
-Node: Using History16769
-Node: Getting Help for Suffix Commands18310
-Node: Enabling and Disabling Suffixes19703
-Node: Other Commands22993
-Node: Other Options23949
-Node: Modifying Existing Transients30563
-Node: Defining New Commands33967
-Node: Defining Transients34303
-Node: Binding Suffix and Infix Commands36735
-Node: Group Specifications37590
-Node: Suffix Specifications40923
-Node: Defining Suffix and Infix Commands44490
-Node: Using Infix Arguments47675
-Node: Transient State49895
-Node: Classes and Methods55768
-Node: Group Classes57982
-Node: Group Methods59899
-Node: Prefix Classes60544
-Node: Suffix Classes61636
-Node: Suffix Methods63880
-Node: Suffix Value Methods64201
-Node: Suffix Format Methods66961
-Node: Prefix Slots68413
-Node: Suffix Slots70890
-Node: Predicate Slots73741
-Node: Related Abstractions and Packages74989
-Node: Comparison With Prefix Keys and Prefix Arguments75276
-Node: Comparison With Other Packages85588
-Node: FAQ89779
-Node: Keystroke Index93513
-Node: Command Index95147
-Node: Function Index96934
-Node: Variable Index101091
+Node: Introduction3673
+Node: Usage9460
+Node: Invoking Transients9794
+Node: Aborting and Resuming Transients10826
+Node: Common Suffix Commands13485
+Node: Saving Values15239
+Ref: Saving Values-Footnote-116497
+Node: Using History16767
+Node: Getting Help for Suffix Commands18308
+Node: Enabling and Disabling Suffixes19701
+Node: Other Commands22991
+Node: Other Options23947
+Node: Modifying Existing Transients31071
+Node: Defining New Commands34475
+Node: Defining Transients34811
+Node: Binding Suffix and Infix Commands37243
+Node: Group Specifications38098
+Node: Suffix Specifications41431
+Node: Defining Suffix and Infix Commands44998
+Node: Using Infix Arguments48183
+Node: Transient State50403
+Node: Classes and Methods56276
+Node: Group Classes58490
+Node: Group Methods60407
+Node: Prefix Classes61053
+Node: Suffix Classes62145
+Node: Suffix Methods64389
+Node: Suffix Value Methods64710
+Node: Suffix Format Methods67470
+Node: Prefix Slots68922
+Node: Suffix Slots71399
+Node: Predicate Slots74250
+Node: Related Abstractions and Packages75498
+Node: Comparison With Prefix Keys and Prefix Arguments75785
+Node: Comparison With Other Packages86097
+Node: FAQ90288
+Node: Keystroke Index94022
+Node: Command Index95656
+Node: Function Index97443
+Node: Variable Index101600
 
 End Tag Table
 
