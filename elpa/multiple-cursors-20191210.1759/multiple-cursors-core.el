@@ -109,6 +109,19 @@
     (and (listp cursor-type)
          (eq (car cursor-type) 'bar))))
 
+(defun mc/line-number-at-pos (&optional pos absolute)
+  "Faster implementation of `line-number-at-pos'."
+  (if pos
+      (save-excursion
+        (if absolute
+            (save-restriction
+              (widen)
+              (goto-char pos)
+              (string-to-number (format-mode-line "%l")))
+          (goto-char pos)
+          (string-to-number (format-mode-line "%l"))))
+    (string-to-number (format-mode-line "%l"))))
+
 (defun mc/make-cursor-overlay-at-eol (pos)
   "Create overlay to look like cursor at end of line."
   (let ((overlay (make-overlay pos pos nil nil nil)))
@@ -594,7 +607,7 @@ from being executed if in multiple-cursors-mode."
     (when interprogram-paste
       ;; Add interprogram-paste to normal kill ring, just
       ;; like current-kill usually does for itself.
-      ;; We have to do the work for it tho, since the funcall only returns
+      ;; We have to do the work for it though, since the funcall only returns
       ;; something once. It is not a pure function.
       (let ((interprogram-cut-function nil))
         (if (listp interprogram-paste)
