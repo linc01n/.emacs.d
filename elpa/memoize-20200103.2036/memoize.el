@@ -4,7 +4,7 @@
 
 ;; Author: Christopher Wellons <mosquitopsu@gmail.com>
 ;; URL: https://github.com/skeeto/emacs-memoize
-;; Package-Version: 20180614.1930
+;; Package-Version: 20200103.2036
 ;; Version: 1.1
 
 ;;; Commentary:
@@ -19,7 +19,7 @@
 ;; `defmemoize' defines a memoized function directly, behaving just
 ;; like `defun'.
 
-;;     (defmemoize my-expensive-function (x)
+;;     (defmemoize my-expensive-function (n)
 ;;       (if (zerop n)
 ;;           1
 ;;         (* n (my-expensive-function (1- n)))))
@@ -37,7 +37,7 @@
 ;; Memoization takes up memory, which should be freed at some point.
 ;; Because of this, all memoization has a timeout from when the last
 ;; access was. The default timeout is set by
-;; `memoize-default-timeout'.  It can be overriden by using the
+;; `memoize-default-timeout'.  It can be overridden by using the
 ;; `memoize' function, but the `defmemoize' macro will always just use
 ;; the default timeout.
 
@@ -114,7 +114,7 @@ care."
 (defmacro defmemoize (name arglist &rest body)
   "Create a memoize'd function. NAME, ARGLIST, DOCSTRING and BODY
 have the same meaning as in `defun'."
-  (declare (indent defun))
+  (declare (indent 2) (doc-string 3) (debug defun))
   `(progn
      (defun ,name ,arglist
        ,@body)
