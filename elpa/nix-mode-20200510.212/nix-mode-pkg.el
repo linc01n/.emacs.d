@@ -1,5 +1,5 @@
-(define-package "nix-mode" "20190703.526" "Major mode for editing .nix files"
-  '((emacs "24.3"))
+(define-package "nix-mode" "20200510.212" "Major mode for editing .nix files"
+  '((emacs "25"))
   :keywords
   '("nix" "languages" "tools" "unix")
   :maintainer
