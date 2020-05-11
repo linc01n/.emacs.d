@@ -33,10 +33,10 @@ https://github.com/DarwinAwardWinner/ido-completing-read-plus/issues")
 (custom-autoload 'ido-cr+-replace-completely "ido-completing-read+" t)
 
 (defsubst ido-cr+-active nil "\
-Returns non-nil if ido-cr+ is currently using the minibuffer." (>= ido-cr+-minibuffer-depth (minibuffer-depth)))
+Return non-nil if ido-cr+ is currently using the minibuffer." (>= ido-cr+-minibuffer-depth (minibuffer-depth)))
 
 (autoload 'ido-completing-read+ "ido-completing-read+" "\
-ido-based method for reading from the minibuffer with completion.
+Ido-based method for reading from the minibuffer with completion.
 
 See `completing-read' for the meaning of the arguments.
 
@@ -44,6 +44,8 @@ This function is a wrapper for `ido-completing-read' designed to
 be used as the value of `completing-read-function'. Importantly,
 it detects edge cases that ido cannot handle and uses normal
 completion for them.
+
+See `completing-read' for the meaning of the arguments.
 
 \(fn PROMPT COLLECTION &optional PREDICATE REQUIRE-MATCH INITIAL-INPUT HIST DEF INHERIT-INPUT-METHOD)" nil nil)
 
