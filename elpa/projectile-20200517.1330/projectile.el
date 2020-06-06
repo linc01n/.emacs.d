@@ -4,7 +4,8 @@
 
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: https://github.com/bbatsov/projectile
-;; Package-Version: 20200507.650
+;; Package-Version: 20200517.1330
+;; Package-Commit: 7e552b6d876014ca5b4609318ca8a202b2a89014
 ;; Keywords: project, convenience
 ;; Version: 2.2.0-snapshot
 ;; Package-Requires: ((emacs "25.1") (pkg-info "0.4"))
@@ -292,31 +293,38 @@ If variable `projectile-project-name' is non-nil, this function will not be used
   :package-version '(projectile . "0.14.0"))
 
 (defcustom projectile-project-root-files
-  '("rebar.config"       ; Rebar project file
-    "project.clj"        ; Leiningen project file
-    "build.boot"         ; Boot-clj project file
-    "deps.edn"           ; Clojure CLI project file
-    "SConstruct"         ; Scons project file
-    "pom.xml"            ; Maven project file
-    "build.sbt"          ; SBT project file
-    "gradlew"            ; Gradle wrapper script
-    "build.gradle"       ; Gradle project file
+  '(
     ".ensime"            ; Ensime configuration file
+    "Cargo.toml"         ; Cargo project file
+    "DESCRIPTION"        ; R package description file
     "Gemfile"            ; Bundler file
+    "SConstruct"         ; Scons project file
+    "WORKSPACE"          ; Bazel project file
+    "build.boot"         ; Boot-clj project file
+    "build.gradle"       ; Gradle project file
+    "build.sbt"          ; SBT project file
+    "composer.json"      ; Composer project file
+    "default.nix"        ; Nix
+    "deps.edn"           ; Clojure CLI project file
+    "go.mod"             ; golang default package root as of 1.13
+    "gradlew"            ; Gradle wrapper script
+    "info.rkt"           ; Racket package description file
+    "meson.build"        ; Meson
+    "mix.exs"            ; Elixir mix project file
+    "pom.xml"            ; Maven project file
+    "project.clj"        ; Leiningen project file
+    "pyproject.toml"     ; Python project file
+    "rebar.config"       ; Rebar project file
     "requirements.txt"   ; Pip file
     "setup.py"           ; Setuptools file
-    "pyproject.toml"     ; Python project file
-    "tox.ini"            ; Tox file
-    "composer.json"      ; Composer project file
-    "Cargo.toml"         ; Cargo project file
-    "mix.exs"            ; Elixir mix project file
     "stack.yaml"         ; Haskell's stack tool based project
-    "info.rkt"           ; Racket package description file
-    "DESCRIPTION"        ; R package description file
-    "TAGS"               ; etags/ctags are usually in the root of project
+    "tox.ini"            ; Tox file
+    ;; More generic markers are at the end of the list as
+    ;; they might exist alongside other project markers
     "GTAGS"              ; GNU Global tags
-    "configure.in"       ; autoconf old style
+    "TAGS"               ; etags/ctags are usually in the root of project
     "configure.ac"       ; autoconf new style
+    "configure.in"       ; autoconf old style
     "cscope.out"         ; cscope
     )
   "A list of files considered to mark the root of a project.
@@ -358,6 +366,16 @@ containing a root file."
   "A list of functions for finding project roots."
   :group 'projectile
   :type '(repeat function))
+
+(defcustom projectile-dirconfig-comment-prefix
+  nil
+  "Projectile config file (.projectile) comment start marker.
+If specified, starting a line in a project's .projectile file with this
+character marks that line as a comment instead of a pattern.
+Similar to '#' in .gitignore files."
+  :group 'projectile
+  :type 'character
+  :package-version '(projectile . "2.2.0"))
 
 (defcustom projectile-globally-ignored-files
   (list projectile-tags-file-name)
@@ -729,6 +747,14 @@ position."
           (const :tag "Remove" remove)
           (const :tag "Move to end" move-to-end)
           (const :tag "Keep" keep)))
+
+(defcustom projectile-max-file-buffer-count nil
+  "Maximum number of file buffers per project that are kept open.
+
+If the value is nil, there is no limit to the opend buffers count."
+  :group 'projectile
+  :type 'integer
+  :package-version '(projectile . "2.2.0"))
 
 
 ;;; Version information
@@ -1756,7 +1782,13 @@ prefix the string will be assumed to be an ignore string."
         (insert-file-contents dirconfig)
         (while (not (eobp))
           (pcase (char-after)
-            (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
+	    ;; ignore comment lines if prefix char has been set
+	    ((pred (lambda (leading-char)
+		     (and projectile-dirconfig-comment-prefix
+			  (eql leading-char
+			       projectile-dirconfig-comment-prefix))))
+	     nil)
+	    (?+ (push (buffer-substring (1+ (point)) (line-end-position)) keep))
             (?- (push (buffer-substring (1+ (point)) (line-end-position)) ignore))
             (?! (push (buffer-substring (1+ (point)) (line-end-position)) ensure))
             (_ (push (buffer-substring (point) (line-end-position)) ignore)))
@@ -2538,6 +2570,7 @@ test/impl/other files as below:
        (not (projectile-verify-file "stack.yaml"))))
 
 (defun projectile-dotnet-project-p ()
+  "Check if a project contains a .NET project marker."
   (or (projectile-verify-file-wildcard "?*.csproj")
       (projectile-verify-file-wildcard "?*.fsproj")))
 
@@ -2546,11 +2579,11 @@ test/impl/other files as below:
   (or (projectile-verify-file "go.mod")
       (projectile-verify-file-wildcard "*.go")))
 
-(define-obsolete-variable-alias 'projectile-go-function 'projectile-go-project-test-function "1.0.0")
 (defcustom projectile-go-project-test-function #'projectile-go-project-p
   "Function to determine if project's type is go."
   :group 'projectile
-  :type 'function)
+  :type 'function
+  :package-version '(projectile . "1.0.0"))
 
 ;;; Project type registration
 ;;
@@ -2562,6 +2595,9 @@ test/impl/other files as below:
 ;; it should be listed first).
 ;;
 ;; Ideally common project types should be checked earlier than exotic ones.
+;;
+;; NOTE: If a project type has some project root file marker (e.g. pom.xml) it
+;; should be added to `projectile-project-root-files' as well.
 
 ;; Function-based detection project type
 (projectile-register-project-type 'haskell-cabal #'projectile-cabal-project-p
@@ -2592,6 +2628,11 @@ test/impl/other files as below:
 (projectile-register-project-type 'nix '("default.nix")
                                   :compile "nix-build"
                                   :test "nix-build")
+(projectile-register-project-type 'bazel '("WORKSPACE")
+                                  :compile "bazel build"
+                                  :test "bazel test"
+                                  :run "bazel run")
+
 ;; Make & CMake
 (projectile-register-project-type 'make '("Makefile")
                                   :compile "make"
@@ -2677,10 +2718,12 @@ test/impl/other files as below:
                                   :compile "grails package"
                                   :test "grails test-app"
                                   :test-suffix "Spec")
+;; Scala
 (projectile-register-project-type 'sbt '("build.sbt")
                                   :compile "sbt compile"
                                   :test "sbt test"
                                   :test-suffix "Spec")
+;; Clojure
 (projectile-register-project-type 'lein-test '("project.clj")
                                   :compile "lein compile"
                                   :test "lein test"
@@ -4722,6 +4765,7 @@ thing shown in the mode line otherwise."
 The function does pretty much nothing when triggered on remote files
 as all the operations it normally performs are extremely slow over
 tramp."
+  (projectile-maybe-limit-project-file-buffers)
   (unless (file-remote-p default-directory)
     (when projectile-dynamic-mode-line
       (projectile-update-mode-line))
@@ -4729,6 +4773,16 @@ tramp."
       (projectile-cache-files-find-file-hook))
     (projectile-track-known-projects-find-file-hook)
     (projectile-visit-project-tags-table)))
+
+(defun projectile-maybe-limit-project-file-buffers ()
+  "Limit the opened file buffers for a project.
+
+The function simply kills the last buffer, as it's normally called
+when opening new files."
+  (when projectile-max-file-buffer-count
+    (let ((project-buffers (projectile-project-buffer-files)))
+      (when (> (length project-buffers) projectile-max-file-buffer-count)
+        (kill-buffer (car (last project-buffers)))))))
 
 ;;;###autoload
 (define-minor-mode projectile-mode
