@@ -154,7 +154,7 @@ Switch to another buffer in another window.
 ;;;### (autoloads nil "ivy-avy" "ivy-avy.el" (0 0 0 0))
 ;;; Generated autoloads from ivy-avy.el
 
-(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "ivy-avy" '("ivy-")))
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "ivy-avy" '("ivy-avy")))
 
 ;;;***
 
