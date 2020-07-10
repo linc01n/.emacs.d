@@ -1,7 +1,7 @@
-(define-package "robe" "20190521.58" "Code navigation, documentation lookup and completion for Ruby"
+(define-package "robe" "20200628.1225" "Code navigation, documentation lookup and completion for Ruby"
   '((inf-ruby "2.5.1")
     (emacs "24.4"))
-  :keywords
+  :commit "082da38797d247f9c64568ad712a345e041d5c84" :keywords
   '("ruby" "convenience" "rails")
   :authors
   '(("Dmitry Gutov"))
