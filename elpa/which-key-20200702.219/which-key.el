@@ -5,7 +5,8 @@
 ;; Author: Justin Burkett <justin@burkett.cc>
 ;; Maintainer: Justin Burkett <justin@burkett.cc>
 ;; URL: https://github.com/justbur/emacs-which-key
-;; Package-Version: 20200216.1350
+;; Package-Version: 20200702.219
+;; Package-Commit: 8f2427a69bc0388ddfb14a10eaf71e589f3b0913
 ;; Version: 3.3.2
 ;; Keywords:
 ;; Package-Requires: ((emacs "24.4"))
@@ -1664,8 +1665,7 @@ ORIGINAL-DESCRIPTION is the description given by
                                 (max (floor (* (frame-width) 0.8))))
                            (if (> (length str) max)
                                (concat (substring str 0 max) "...")
-                             str))))))
-      desc)))
+                             str)))))))))
 
 (defun which-key--extract-key (key-str)
   "Pull the last key (or key range) out of KEY-STR."
