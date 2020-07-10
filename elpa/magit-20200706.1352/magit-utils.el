@@ -100,10 +100,12 @@ alphabetical order, depending on your version of Ivy."
     (forge-browse-pullreq     nil t)
     (forge-edit-topic-title   nil t)
     (forge-edit-topic-state   nil t)
+    (forge-edit-topic-milestone nil t)
     (forge-edit-topic-labels  nil t)
     (forge-edit-topic-marks   nil t)
     (forge-edit-topic-assignees nil t)
     (forge-edit-topic-review-requests nil t)
+    (forge-edit-topic-note    nil t)
     (forge-pull-pullreq       nil t)
     (forge-visit-issue        nil t)
     (forge-visit-pullreq      nil t))
@@ -1104,6 +1106,23 @@ the %s(1) manpage.
 (advice-add 'org-man-export :around
             'org-man-export--magit-gitman)
 
+;;; Kludges for Package Managers
+
+(defun magit--straight-chase-links (filename)
+  "Chase links in FILENAME until a name that is not a link.
+
+This is the same as `file-chase-links', except that it also
+handles fake symlinks that are created by the package manager
+straight.el on Windows.
+
+See <https://github.com/raxod502/straight.el/issues/520>."
+  (when (and (bound-and-true-p straight-symlink-emulation-mode)
+             (fboundp 'straight-chase-emulated-symlink))
+    (when-let ((target (straight-chase-emulated-symlink filename)))
+      (unless (eq target 'broken)
+        (setq filename target))))
+  (file-chase-links filename))
+
 ;;; Bitmaps
 
 (when (fboundp 'define-fringe-bitmap)
@@ -1187,7 +1206,7 @@ Like `message', except that `message-log-max' is bound to nil."
      (save-excursion
        (save-restriction
          (widen)
-         (goto-char ,pos)
+         (goto-char (or ,pos 1))
          ,@body))))
 
 ;;; _
