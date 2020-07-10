@@ -1,7 +1,7 @@
-(define-package "js2-mode" "20200601.2018" "Improved JavaScript editing mode"
+(define-package "js2-mode" "20200610.1339" "Improved JavaScript editing mode"
   '((emacs "24.1")
     (cl-lib "0.5"))
-  :commit "5049e543b52099e6ea3e9bc915fc023d5a9b2644" :keywords
+  :commit "90e1434146988e855ade79c5acefc156f6420d7a" :keywords
   '("languages" "javascript")
   :authors
   '(("Steve Yegge" . "steve.yegge@gmail.com")
