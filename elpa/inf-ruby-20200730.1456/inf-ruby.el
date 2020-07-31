@@ -8,8 +8,8 @@
 ;;         Dmitry Gutov <dgutov@yandex.ru>
 ;;         Kyle Hargraves <pd@krh.me>
 ;; URL: http://github.com/nonsequitur/inf-ruby
-;; Package-Version: 20200612.1632
-;; Package-Commit: f3c927c1b917a20ce6b2228d480db43171aadd9b
+;; Package-Version: 20200730.1456
+;; Package-Commit: 9f0f79ff459c7c417e8931ca020db121e24b45b5
 ;; Created: 8 April 1998
 ;; Keywords: languages ruby
 ;; Version: 2.5.2
@@ -647,6 +647,8 @@ Then switch to the process buffer."
                    "      OpenStruct.new(:line_buffer => line)) if old_wp;"
                    "    if defined?(_pry_.complete) then"
                    "      puts _pry_.complete(expr)"
+                   "    elsif defined?(pry_instance.complete) then"
+                   "      puts pry_instance.complete(expr)"
                    "    else"
                    "      completer = if defined?(_pry_) then"
                    "        Pry.config.completer.build_completion_proc(binding, _pry_)"
@@ -861,7 +863,11 @@ automatically."
     (inf-ruby-console-run
      (concat (when with-bundler "bundle exec ")
              "rails console -e "
-             env)
+             env
+             ;; Note: this only has effect in Rails < 5.0 or >= 5.1.4
+             ;; https://github.com/rails/rails/pull/29010
+             (when (inf-ruby--irb-needs-nomultiline-p)
+               " -- --nomultiline"))
      "rails")))
 
 (defun inf-ruby-console-rails-env ()
